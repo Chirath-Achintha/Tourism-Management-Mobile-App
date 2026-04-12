@@ -54,7 +54,8 @@ node -v
 Open the project folder in VS Code.
 
 Navigate to:
-mobile/tourism-app
+mobile/tourism-app by runnnig this on terminal
+ cd mobile/tourism-app
 
 3️⃣ Install Dependencies
 
