@@ -56,7 +56,7 @@ export default function IndexScreen() {
 
   return (
     <ImageBackground
-      source={require("../assets/home/home-page.jpg")}
+      source={require("../assets/home/background.jpg")}
       style={styles.background}
       resizeMode="cover"
     >
