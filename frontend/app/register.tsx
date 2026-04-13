@@ -67,6 +67,7 @@ export default function RegisterScreen() {
           phoneNumber: normalizedPhone,
           password,
           confirmPassword,
+          role: "tourist",
         }),
       });
 
@@ -82,8 +83,10 @@ export default function RegisterScreen() {
       await AsyncStorage.setItem(AUTH_TOKEN_KEY, data.token);
       await AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(data.user));
 
-      router.replace("/(tabs)" as never);
-    } catch {
+      // Use a more explicit route to ensure the dashboard loads
+      router.replace("/(tabs)/" as never);
+    } catch (error) {
+      console.error("Registration error:", error);
       Alert.alert("Network Error", "Could not connect to backend. Check your server and IP.");
     } finally {
       setIsSubmitting(false);

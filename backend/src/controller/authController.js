@@ -19,13 +19,14 @@ const createAuthResponse = (user) => {
       fullName: user.fullName,
       email: user.email,
       phoneNumber: user.phoneNumber,
+      role: user.role,
     },
   };
 };
 
 export const registerUser = async (req, res) => {
   try {
-    const { fullName, email, phoneNumber, password, confirmPassword } = req.body;
+    const { fullName, email, phoneNumber, password, confirmPassword, role } = req.body;
 
     if (!fullName || !email || !phoneNumber || !password || !confirmPassword) {
       return res.status(400).json({ message: "All fields are required." });
@@ -61,6 +62,7 @@ export const registerUser = async (req, res) => {
       email: email.toLowerCase(),
       phoneNumber,
       password: hashedPassword,
+      role: role || "tourist",
     });
 
     return res.status(201).json({
