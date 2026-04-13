@@ -1,98 +1,93 @@
-# Tourism-Management-Mobile-App
+# 🌍 Tourism Management Mobile App
 
-🌍 Tourism Management Mobile App
-📌 Project Overview
+A premium full-stack mobile application built using the MERN stack with Expo (React Native). This platform allows users to explore tourist destinations, book tours, and manage travel-related services with ease.
 
-This is a mobile application built using Expo (React Native).
+## 🏗️ Project Architecture
 
-The app allows users to explore tourist destinations, book tours, and manage travel-related services.
-Currently, we are developing the frontend (UI) first before connecting to the backend.
+The project is organized into two main directories for a clean separation of concerns:
 
-🛠️ Technologies Used
-Expo (React Native)
-JavaScript / TypeScript
-Expo Router (for navigation)
-
-------------------------------------------------------
-Project Structure
-
-mobile/tourism-app/
-├── app/                  # Screens (Expo Router)
-│   ├── (tabs)/           # Main app after login
-│   ├── index.tsx         # Welcome screen
-│   ├── login.tsx
-│   ├── register.tsx
-│   ├── _layout.tsx
+```text
+Tourism-Management-Mobile-App/
+├── backend/            # Node.js + Express + MongoDB Server
+│   ├── src/            # Backend source code
+│   ├── .env            # Environment variables
+│   └── server.js       # Entry point
 │
-├── components/           # Reusable components
-│   ├── AppButton.tsx
-│
-├── constants/            # Design system
-│   ├── colors.ts
-│   ├── spacing.ts
-│   ├── typography.ts
-│
-├── styles/               # Screen styles
-│   ├── welcome.styles.ts
-│
-├── package.json
+└── frontend/           # Expo (React Native) Mobile Application
+    ├── app/            # Screens (Expo Router)
+    ├── components/     # Reusable UI components
+    ├── constants/      # Design system (Colors, Spacing)
+    └── styles/         # Global & Screen styles
+```
 
-------------------------------------------------------
-🚀 How to Run This Project
+---
 
-Follow these steps carefully:
+## 🛠️ Technologies Used
 
-1️⃣ Install Node.js
+### Frontend
+- **Framework**: Expo (React Native)
+- **Language**: TypeScript / JavaScript
+- **Navigation**: Expo Router (File-based routing)
+- **Styling**: Native CSS-in-JS
 
-Make sure you have Node.js installed (version 18 or 20 recommended).
+### Backend
+- **Runtime**: Node.js
+- **Framework**: Express.js
+- **Database**: MongoDB (Mongoose)
+- **Auth**: JSON Web Tokens (JWT) & Bcrypt
 
-Check version:
-node -v
+---
 
-2️⃣ Open the Project
+## 🚀 Getting Started
 
-Open the project folder in VS Code.
+### 1️⃣ Prerequisites
+- **Node.js**: Version 18 or 20 recommended.
+- **Expo Go App**: Download on your [iOS](https://apps.apple.com/app/expo-go/id982107779) or [Android](https://play.google.com/store/apps/details?id=host.exp.exponent) device.
 
-Navigate to:
-mobile/tourism-app by runnnig this on terminal
- cd mobile/tourism-app
+### 2️⃣ Backend Setup
+1. Navigate to the backend folder:
+   ```bash
+   cd backend
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Configure your `.env` file with your MongoDB connection string.
+4. Start the server:
+   ```bash
+   npm run dev
+   ```
 
-3️⃣ Install Dependencies
+### 3️⃣ Frontend Setup
+1. Navigate to the frontend folder:
+   ```bash
+   cd frontend
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Start the Expo development server:
+   ```bash
+   npx expo start
+   ```
+4. Scan the QR code with your phone using the **Expo Go** app.
 
-Run this command in the terminal:
+---
 
-npm install
+## 🎯 Project Roadmap
 
-4️⃣ Start the App
+- [x] Project Structure Setup
+- [x] Welcome & Authentication UI
+- [x] Basic Backend API setup
+- [ ] Connect Frontend to Backend APIs
+- [ ] Implement Destination Booking
+- [ ] User Profile Management
 
-Run:
+---
 
-npx expo start
-
-5️⃣ Run on Your Phone (Recommended)
-📱 For iPhone:
-Install Expo Go from App Store
-Make sure your phone and PC are on the same WiFi
-Scan the QR code shown in the browser
-❗ If QR Code Does Not Appear
-
-Run this instead:
-
-npx expo start --tunnel
-
-Then scan the QR code again.
-
-⚠️ Important Notes
-Do NOT use "localhost" for mobile apps
-Always run npm install before starting
-Keep the terminal running while the app is open
-Save files to see instant updates (auto reload)
-🎯 Current Progress
-Project setup completed ✅
-Welcome screen created ✅
-Navigation structure ready ✅
-
-Next steps:
-
-Build Login & Register UI
-Then connect backend APIs
+## ⚠️ Important Notes
+- **Network**: Ensure your phone and computer are on the same WiFi network to use Expo Go.
+- **Environment**: Never share your `.env` file or commit it to version control.
+- **Localhost**: When connecting the frontend to the backend, use your computer's **Local IP Address** (e.g., `192.168.x.x`) instead of `localhost`.
