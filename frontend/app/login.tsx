@@ -62,7 +62,10 @@ export default function LoginScreen() {
 
       router.replace("/(tabs)" as never);
     } catch {
-      Alert.alert("Network Error", "Could not connect to backend. Check your server and IP.");
+      Alert.alert(
+        "Network Error",
+        `Could not connect to backend.\n\nAPI: ${API_BASE_URL}\n\nCheck server, phone network, and firewall.`
+      );
     } finally {
       setIsSubmitting(false);
     }
