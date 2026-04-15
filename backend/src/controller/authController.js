@@ -104,3 +104,49 @@ export const loginUser = async (req, res) => {
     return res.status(500).json({ message: "Login failed.", error: error.message });
   }
 };
+
+export const updateUserProfile = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { fullName, phoneNumber } = req.body;
+
+    const normalizedName = typeof fullName === "string" ? fullName.trim() : "";
+    const normalizedPhone = typeof phoneNumber === "string" ? phoneNumber.trim() : "";
+
+    if (!normalizedName || !normalizedPhone) {
+      return res.status(400).json({ message: "Full name and phone number are required." });
+    }
+
+    if (!phonePattern.test(normalizedPhone)) {
+      return res.status(400).json({
+        message: "Please provide a valid phone number with 7 to 15 digits.",
+      });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      id,
+      {
+        fullName: normalizedName,
+        phoneNumber: normalizedPhone,
+      },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    return res.status(200).json({
+      message: "Profile updated successfully.",
+      user: {
+        id: updatedUser._id,
+        fullName: updatedUser.fullName,
+        email: updatedUser.email,
+        phoneNumber: updatedUser.phoneNumber,
+        role: updatedUser.role,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to update profile.", error: error.message });
+  }
+};

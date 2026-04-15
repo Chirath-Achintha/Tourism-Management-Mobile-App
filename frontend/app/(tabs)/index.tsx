@@ -6,6 +6,8 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 
 const AUTH_USER_KEY = "auth:user";
 const AUTH_STATUS_KEY = "auth:isSignedIn";
+const AUTH_TOKEN_KEY = "auth:token";
+const ONBOARDING_SEEN_KEY = "onboarding:seen";
 
 export default function TouristDashboard() {
   const [user, setUser] = useState<any>(null);
@@ -22,8 +24,20 @@ export default function TouristDashboard() {
   }, []);
 
   const handleLogout = async () => {
-    await AsyncStorage.multiRemove([AUTH_USER_KEY, AUTH_STATUS_KEY]);
-    router.replace("/");
+    try {
+      await AsyncStorage.multiRemove([
+        AUTH_USER_KEY,
+        AUTH_STATUS_KEY,
+        AUTH_TOKEN_KEY,
+        ONBOARDING_SEEN_KEY,
+      ]);
+    } catch (error) {
+      console.warn("Logout cleanup failed:", error);
+    } finally {
+      setUser(null);
+      router.dismissAll();
+      router.replace("/");
+    }
   };
 
   return (
@@ -34,8 +48,9 @@ export default function TouristDashboard() {
             <Text style={styles.welcomeText}>Welcome back,</Text>
             <Text style={styles.userName}>{user?.fullName || 'Tourist'}</Text>
           </View>
-          <Pressable style={styles.profileButton} onPress={handleLogout}>
-            <IconSymbol name="person.crop.circle.fill" size={40} color="#f2a978" />
+          <Pressable style={styles.logoutButton} onPress={() => void handleLogout()} hitSlop={10}>
+            <IconSymbol name="rectangle.portrait.and.arrow.right" size={18} color="#fff" />
+            <Text style={styles.logoutButtonText}>Logout</Text>
           </Pressable>
         </View>
 
@@ -96,8 +111,19 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
   },
-  profileButton: {
-    padding: 4,
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#f2a978',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 999,
+  },
+  logoutButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
   },
   roleBadge: {
     backgroundColor: '#f2f2f2',
