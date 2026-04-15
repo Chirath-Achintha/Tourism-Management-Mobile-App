@@ -3,6 +3,7 @@ import { Alert, View, Text, TextInput } from "react-native";
 import { useRouter } from "expo-router";
 import { StyleSheet } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { SafeAreaView } from "react-native-safe-area-context";
 import AppButton from "@/components/AppButton";
 import { COLORS } from "@/constants/colors";
 import { API_BASE_URL } from "@/constants/api";
@@ -94,7 +95,7 @@ export default function RegisterScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
       <Text style={styles.title}>Sign Up</Text>
 
       <TextInput
@@ -154,7 +155,7 @@ export default function RegisterScreen() {
         color={COLORS.gray}
         onPress={() => router.back()}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 

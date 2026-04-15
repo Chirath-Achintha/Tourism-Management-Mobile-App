@@ -4,6 +4,7 @@ import User from "../models/User.js";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const phonePattern = /^\+?[0-9]{7,15}$/;
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 const getJwtSecret = () => process.env.JWT_SECRET || "development_secret_change_me";
 
@@ -76,24 +77,42 @@ export const registerUser = async (req, res) => {
 
 export const loginUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, username, password } = req.body;
+    const rawIdentifier = (email || username || "").trim();
+    const normalizedIdentifier = rawIdentifier.toLowerCase();
 
-    if (!email || !password) {
-      return res.status(400).json({ message: "Email and password are required." });
+    if (!rawIdentifier || !password) {
+      return res.status(400).json({ message: "Email, username, or phone number and password are required." });
     }
 
-    if (!emailPattern.test(email)) {
-      return res.status(400).json({ message: "Please provide a valid email address." });
+    const loginFilters = [{ email: normalizedIdentifier }, { username: normalizedIdentifier }];
+
+    if (phonePattern.test(rawIdentifier)) {
+      loginFilters.push({ phoneNumber: rawIdentifier });
+    } else {
+      loginFilters.push({ fullName: new RegExp(`^${escapeRegex(rawIdentifier)}$`, "i") });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const user = await User.findOne({ $or: loginFilters });
     if (!user) {
-      return res.status(401).json({ message: "Invalid email or password." });
+      return res.status(401).json({ message: "Invalid credentials." });
     }
 
-    const isPasswordMatch = await bcrypt.compare(password, user.password);
+    let isPasswordMatch = false;
+
+    // Accept legacy plaintext passwords for old records and migrate them to bcrypt on successful login.
+    if (typeof user.password === "string" && user.password.startsWith("$2")) {
+      isPasswordMatch = await bcrypt.compare(password, user.password);
+    } else {
+      isPasswordMatch = password === user.password;
+      if (isPasswordMatch) {
+        user.password = await bcrypt.hash(password, 10);
+        await user.save();
+      }
+    }
+
     if (!isPasswordMatch) {
-      return res.status(401).json({ message: "Invalid email or password." });
+      return res.status(401).json({ message: "Invalid credentials." });
     }
 
     return res.status(200).json({

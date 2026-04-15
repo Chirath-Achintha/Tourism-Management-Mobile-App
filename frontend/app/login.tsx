@@ -3,6 +3,7 @@ import { Alert, View, Text, TextInput } from "react-native";
 import { useRouter } from "expo-router";
 import { StyleSheet } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { SafeAreaView } from "react-native-safe-area-context";
 import AppButton from "@/components/AppButton";
 import { COLORS } from "@/constants/colors";
 import { API_BASE_URL } from "@/constants/api";
@@ -14,22 +15,15 @@ const AUTH_USER_KEY = "auth:user";
 
 export default function LoginScreen() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
   const handleLogin = async () => {
-    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedIdentifier = identifier.trim();
 
-    if (!normalizedEmail || !password) {
-      Alert.alert("Validation", "Email and password are required.");
-      return;
-    }
-
-    if (!emailPattern.test(normalizedEmail)) {
-      Alert.alert("Validation", "Please enter a valid email address.");
+    if (!normalizedIdentifier || !password) {
+      Alert.alert("Validation", "Email/username and password are required.");
       return;
     }
 
@@ -42,12 +36,19 @@ export default function LoginScreen() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: normalizedEmail,
+          email: normalizedIdentifier,
+          username: normalizedIdentifier,
           password,
         }),
       });
 
-      const data = await response.json();
+      const rawText = await response.text();
+      let data: { message?: string; token?: string; user?: unknown } = {};
+      try {
+        data = rawText ? JSON.parse(rawText) : {};
+      } catch {
+        data = {};
+      }
 
       if (!response.ok) {
         Alert.alert("Login Failed", data.message || "Unable to login.");
@@ -68,17 +69,16 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
       <Text style={styles.title}>Login</Text>
 
       <TextInput
         style={styles.input}
-        placeholder="Email"
+        placeholder="Email or Username"
         placeholderTextColor="#ccc"
-        value={email}
-        onChangeText={setEmail}
+        value={identifier}
+        onChangeText={setIdentifier}
         autoCapitalize="none"
-        keyboardType="email-address"
       />
 
       <TextInput
@@ -100,7 +100,7 @@ export default function LoginScreen() {
         color={COLORS.gray}
         onPress={() => router.back()}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 

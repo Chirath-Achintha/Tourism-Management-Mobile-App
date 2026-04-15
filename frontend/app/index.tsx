@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   ImageBackground,
   Pressable,
-  SafeAreaView,
   StyleSheet,
   Text,
   View,
@@ -12,6 +11,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function IndexScreen() {
   const router = useRouter();
@@ -44,7 +44,7 @@ export default function IndexScreen() {
       >
         <View style={styles.overlay} />
 
-        <SafeAreaView style={styles.safeArea}>
+        <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
           <View style={styles.contentWrap}>
             <Text style={[styles.title, { fontSize: titleFontSize, lineHeight: titleFontSize * 1.15 }]}>
               Discover Sri Lanka, One Journey at a Time
