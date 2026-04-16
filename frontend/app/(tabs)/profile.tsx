@@ -9,11 +9,13 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import { IconSymbol } from '@/components/ui/icon-symbol';
+import { Ionicons } from '@expo/vector-icons';
 import { API_BASE_URL } from '@/constants/api';
+import { StatusBar } from 'expo-status-bar';
 
 const AUTH_USER_KEY = 'auth:user';
 const AUTH_STATUS_KEY = 'auth:isSignedIn';
@@ -45,19 +47,33 @@ export default function ProfileScreen() {
   }, []);
 
   const handleLogout = async () => {
-    try {
-      await AsyncStorage.multiRemove([
-        AUTH_USER_KEY,
-        AUTH_STATUS_KEY,
-        AUTH_TOKEN_KEY,
-        ONBOARDING_SEEN_KEY,
-      ]);
-    } catch (error) {
-      console.warn('Logout cleanup failed:', error);
-    } finally {
-      router.dismissAll();
-      router.replace('/');
-    }
+    Alert.alert(
+      "Logout",
+      "Are you sure you want to logout?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Logout", 
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await AsyncStorage.multiRemove([
+                AUTH_USER_KEY,
+                AUTH_STATUS_KEY,
+                AUTH_TOKEN_KEY,
+                ONBOARDING_SEEN_KEY,
+              ]);
+              router.dismissAll();
+              router.replace('/');
+            } catch (error) {
+              console.warn('Logout cleanup failed:', error);
+              router.dismissAll();
+              router.replace('/');
+            }
+          }
+        }
+      ]
+    );
   };
 
   const handleCancelEdit = () => {
@@ -113,267 +129,337 @@ export default function ProfileScreen() {
       setIsEditing(false);
       Alert.alert('Success', 'Your profile has been updated.');
     } catch {
-      Alert.alert('Network Error', 'Could not connect to backend. Check your server and IP.');
+      Alert.alert('Network Error', 'Could not connect to backend.');
     } finally {
       setIsSaving(false);
     }
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.profileCard}>
-          <View style={styles.avatarWrap}>
-            <IconSymbol name="person.crop.circle.fill" size={74} color="#f2a978" />
-          </View>
-          <Text style={styles.name}>{user?.fullName || 'Tourist'}</Text>
-          <Text style={styles.role}>{(user?.role || 'tourist').toUpperCase()}</Text>
-        </View>
-
-        <View style={styles.infoCard}>
-          <View style={styles.infoHeader}>
-            <Text style={styles.sectionTitle}>Account Details</Text>
-            {!isEditing ? (
-              <Pressable style={styles.editButton} onPress={() => setIsEditing(true)} hitSlop={10}>
-                <IconSymbol name="square.and.pencil" size={16} color="#1f2937" />
-                <Text style={styles.editText}>Edit</Text>
+    <View style={styles.container}>
+      <StatusBar style="dark" />
+      <SafeAreaView style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          <View style={styles.headerRow}>
+            <Text style={styles.headerTitle}>My Profile</Text>
+            {!isEditing && (
+              <Pressable style={styles.logoutPill} onPress={handleLogout}>
+                <Ionicons name="log-out-outline" size={18} color="#1A3B2F" />
+                <Text style={styles.logoutPillText}>Logout</Text>
               </Pressable>
-            ) : null}
+            )}
           </View>
 
-          {isEditing ? (
-            <>
-              <View style={styles.detailRow}>
-                <Text style={styles.label}>Full Name</Text>
-                <TextInput
-                  style={styles.input}
-                  value={fullName}
-                  onChangeText={setFullName}
-                  placeholder="Enter full name"
-                  placeholderTextColor="#9ca3af"
-                />
+          <View style={styles.profileCard}>
+            <View style={styles.avatarWrap}>
+              <View style={styles.avatarPlaceholder}>
+                <Ionicons name="person" size={50} color="#1A3B2F" />
               </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.label}>Email</Text>
-                <View style={styles.readonlyField}>
-                  <Text style={styles.readonlyValue}>{user?.email || 'Not available'}</Text>
-                </View>
-                <Text style={styles.readonlyHint}>Email cannot be edited.</Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.label}>Phone</Text>
-                <TextInput
-                  style={styles.input}
-                  value={phoneNumber}
-                  onChangeText={setPhoneNumber}
-                  keyboardType="phone-pad"
-                  placeholder="Enter phone number"
-                  placeholderTextColor="#9ca3af"
-                />
-              </View>
-              <View style={styles.editActions}>
-                <Pressable style={styles.cancelButton} onPress={handleCancelEdit} disabled={isSaving}>
-                  <Text style={styles.cancelText}>Cancel</Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.saveButton, isSaving && styles.disabledButton]}
-                  onPress={() => void handleSaveProfile()}
-                  disabled={isSaving}
-                >
-                  {isSaving ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <Text style={styles.saveText}>Save Changes</Text>
-                  )}
-                </Pressable>
-              </View>
-            </>
-          ) : (
-            <>
-              <View style={styles.detailRow}>
-                <Text style={styles.label}>Email</Text>
-                <Text style={styles.value}>{user?.email || 'Not available'}</Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.label}>Phone</Text>
-                <Text style={styles.value}>{user?.phoneNumber || 'Not available'}</Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.label}>Role</Text>
-                <Text style={styles.value}>{user?.role || 'tourist'}</Text>
-              </View>
-            </>
-          )}
-        </View>
+              <Pressable style={styles.editAvatarButton}>
+                <Ionicons name="camera" size={16} color="#ffffff" />
+              </Pressable>
+            </View>
+            <Text style={styles.name}>{user?.fullName || 'User'}</Text>
+            <View style={styles.roleBadge}>
+              <Text style={styles.roleText}>{(user?.role || 'tourist').toUpperCase()}</Text>
+            </View>
+          </View>
 
-        <Pressable style={styles.logoutButton} onPress={() => void handleLogout()} hitSlop={10}>
-          <IconSymbol name="rectangle.portrait.and.arrow.right" size={18} color="#fff" />
-          <Text style={styles.logoutText}>Logout</Text>
-        </Pressable>
-      </ScrollView>
-    </SafeAreaView>
+          <View style={styles.infoCard}>
+            <View style={styles.infoHeader}>
+              <Text style={styles.sectionTitle}>Account Information</Text>
+              {!isEditing && (
+                <Pressable style={styles.editButton} onPress={() => setIsEditing(true)}>
+                  <Ionicons name="pencil" size={14} color="#FFD166" />
+                  <Text style={styles.editText}>Edit</Text>
+                </Pressable>
+              )}
+            </View>
+
+            {isEditing ? (
+              <View style={styles.editForm}>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Full Name</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={fullName}
+                    onChangeText={setFullName}
+                    placeholder="Enter full name"
+                  />
+                </View>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Phone Number</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={phoneNumber}
+                    onChangeText={setPhoneNumber}
+                    keyboardType="phone-pad"
+                    placeholder="Enter phone number"
+                  />
+                </View>
+
+                <View style={styles.actionRow}>
+                  <Pressable style={styles.cancelBtn} onPress={handleCancelEdit}>
+                    <Text style={styles.cancelBtnText}>Cancel</Text>
+                  </Pressable>
+                  <Pressable style={styles.saveBtn} onPress={handleSaveProfile} disabled={isSaving}>
+                    {isSaving ? (
+                      <ActivityIndicator size="small" color="#1A3B2F" />
+                    ) : (
+                      <Text style={styles.saveBtnText}>Save Changes</Text>
+                    )}
+                  </Pressable>
+                </View>
+              </View>
+            ) : (
+              <View style={styles.detailsGrid}>
+                <View style={styles.detailItem}>
+                  <Text style={styles.label}>Email Address</Text>
+                  <Text style={styles.value}>{user?.email || 'N/A'}</Text>
+                </View>
+                <View style={styles.detailItem}>
+                  <Text style={styles.label}>Contact Number</Text>
+                  <Text style={styles.value}>{user?.phoneNumber || 'N/A'}</Text>
+                </View>
+                <View style={styles.detailItem}>
+                  <Text style={styles.label}>Account Type</Text>
+                  <Text style={styles.value}>{user?.role || 'tourist'}</Text>
+                </View>
+              </View>
+            )}
+          </View>
+          
+          <Pressable style={styles.supportCard}>
+            <View style={styles.supportIcon}>
+              <Ionicons name="help-circle" size={24} color="#1A3B2F" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.supportTitle}>Need Help?</Text>
+              <Text style={styles.supportSub}>Contact our support team 24/7</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="rgba(26, 59, 47, 0.3)" />
+          </Pressable>
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f7f5ef',
+    backgroundColor: '#F0FAF5',
   },
   content: {
-    padding: 24,
-    gap: 18,
+    paddingHorizontal: 24,
+    paddingTop: Platform.OS === 'ios' ? 10 : 30,
+    paddingBottom: 40,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  headerTitle: {
+    fontSize: 26,
+    fontWeight: '900',
+    color: '#1A3B2F',
+    letterSpacing: -0.5,
+  },
+  logoutPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FFD166',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  logoutPillText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#1A3B2F',
   },
   profileCard: {
-    backgroundColor: '#111827',
-    borderRadius: 24,
-    padding: 24,
+    backgroundColor: '#ffffff',
+    borderRadius: 30,
+    padding: 30,
     alignItems: 'center',
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(26, 59, 47, 0.08)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.05,
+    shadowRadius: 20,
+    elevation: 4,
   },
   avatarWrap: {
-    marginBottom: 12,
+    position: 'relative',
+    marginBottom: 16,
+  },
+  avatarPlaceholder: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#F0FAF5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#FFD166',
+  },
+  editAvatarButton: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: '#1A3B2F',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: '#ffffff',
   },
   name: {
-    color: '#fff',
-    fontSize: 24,
-    fontWeight: '800',
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#1A3B2F',
+    marginBottom: 6,
   },
-  role: {
-    marginTop: 6,
-    color: '#f2a978',
-    fontSize: 12,
-    fontWeight: '700',
+  roleBadge: {
+    backgroundColor: 'rgba(26, 59, 47, 0.05)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  roleText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: 'rgba(26, 59, 47, 0.6)',
     letterSpacing: 1,
   },
   infoCard: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 20,
-    gap: 14,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 3,
+    backgroundColor: '#ffffff',
+    borderRadius: 30,
+    padding: 24,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(26, 59, 47, 0.08)',
+  },
+  infoHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#1f2937',
-    marginBottom: 2,
-  },
-  infoHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    color: '#1A3B2F',
   },
   editButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#f3f4f6',
-    borderRadius: 999,
-    paddingVertical: 7,
-    paddingHorizontal: 12,
+    gap: 4,
   },
   editText: {
-    color: '#1f2937',
-    fontWeight: '700',
-    fontSize: 13,
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#FFD166',
   },
-  detailRow: {
+  detailsGrid: {
+    gap: 16,
+  },
+  detailItem: {
     gap: 4,
   },
   label: {
     fontSize: 12,
-    color: '#6b7280',
-    fontWeight: '700',
+    fontWeight: '800',
+    color: 'rgba(26, 59, 47, 0.4)',
     textTransform: 'uppercase',
-    letterSpacing: 0.6,
+    letterSpacing: 0.5,
   },
   value: {
-    fontSize: 16,
-    color: '#111827',
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1A3B2F',
+  },
+  editForm: {
+    gap: 16,
+  },
+  inputGroup: {
+    gap: 8,
   },
   input: {
+    backgroundColor: '#F9FAFB',
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#E5E7EB',
     borderRadius: 12,
-    backgroundColor: '#f9fafb',
-    color: '#111827',
-    paddingHorizontal: 12,
-    paddingVertical: 11,
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  readonlyField: {
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 12,
-    backgroundColor: '#f3f4f6',
-    paddingHorizontal: 12,
-    paddingVertical: 11,
-  },
-  readonlyValue: {
-    color: '#6b7280',
-    fontSize: 15,
+    padding: 12,
+    color: '#1A3B2F',
     fontWeight: '600',
   },
-  readonlyHint: {
-    color: '#6b7280',
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  editActions: {
+  actionRow: {
     flexDirection: 'row',
-    gap: 10,
-    marginTop: 6,
+    gap: 12,
+    marginTop: 10,
   },
-  cancelButton: {
+  cancelBtn: {
     flex: 1,
+    height: 50,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
+    borderColor: '#E5E7EB',
   },
-  cancelText: {
-    color: '#374151',
+  cancelBtnText: {
+    fontSize: 15,
     fontWeight: '700',
-    fontSize: 14,
+    color: 'rgba(26, 59, 47, 0.6)',
   },
-  saveButton: {
+  saveBtn: {
     flex: 1,
-    borderRadius: 12,
-    paddingVertical: 12,
+    height: 50,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#111827',
+    backgroundColor: '#FFD166',
   },
-  saveText: {
-    color: '#fff',
-    fontWeight: '800',
-    fontSize: 14,
-  },
-  disabledButton: {
-    opacity: 0.8,
-  },
-  logoutButton: {
-    marginTop: 6,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: '#f2a978',
-    paddingVertical: 14,
-    borderRadius: 16,
-  },
-  logoutText: {
-    color: '#fff',
+  saveBtnText: {
     fontSize: 15,
     fontWeight: '800',
+    color: '#1A3B2F',
+  },
+  supportCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    padding: 20,
+    borderRadius: 24,
+    gap: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(26, 59, 47, 0.05)',
+  },
+  supportIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: '#F0FAF5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  supportTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#1A3B2F',
+  },
+  supportSub: {
+    fontSize: 13,
+    color: 'rgba(26, 59, 47, 0.5)',
+    fontWeight: '500',
   },
 });

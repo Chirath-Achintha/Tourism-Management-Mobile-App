@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const phonePattern = /^\+?[0-9]{7,15}$/;
+const phonePattern = /^[0-9]{10}$/;
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 const getJwtSecret = () => process.env.JWT_SECRET || "development_secret_change_me";
@@ -39,7 +39,7 @@ export const registerUser = async (req, res) => {
 
     if (!phonePattern.test(phoneNumber)) {
       return res.status(400).json({
-        message: "Please provide a valid phone number with 7 to 15 digits.",
+        message: "Please provide a valid 10-digit phone number.",
       });
     }
 
@@ -96,6 +96,12 @@ export const loginUser = async (req, res) => {
     const user = await User.findOne({ $or: loginFilters });
     if (!user) {
       return res.status(401).json({ message: "Invalid credentials." });
+    }
+
+    if (user.isActive === false) {
+      return res.status(403).json({ 
+        message: "Your account has been deactivated. Please contact support." 
+      });
     }
 
     let isPasswordMatch = false;
