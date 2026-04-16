@@ -10,39 +10,39 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      
-      <Stack screenOptions={{ headerShown: false }}>
+    <SafeAreaProvider>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <Stack screenOptions={{ headerShown: false }}>
 
-        <Stack.Screen 
-          name="index" 
-          options={{ animation: 'fade' }} 
-        />
+          <Stack.Screen 
+            name="index" 
+            options={{ animation: 'fade' }} 
+          />
 
-        <Stack.Screen 
-          name="login" 
-          options={{ animation: 'slide_from_right' }} 
-        />
+          <Stack.Screen 
+            name="login" 
+            options={{ animation: 'slide_from_right' }} 
+          />
 
-        <Stack.Screen 
-          name="register" 
-          options={{ animation: 'slide_from_right' }} 
-        />
+          <Stack.Screen 
+            name="register" 
+            options={{ animation: 'slide_from_right' }} 
+          />
 
-        <Stack.Screen 
-          name="(tabs)" 
-          options={{ animation: 'fade' }} 
-        />
+          <Stack.Screen 
+            name="(tabs)" 
+            options={{ animation: 'fade' }} 
+          />
 
-        <Stack.Screen 
-          name="modal" 
-          options={{ presentation: 'modal' }} 
-        />
+          <Stack.Screen 
+            name="modal" 
+            options={{ presentation: 'modal' }} 
+          />
 
-      </Stack>
+        </Stack>
 
-      <StatusBar style="light" />
-      
-    </ThemeProvider>
+        <StatusBar style="light" />
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }
