@@ -1,10 +1,21 @@
-import { useState } from "react";
-import { Alert, View, Text, TextInput } from "react-native";
+import { useState, useRef } from "react";
+import {
+  Alert,
+  View,
+  Text,
+  TextInput,
+  ImageBackground,
+  SafeAreaView,
+  Pressable,
+  StyleSheet,
+  useWindowDimensions,
+  Platform,
+  ActivityIndicator,
+  Animated,
+  ScrollView,
+} from "react-native";
 import { useRouter } from "expo-router";
-import { StyleSheet } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import AppButton from "@/components/AppButton";
-import { COLORS } from "@/constants/colors";
 import { API_BASE_URL } from "@/constants/api";
 
 const AUTH_STATUS_KEY = "auth:isSignedIn";
@@ -14,12 +25,31 @@ const AUTH_USER_KEY = "auth:user";
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
+
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.95,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+    }).start();
+  };
 
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const phonePattern = /^\+?[0-9]{7,15}$/;
@@ -39,7 +69,7 @@ export default function RegisterScreen() {
     }
 
     if (!phonePattern.test(normalizedPhone)) {
-      Alert.alert("Validation", "Enter a valid phone number with 7-15 digits.");
+      Alert.alert("Validation", "Enter a valid phone number.");
       return;
     }
 
@@ -83,77 +113,103 @@ export default function RegisterScreen() {
       await AsyncStorage.setItem(AUTH_TOKEN_KEY, data.token);
       await AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(data.user));
 
-      // Use a more explicit route to ensure the dashboard loads
-      router.replace("/(tabs)/" as never);
-    } catch (error) {
-      console.error("Registration error:", error);
-      Alert.alert("Network Error", "Could not connect to backend. Check your server and IP.");
+      router.replace("/(tabs)" as never);
+    } catch {
+      Alert.alert("Network Error", "Could not connect to backend.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const titleFontSize = windowWidth < 380 ? 26 : 30;
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Sign Up</Text>
+      <ImageBackground
+        source={require("../assets/home/background.jpg")}
+        style={[styles.background, { height: windowHeight }]}
+        resizeMode="cover"
+      >
+        <View style={styles.overlay} />
 
-      <TextInput
-        style={styles.input}
-        placeholder="Full Name"
-        placeholderTextColor="#ccc"
-        value={fullName}
-        onChangeText={setFullName}
-      />
+        <SafeAreaView style={styles.safeArea}>
+          <ScrollView
+            contentContainerStyle={styles.contentWrap}
+            showsVerticalScrollIndicator={false}
+          >
+            <Text style={[styles.title, { fontSize: titleFontSize }]}>
+              Create Account
+            </Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        placeholderTextColor="#ccc"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-      />
+            <Text style={styles.subtitle}>
+              Start your journey across Sri Lanka today.
+            </Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Phone Number"
-        placeholderTextColor="#ccc"
-        keyboardType="phone-pad"
-        autoComplete="tel"
-        textContentType="telephoneNumber"
-        value={phoneNumber}
-        onChangeText={setPhoneNumber}
-      />
+            <TextInput
+              style={styles.input}
+              placeholder="Full Name"
+              placeholderTextColor="rgba(255,255,255,0.6)"
+              value={fullName}
+              onChangeText={setFullName}
+            />
 
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        placeholderTextColor="#ccc"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              placeholderTextColor="rgba(255,255,255,0.6)"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+            />
 
-      <TextInput
-        style={styles.input}
-        placeholder="Confirm Password"
-        placeholderTextColor="#ccc"
-        secureTextEntry
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-      />
+            <TextInput
+              style={styles.input}
+              placeholder="Phone Number"
+              placeholderTextColor="rgba(255,255,255,0.6)"
+              value={phoneNumber}
+              onChangeText={setPhoneNumber}
+              keyboardType="phone-pad"
+            />
 
-      <AppButton
-        title={isSubmitting ? "Creating account..." : "Sign Up"}
-        onPress={handleRegister}
-      />
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              placeholderTextColor="rgba(255,255,255,0.6)"
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+            />
 
-      <AppButton
-        title="Back"
-        color={COLORS.gray}
-        onPress={() => router.back()}
-      />
+            <TextInput
+              style={styles.input}
+              placeholder="Confirm Password"
+              placeholderTextColor="rgba(255,255,255,0.6)"
+              secureTextEntry
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+            />
+
+            <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+              <Pressable
+                onPressIn={handlePressIn}
+                onPressOut={handlePressOut}
+                onPress={handleRegister}
+                style={styles.button}
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator color="#1d140e" />
+                ) : (
+                  <Text style={styles.buttonText}>Sign Up</Text>
+                )}
+              </Pressable>
+            </Animated.View>
+
+            <Pressable onPress={() => router.back()}>
+              <Text style={styles.backText}>Already have an account? Sign In</Text>
+            </Pressable>
+          </ScrollView>
+        </SafeAreaView>
+      </ImageBackground>
     </View>
   );
 }
@@ -161,23 +217,62 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    padding: 20,
+    backgroundColor: "#07111D",
+  },
+  background: {
+    width: "100%",
+    flex: 1,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(7, 17, 29, 0.55)",
+  },
+  safeArea: {
+    flex: 1,
+  },
+  contentWrap: {
+    paddingHorizontal: 28,
+    paddingTop: 40,
+    paddingBottom: 40,
+    gap: 14,
   },
   title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    marginBottom: 30,
+    color: "#ffffff",
+    fontWeight: "800",
+  },
+  subtitle: {
+    color: "rgba(236, 242, 248, 0.85)",
+    fontSize: 14,
+    marginBottom: 10,
   },
   input: {
-    width: "80%",
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 15,
-    fontSize: 16,
+    width: "100%",
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderRadius: 12,
+    padding: 14,
+    color: "#fff",
+    fontSize: 15,
+  },
+  button: {
+    marginTop: 10,
+    backgroundColor: "#f2a978",
+    minHeight: 54,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  buttonText: {
+    color: "#1d140e",
+    fontSize: 15,
+    fontWeight: "700",
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+  },
+  backText: {
+    marginTop: 10,
+    textAlign: "center",
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 13,
+    textDecorationLine: "underline",
   },
 });

@@ -35,7 +35,7 @@ export default function IndexScreen() {
         if (!isMounted) return;
 
         if (signedInValue === "true") {
-          router.replace("/(tabs)" as never);
+          router.push("/(tabs)" as never);
           return;
         }
 
