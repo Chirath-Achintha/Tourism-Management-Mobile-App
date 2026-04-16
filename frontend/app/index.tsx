@@ -3,18 +3,15 @@ import {
   ActivityIndicator,
   ImageBackground,
   Pressable,
-  SafeAreaView,
   StyleSheet,
   Text,
   View,
   useWindowDimensions,
   Platform,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-
-const AUTH_STATUS_KEY = "auth:isSignedIn";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function IndexScreen() {
   const router = useRouter();
@@ -22,8 +19,8 @@ export default function IndexScreen() {
   const [checkingAuth, setCheckingAuth] = useState(true);
 
   // Responsive font sizes
-  const titleFontSize = windowWidth < 380 ? 32 : 38;
-  const subtitleFontSize = windowWidth < 380 ? 15 : 17;
+  const titleFontSize = windowWidth < 380 ? 28 : 34;
+  const subtitleFontSize = windowWidth < 380 ? 14 : 16;
 
   useEffect(() => {
     let isMounted = true;
@@ -68,36 +65,39 @@ export default function IndexScreen() {
       <ImageBackground
         source={require("../assets/home/background.jpg")}
         style={[styles.background, { height: windowHeight }]}
-        resizeMode="cover"
+        resizeMode="stretch"
       >
         <View style={styles.overlay} />
 
-        <SafeAreaView style={styles.safeArea}>
-          <View style={styles.contentWrap}>
-            <Text style={[styles.title, { fontSize: titleFontSize, lineHeight: titleFontSize * 1.15 }]}>
-              Discover Sri Lanka, One Journey at a Time
+        <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+          <View style={styles.titleContainer}>
+            <Text style={[styles.title, { fontSize: titleFontSize, lineHeight: titleFontSize * 1.2 }]}>
+              Discover Sri Lanka’s{"\n"}Magic
             </Text>
+          </View>
 
+          <View style={styles.bottomContainer}>
             <Text style={[styles.subtitle, { fontSize: subtitleFontSize }]}>
-              From golden beaches to misty mountains, plan unforgettable trips with local insights,
-              top destinations, and easy booking in one tourism app.
+              Explore hidden gems, plan unforgettable trips, and book your next adventure—all in one place.
             </Text>
 
-            <Pressable
-              style={({ pressed }) => [
-                styles.button,
-                pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }
-              ]}
-              onPress={() => router.push("/register")}
-            >
-              <Text style={styles.buttonText}>Start your journey</Text>
-            </Pressable>
-
-            <View style={styles.signInRow}>
-              <Text style={styles.signInPrompt}>ALREADY HAVE AN ACCOUNT? </Text>
-              <Pressable onPress={() => router.push("/login")} hitSlop={10}>
-                <Text style={styles.signInLink}>SIGN IN</Text>
+            <View style={styles.buttonContainer}>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.button,
+                  pressed && { opacity: 0.9, transform: [{ scale: 0.97 }] }
+                ]}
+                onPress={() => router.push("/register")}
+              >
+                <Text style={styles.buttonText}>Start your journey</Text>
               </Pressable>
+
+              <View style={styles.signInRow}>
+                <Text style={styles.signInPrompt}>ALREADY HAVE AN ACCOUNT? </Text>
+                <Pressable onPress={() => router.push("/login")} hitSlop={10}>
+                  <Text style={styles.signInLink}>SIGN IN</Text>
+                </Pressable>
+              </View>
             </View>
           </View>
         </SafeAreaView>
@@ -117,62 +117,68 @@ const styles = StyleSheet.create({
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(7, 17, 29, 0.55)", // Slightly lightened to show peacock more clearly
+    backgroundColor: "rgba(0, 0, 0, 0.45)", // Balanced dark overlay
   },
   safeArea: {
     flex: 1,
-    justifyContent: "flex-end",
   },
-  contentWrap: {
-    paddingHorizontal: 28,
-    paddingBottom: Platform.OS === "ios" ? 20 : 40,
-    gap: 16,
+  titleContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20, // Reduced padding to allow more text width
+  },
+  bottomContainer: {
+    paddingHorizontal: 32,
+    paddingBottom: Platform.OS === "ios" ? 40 : 60,
+    alignItems: "center",
   },
   title: {
     color: "#ffffff",
-    fontWeight: "800",
-    letterSpacing: -0.5,
+    fontWeight: "900",
+    letterSpacing: -0.8,
+    textAlign: "center",
   },
   subtitle: {
-    color: "rgba(236, 242, 248, 0.85)",
-    lineHeight: 24,
-    fontWeight: "400",
+    color: "rgba(255, 255, 255, 0.9)",
+    lineHeight: 26,
+    fontWeight: "500",
+    textAlign: "center",
+    marginBottom: 24,
+  },
+  buttonContainer: {
+    width: "100%",
+    gap: 20,
   },
   button: {
-    marginTop: 12,
-    backgroundColor: "#f2a978",
-    minHeight: 56,
-    borderRadius: 16,
+    backgroundColor: "#FFD166", // Travel-friendly yellow
+    height: 60,
+    borderRadius: 30, // Fully rounded for modern look
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 8,
+    elevation: 4,
+    marginTop: 10,
   },
   buttonText: {
-    color: "#1d140e",
-    fontSize: 16,
-    fontWeight: "700",
-    letterSpacing: 0.8,
+    color: "#1A3B2F",
+    fontSize: 18,
+    fontWeight: "800",
+    letterSpacing: 1.2,
     textTransform: "uppercase",
   },
   signInRow: {
-    marginTop: 8,
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 10,
   },
   signInPrompt: {
-    color: "rgba(233, 238, 245, 0.65)",
-    fontSize: 12,
+    color: "rgba(255, 255, 255, 0.7)",
+    fontSize: 13,
     letterSpacing: 0.5,
   },
   signInLink: {
-    color: "#ffffff",
-    fontSize: 12,
+    color: "#ffffff", // Use white for better visibility on the dark background
+    fontSize: 13,
     fontWeight: "800",
     letterSpacing: 0.5,
     textDecorationLine: "underline",

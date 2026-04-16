@@ -13,8 +13,7 @@ import { Alert,
   Animated, } from "react-native";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import AppButton from "@/components/AppButton";
-import { COLORS } from "@/constants/colors";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { API_BASE_URL } from "@/constants/api";
 
 
@@ -25,8 +24,10 @@ const AUTH_USER_KEY = "auth:user";
 
 export default function LoginScreen() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const { height: windowHeight } = useWindowDimensions();
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
 const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -48,15 +49,10 @@ const scaleAnim = useRef(new Animated.Value(1)).current;
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   const handleLogin = async () => {
-    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedIdentifier = identifier.trim();
 
-    if (!normalizedEmail || !password) {
-      Alert.alert("Validation", "Email and password are required.");
-      return;
-    }
-
-    if (!emailPattern.test(normalizedEmail)) {
-      Alert.alert("Validation", "Please enter a valid email address.");
+    if (!normalizedIdentifier || !password) {
+      Alert.alert("Validation", "Email/username and password are required.");
       return;
     }
 
@@ -69,12 +65,19 @@ const scaleAnim = useRef(new Animated.Value(1)).current;
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: normalizedEmail,
+          email: normalizedIdentifier,
+          username: normalizedIdentifier,
           password,
         }),
       });
 
-      const data = await response.json();
+      const rawText = await response.text();
+      let data: { message?: string; token?: string; user?: any } = {};
+      try {
+        data = rawText ? JSON.parse(rawText) : {};
+      } catch {
+        data = {};
+      }
 
       if (!response.ok) {
         Alert.alert("Login Failed", data.message || "Unable to login.");
@@ -83,8 +86,8 @@ const scaleAnim = useRef(new Animated.Value(1)).current;
 
       await AsyncStorage.setItem(AUTH_STATUS_KEY, "true");
       await AsyncStorage.setItem(ONBOARDING_SEEN_KEY, "true");
-      await AsyncStorage.setItem(AUTH_TOKEN_KEY, data.token);
-      await AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(data.user));
+      await AsyncStorage.setItem(AUTH_TOKEN_KEY, data.token || "");
+      await AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(data.user || {}));
 
       router.push("/(tabs)" as never);
     } catch {
@@ -220,6 +223,41 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: "rgba(255,255,255,0.7)",
     fontSize: 13,
+    textDecorationLine: "underline",
+  },
+  eyeButton: {
+    paddingHorizontal: 16,
+  },
+  button: {
+    backgroundColor: "#FFD166", // Travel-friendly yellow
+    height: 60,
+    borderRadius: 30,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 4,
+    marginTop: 10,
+  },
+  buttonText: {
+    color: "#1d140e",
+    fontSize: 18,
+    fontWeight: "800",
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
+  },
+  footer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 8,
+  },
+  footerText: {
+    color: "rgba(26, 59, 47, 0.6)",
+    fontSize: 13,
+  },
+  footerLink: {
+    color: "#1A3B2F",
+    fontSize: 13,
+    fontWeight: "800",
     textDecorationLine: "underline",
   },
 });

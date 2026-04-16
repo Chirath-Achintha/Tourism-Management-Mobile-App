@@ -32,6 +32,9 @@ export default function RegisterScreen() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [role, setRole] = useState("tourist");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   
@@ -52,7 +55,7 @@ export default function RegisterScreen() {
   };
 
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const phonePattern = /^\+?[0-9]{7,15}$/;
+  const phonePattern = /^[0-9]{10}$/;
 
   const handleRegister = async () => {
     const normalizedEmail = email.trim().toLowerCase();
@@ -97,7 +100,7 @@ export default function RegisterScreen() {
           phoneNumber: normalizedPhone,
           password,
           confirmPassword,
-          role: "tourist",
+          role: role,
         }),
       });
 
@@ -244,6 +247,35 @@ const styles = StyleSheet.create({
     color: "rgba(236, 242, 248, 0.85)",
     fontSize: 14,
     marginBottom: 10,
+  },
+  roleButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 16,
+    alignItems: "center",
+  },
+  roleButtonActive: {
+    backgroundColor: "#FFD166",
+  },
+  roleButtonText: {
+    color: "rgba(26, 59, 47, 0.6)",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  roleButtonTextActive: {
+    color: "#1A3B2F",
+  },
+  form: {
+    gap: 20,
+  },
+  inputContainer: {
+    gap: 8,
+  },
+  label: {
+    color: "#1A3B2F",
+    fontSize: 14,
+    fontWeight: "700",
+    marginLeft: 4,
   },
   input: {
     width: "100%",

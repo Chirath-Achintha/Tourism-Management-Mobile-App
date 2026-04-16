@@ -1,112 +1,228 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { Collapsible } from '@/components/ui/collapsible';
-import { ExternalLink } from '@/components/external-link';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import React, { useMemo, useState } from 'react';
+import {
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
 
-export default function TabTwoScreen() {
+type TouristPlace = {
+  name: string;
+  district: string;
+  category: string;
+  description: string;
+};
+
+const TOURIST_PLACES: TouristPlace[] = [
+  {
+    name: 'Sigiriya Rock Fortress',
+    district: 'Matale',
+    category: 'Historical',
+    description: 'Ancient palace fortress with panoramic summit views.',
+  },
+  {
+    name: 'Ella Nine Arch Bridge',
+    district: 'Badulla',
+    category: 'Scenic',
+    description: 'Iconic stone bridge surrounded by tea country.',
+  },
+  {
+    name: 'Yala National Park',
+    district: 'Hambantota',
+    category: 'Wildlife',
+    description: 'Leopard safaris and rich biodiversity in dry-zone forests.',
+  },
+  {
+    name: 'Galle Fort',
+    district: 'Galle',
+    category: 'Cultural',
+    description: 'UNESCO colonial fort with museums, cafes, and sea walls.',
+  },
+  {
+    name: 'Nuwara Eliya Tea Estates',
+    district: 'Nuwara Eliya',
+    category: 'Nature',
+    description: 'Cool-climate highlands with tea factories and viewpoints.',
+  },
+  {
+    name: 'Mirissa Beach',
+    district: 'Matara',
+    category: 'Beach',
+    description: 'Golden coastline known for whale watching and sunsets.',
+  },
+];
+
+export default function SearchPlacesScreen() {
+  const [query, setQuery] = useState('');
+
+  const filteredPlaces = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    if (!normalizedQuery) return TOURIST_PLACES;
+
+    return TOURIST_PLACES.filter((place) => {
+      return (
+        place.name.toLowerCase().includes(normalizedQuery) ||
+        place.district.toLowerCase().includes(normalizedQuery) ||
+        place.category.toLowerCase().includes(normalizedQuery)
+      );
+    });
+  }, [query]);
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.rounded,
-          }}>
-          Explore
-        </ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={{ width: 100, height: 100, alignSelf: 'center' }}
-        />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful{' '}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.mono }}>
-            react-native-reanimated
-          </ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.headerRow}>
+          <Text style={styles.title}>Search Tourist Places</Text>
+          <IconSymbol name="magnifyingglass" size={22} color="#0b3a53" />
+        </View>
+        <Text style={styles.subtitle}>
+          Find destinations by place name, district, or category.
+        </Text>
+
+        <View style={styles.searchWrapper}>
+          <IconSymbol name="magnifyingglass" size={18} color="#64748b" />
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Search places like Sigiriya, Galle, Wildlife"
+            placeholderTextColor="#94a3b8"
+            style={styles.searchInput}
+          />
+        </View>
+
+        <View style={styles.resultsHeader}>
+          <Text style={styles.resultsText}>{filteredPlaces.length} places found</Text>
+        </View>
+
+        {filteredPlaces.length === 0 ? (
+          <View style={styles.emptyState}>
+            <IconSymbol name="magnifyingglass" size={36} color="#9ca3af" />
+            <Text style={styles.emptyStateText}>No places found. Try another keyword.</Text>
+          </View>
+        ) : (
+          filteredPlaces.map((place) => (
+            <View key={place.name} style={styles.card}>
+              <View style={styles.cardTopRow}>
+                <Text style={styles.placeName}>{place.name}</Text>
+                <Text style={styles.badge}>{place.category}</Text>
+              </View>
+              <Text style={styles.district}>{place.district}</Text>
+              <Text style={styles.description}>{place.description}</Text>
+            </View>
+          ))
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  container: {
+    flex: 1,
+    backgroundColor: '#f4f8fb',
   },
-  titleContainer: {
+  content: {
+    padding: 20,
+    gap: 12,
+  },
+  headerRow: {
+    marginTop: 8,
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#0b3a53',
+  },
+  subtitle: {
+    color: '#475569',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  searchWrapper: {
+    marginTop: 8,
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#d9e3ea',
+    paddingHorizontal: 12,
+    minHeight: 50,
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    color: '#0f172a',
+    fontSize: 15,
+  },
+  resultsHeader: {
+    marginTop: 6,
+  },
+  resultsText: {
+    fontSize: 13,
+    color: '#64748b',
+    fontWeight: '600',
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    padding: 14,
+    gap: 6,
+  },
+  cardTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 10,
+  },
+  placeName: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  badge: {
+    backgroundColor: '#e2f3ff',
+    color: '#075985',
+    fontSize: 11,
+    fontWeight: '700',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    textTransform: 'uppercase',
+  },
+  district: {
+    color: '#334155',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  description: {
+    color: '#475569',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  emptyState: {
+    marginTop: 30,
+    padding: 28,
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  emptyStateText: {
+    color: '#64748b',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });
