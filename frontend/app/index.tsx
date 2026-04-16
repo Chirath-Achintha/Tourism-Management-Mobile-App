@@ -12,6 +12,9 @@ import {
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const AUTH_STATUS_KEY = "auth:isSignedIn";
 
 export default function IndexScreen() {
   const router = useRouter();

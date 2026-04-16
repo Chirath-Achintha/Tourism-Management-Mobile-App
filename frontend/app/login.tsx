@@ -13,7 +13,6 @@ import { Alert,
   Animated, } from "react-native";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { API_BASE_URL } from "@/constants/api";
 
 
@@ -24,13 +23,13 @@ const AUTH_USER_KEY = "auth:user";
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { height: windowHeight } = useWindowDimensions();
-  const [identifier, setIdentifier] = useState("");
+  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-const scaleAnim = useRef(new Animated.Value(1)).current;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
     Animated.spring(scaleAnim, {
@@ -49,10 +48,10 @@ const scaleAnim = useRef(new Animated.Value(1)).current;
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   const handleLogin = async () => {
-    const normalizedIdentifier = identifier.trim();
+    const normalizedEmail = email.trim().toLowerCase();
 
-    if (!normalizedIdentifier || !password) {
-      Alert.alert("Validation", "Email/username and password are required.");
+    if (!normalizedEmail || !password) {
+      Alert.alert("Validation", "Email and password are required.");
       return;
     }
 
@@ -65,8 +64,7 @@ const scaleAnim = useRef(new Animated.Value(1)).current;
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: normalizedIdentifier,
-          username: normalizedIdentifier,
+          email: normalizedEmail,
           password,
         }),
       });
@@ -97,17 +95,15 @@ const scaleAnim = useRef(new Animated.Value(1)).current;
     }
   };
 
-  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
+  const titleFontSize = windowWidth < 380 ? 28 : 32;
 
-const titleFontSize = windowWidth < 380 ? 28 : 32;
-
-return (
-  <View style={styles.container}>
-    <ImageBackground
-      source={require("../assets/home/background.jpg")}
-      style={[styles.background, { height: windowHeight }]}
-      resizeMode="cover"
-    >
+  return (
+    <View style={styles.container}>
+      <ImageBackground
+        source={require("../assets/home/background.jpg")}
+        style={[styles.background, { height: windowHeight }]}
+        resizeMode="cover"
+      >
       <View style={styles.overlay} />
 
       <SafeAreaView style={styles.safeArea}>
@@ -161,7 +157,7 @@ return (
       </SafeAreaView>
     </ImageBackground>
   </View>
-);
+  );
 }
 
 const styles = StyleSheet.create({
@@ -227,37 +223,5 @@ const styles = StyleSheet.create({
   },
   eyeButton: {
     paddingHorizontal: 16,
-  },
-  button: {
-    backgroundColor: "#FFD166", // Travel-friendly yellow
-    height: 60,
-    borderRadius: 30,
-    alignItems: "center",
-    justifyContent: "center",
-    elevation: 4,
-    marginTop: 10,
-  },
-  buttonText: {
-    color: "#1d140e",
-    fontSize: 18,
-    fontWeight: "800",
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
-  },
-  footer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 8,
-  },
-  footerText: {
-    color: "rgba(26, 59, 47, 0.6)",
-    fontSize: 13,
-  },
-  footerLink: {
-    color: "#1A3B2F",
-    fontSize: 13,
-    fontWeight: "800",
-    textDecorationLine: "underline",
   },
 });
