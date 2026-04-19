@@ -7,6 +7,7 @@ import {
   Animated,
   Dimensions,
   SafeAreaView,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -14,6 +15,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 const SIDEBAR_WIDTH = width * 0.75;
+
+const AUTH_USER_KEY = 'auth:user';
+const AUTH_STATUS_KEY = 'auth:isSignedIn';
+const AUTH_TOKEN_KEY = 'auth:token';
+const ONBOARDING_SEEN_KEY = 'onboarding:seen';
 
 interface SidebarProps {
   isVisible: boolean;
@@ -30,11 +36,11 @@ export const Sidebar = ({ isVisible, onClose }: SidebarProps) => {
 
   useEffect(() => {
     const loadUser = async () => {
-      const userData = await AsyncStorage.getItem('auth:user');
+      const userData = await AsyncStorage.getItem(AUTH_USER_KEY);
       if (userData) setUser(JSON.parse(userData));
     };
     loadUser();
-  }, []);
+  }, [isVisible]);
 
   useEffect(() => {
     if (isVisible) {
@@ -72,6 +78,35 @@ export const Sidebar = ({ isVisible, onClose }: SidebarProps) => {
   const handleNavigate = (path: string) => {
     onClose();
     router.push(path as any);
+  };
+
+  const handleLogout = async () => {
+    Alert.alert(
+      "Logout",
+      "Are you sure you want to end your session?",
+      [
+        { text: "Stay", style: "cancel" },
+        { 
+          text: "Logout", 
+          style: "destructive",
+          onPress: async () => {
+            try {
+              onClose();
+              await AsyncStorage.multiRemove([
+                AUTH_USER_KEY,
+                AUTH_STATUS_KEY,
+                AUTH_TOKEN_KEY,
+                ONBOARDING_SEEN_KEY,
+              ]);
+              router.replace('/');
+            } catch (error) {
+              console.error('Logout failed:', error);
+              router.replace('/');
+            }
+          }
+        }
+      ]
+    );
   };
 
   if (!shouldRender) return null;
@@ -159,6 +194,10 @@ export const Sidebar = ({ isVisible, onClose }: SidebarProps) => {
           </View>
 
           <View style={styles.footer}>
+            <Pressable style={styles.logoutBtn} onPress={handleLogout}>
+              <Ionicons name="log-out-outline" size={20} color="#1A3B2F" />
+              <Text style={styles.logoutBtnText}>Logout</Text>
+            </Pressable>
             <Text style={styles.versionText}>Version 1.0.0</Text>
           </View>
         </SafeAreaView>
@@ -267,10 +306,32 @@ const styles = StyleSheet.create({
     padding: 24,
     borderTopWidth: 1,
     borderTopColor: 'rgba(26, 59, 47, 0.05)',
+    gap: 16,
+  },
+  logoutBtn: {
+    backgroundColor: '#FFD166',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 16,
+    gap: 10,
+    shadowColor: '#FFD166',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  logoutBtnText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#1A3B2F',
   },
   versionText: {
     fontSize: 12,
     color: 'rgba(26, 59, 47, 0.4)',
     fontWeight: '600',
+    textAlign: 'center',
   },
 });
+
