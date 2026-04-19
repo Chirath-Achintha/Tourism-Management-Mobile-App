@@ -93,9 +93,16 @@ export default function DestinationsManagementScreen() {
     setEditingId(null);
   };
 
+  const isFormValid = useMemo(() => {
+    return name.trim() !== '' && 
+           location.trim() !== '' && 
+           description.trim() !== '' && 
+           images.length > 0;
+  }, [name, location, description, images]);
+
   const handleCreateOrUpdate = async () => {
-    if (!name || !location || !category || !description || images.length === 0) {
-      Alert.alert("Required Fields", "Please fill all fields and select at least one image.");
+    if (!isFormValid) {
+      Alert.alert("Required Fields", "Please ensure all fields are filled and at least one image is selected.");
       return;
     }
 
@@ -119,10 +126,6 @@ export default function DestinationsManagementScreen() {
             name: `${filename}-${index}`,
             type,
           } as any);
-        } else {
-          // If editing and keeping existing images, we might need to send their data
-          // For simplicity in this implementation, if new images are selected, we replace all.
-          // This is a common pattern for simple dashboards.
         }
       });
 
@@ -166,7 +169,35 @@ export default function DestinationsManagementScreen() {
   };
 
   const handleDelete = async (id: string) => {
-    // ... delete logic stays same
+    Alert.alert(
+      "Confirm Delete",
+      "Are you sure you want to remove this destination?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Delete", 
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const token = await AsyncStorage.getItem('auth:token');
+              const response = await fetch(`${API_BASE_URL}/destinations/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
+              if (response.ok) {
+                Alert.alert("Deleted", "Destination removed successfully.");
+                fetchDestinations();
+              } else {
+                const data = await response.json();
+                throw new Error(data.message || "Delete failed.");
+              }
+            } catch (error: any) {
+              Alert.alert("Error", error.message);
+            }
+          }
+        }
+      ]
+    );
   };
 
   const renderDestinationItem = ({ item }: { item: any }) => (
@@ -201,7 +232,6 @@ export default function DestinationsManagementScreen() {
 
   return (
     <View style={styles.container}>
-      {/* ... header stays same */}
       <StatusBar style="dark" />
       <SafeAreaView style={{ flex: 1 }}>
         <View style={styles.header}>
@@ -312,10 +342,19 @@ export default function DestinationsManagementScreen() {
                   )}
                 </ScrollView>
 
+                <View style={styles.validationHint}>
+                  {!isFormValid && (
+                    <Text style={styles.hintText}>* Please fill all fields and add at least one image.</Text>
+                  )}
+                </View>
+
                 <Pressable
-                  style={[styles.submitBtn, submitting && styles.submitBtnDisabled]}
+                  style={[
+                    styles.submitBtn, 
+                    (submitting || !isFormValid) && styles.submitBtnDisabled
+                  ]}
                   onPress={handleCreateOrUpdate}
-                  disabled={submitting}
+                  disabled={submitting || !isFormValid}
                 >
                   {submitting ? (
                     <ActivityIndicator color="#1A3B2F" />
@@ -578,6 +617,16 @@ const styles = StyleSheet.create({
   previewImage: {
     width: '100%',
     height: '100%',
+  },
+  validationHint: {
+    marginTop: 16,
+    paddingHorizontal: 4,
+  },
+  hintText: {
+    fontSize: 12,
+    color: '#FF4D4D',
+    fontWeight: '700',
+    fontStyle: 'italic',
   },
   pickerPlaceholder: {
     alignItems: 'center',
