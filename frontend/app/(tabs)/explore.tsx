@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -6,88 +6,65 @@ import {
   Text,
   TextInput,
   View,
+  ActivityIndicator,
+  Image,
 } from 'react-native';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-
-type TouristPlace = {
-  name: string;
-  district: string;
-  category: string;
-  description: string;
-};
-
-const TOURIST_PLACES: TouristPlace[] = [
-  {
-    name: 'Sigiriya Rock Fortress',
-    district: 'Matale',
-    category: 'Historical',
-    description: 'Ancient palace fortress with panoramic summit views.',
-  },
-  {
-    name: 'Ella Nine Arch Bridge',
-    district: 'Badulla',
-    category: 'Scenic',
-    description: 'Iconic stone bridge surrounded by tea country.',
-  },
-  {
-    name: 'Yala National Park',
-    district: 'Hambantota',
-    category: 'Wildlife',
-    description: 'Leopard safaris and rich biodiversity in dry-zone forests.',
-  },
-  {
-    name: 'Galle Fort',
-    district: 'Galle',
-    category: 'Cultural',
-    description: 'UNESCO colonial fort with museums, cafes, and sea walls.',
-  },
-  {
-    name: 'Nuwara Eliya Tea Estates',
-    district: 'Nuwara Eliya',
-    category: 'Nature',
-    description: 'Cool-climate highlands with tea factories and viewpoints.',
-  },
-  {
-    name: 'Mirissa Beach',
-    district: 'Matara',
-    category: 'Beach',
-    description: 'Golden coastline known for whale watching and sunsets.',
-  },
-];
+import { API_BASE_URL } from '@/constants/api';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function SearchPlacesScreen() {
   const [query, setQuery] = useState('');
+  const [places, setPlaces] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPlaces = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`${API_BASE_URL}/destinations`);
+        const data = await response.json();
+        if (response.ok) {
+          setPlaces(data);
+        }
+      } catch (error) {
+        console.error("Fetch places failed:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPlaces();
+  }, []);
 
   const filteredPlaces = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    if (!normalizedQuery) return TOURIST_PLACES;
+    if (!normalizedQuery) return places;
 
-    return TOURIST_PLACES.filter((place) => {
+    return places.filter((place) => {
       return (
         place.name.toLowerCase().includes(normalizedQuery) ||
-        place.district.toLowerCase().includes(normalizedQuery) ||
+        place.location.toLowerCase().includes(normalizedQuery) ||
         place.category.toLowerCase().includes(normalizedQuery)
       );
     });
-  }, [query]);
+  }, [query, places]);
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.headerRow}>
-          <Text style={styles.title}>Search Tourist Places</Text>
-          <IconSymbol name="magnifyingglass" size={22} color="#0b3a53" />
+          <Text style={styles.title}>Search Places</Text>
+          <Ionicons name="search" size={24} color="#1A3B2F" />
         </View>
         <Text style={styles.subtitle}>
           Find destinations by place name, district, or category.
         </Text>
 
         <View style={styles.searchWrapper}>
-          <IconSymbol name="magnifyingglass" size={18} color="#64748b" />
+          <Ionicons name="search-outline" size={20} color="#64748b" />
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Search places like Sigiriya, Galle, Wildlife"
+            placeholder="Search places like Sigiriya, Galle..."
             placeholderTextColor="#94a3b8"
             style={styles.searchInput}
           />
@@ -97,20 +74,32 @@ export default function SearchPlacesScreen() {
           <Text style={styles.resultsText}>{filteredPlaces.length} places found</Text>
         </View>
 
-        {filteredPlaces.length === 0 ? (
+        {loading ? (
+          <View style={styles.loadingState}>
+            <ActivityIndicator size="large" color="#FFD166" />
+          </View>
+        ) : filteredPlaces.length === 0 ? (
           <View style={styles.emptyState}>
-            <IconSymbol name="magnifyingglass" size={36} color="#9ca3af" />
+            <Ionicons name="map-outline" size={48} color="#9ca3af" />
             <Text style={styles.emptyStateText}>No places found. Try another keyword.</Text>
           </View>
         ) : (
           filteredPlaces.map((place) => (
-            <View key={place.name} style={styles.card}>
-              <View style={styles.cardTopRow}>
-                <Text style={styles.placeName}>{place.name}</Text>
-                <Text style={styles.badge}>{place.category}</Text>
+            <View key={place._id} style={styles.card}>
+              <Image source={{ uri: place.imageUrl }} style={styles.cardImage} />
+              <View style={styles.cardContent}>
+                <View style={styles.cardTopRow}>
+                  <Text style={styles.placeName}>{place.name}</Text>
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>{place.category}</Text>
+                  </View>
+                </View>
+                <View style={styles.locationRow}>
+                    <Ionicons name="location-outline" size={14} color="#334155" />
+                    <Text style={styles.location}>{place.location}</Text>
+                </View>
+                <Text style={styles.description} numberOfLines={3}>{place.description}</Text>
               </View>
-              <Text style={styles.district}>{place.district}</Text>
-              <Text style={styles.description}>{place.description}</Text>
             </View>
           ))
         )}
@@ -122,107 +111,133 @@ export default function SearchPlacesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f4f8fb',
+    backgroundColor: '#F0FAF5',
   },
   content: {
-    padding: 20,
-    gap: 12,
+    padding: 24,
   },
   headerRow: {
-    marginTop: 8,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 8,
   },
   title: {
     fontSize: 28,
-    fontWeight: '800',
-    color: '#0b3a53',
+    fontWeight: '900',
+    color: '#1A3B2F',
+    letterSpacing: -0.5,
   },
   subtitle: {
-    color: '#475569',
     fontSize: 14,
+    color: 'rgba(26, 59, 47, 0.6)',
     lineHeight: 20,
+    marginBottom: 20,
   },
   searchWrapper: {
-    marginTop: 8,
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#d9e3ea',
-    paddingHorizontal: 12,
-    minHeight: 50,
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(26, 59, 47, 0.1)',
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
   },
   searchInput: {
     flex: 1,
-    color: '#0f172a',
     fontSize: 15,
-  },
-  resultsHeader: {
-    marginTop: 6,
-  },
-  resultsText: {
-    fontSize: 13,
-    color: '#64748b',
+    color: '#1A3B2F',
     fontWeight: '600',
   },
+  resultsHeader: {
+    marginBottom: 16,
+  },
+  resultsText: {
+    fontSize: 12,
+    color: 'rgba(26, 59, 47, 0.4)',
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  loadingState: {
+    paddingVertical: 50,
+  },
+  emptyState: {
+    paddingVertical: 80,
+    alignItems: 'center',
+    gap: 12,
+  },
+  emptyStateText: {
+    fontSize: 15,
+    color: 'rgba(26, 59, 47, 0.4)',
+    fontWeight: '700',
+  },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
+    backgroundColor: '#ffffff',
+    borderRadius: 24,
+    marginBottom: 16,
+    overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    padding: 14,
-    gap: 6,
+    borderColor: 'rgba(26, 59, 47, 0.08)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  cardImage: {
+    width: '100%',
+    height: 200,
+  },
+  cardContent: {
+    padding: 16,
   },
   cardTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 10,
+    marginBottom: 4,
   },
   placeName: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#0f172a',
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#1A3B2F',
   },
   badge: {
-    backgroundColor: '#e2f3ff',
-    color: '#075985',
-    fontSize: 11,
-    fontWeight: '700',
+    backgroundColor: '#FFD166',
     paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#1A3B2F',
     textTransform: 'uppercase',
   },
-  district: {
-    color: '#334155',
-    fontWeight: '700',
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 8,
+  },
+  location: {
     fontSize: 13,
+    color: 'rgba(26, 59, 47, 0.6)',
+    fontWeight: '700',
   },
   description: {
-    color: '#475569',
     fontSize: 13,
+    color: 'rgba(26, 59, 47, 0.5)',
     lineHeight: 18,
-  },
-  emptyState: {
-    marginTop: 30,
-    padding: 28,
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  emptyStateText: {
-    color: '#64748b',
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
+    fontWeight: '500',
   },
 });
