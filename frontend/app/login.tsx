@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
-import { Alert,
+import { 
+  Alert,
   View,
   Text,
   TextInput,
@@ -10,11 +11,15 @@ import { Alert,
   useWindowDimensions,
   Platform,
   ActivityIndicator,
-  Animated, } from "react-native";
+  Animated,
+  KeyboardAvoidingView,
+  ScrollView,
+  TouchableWithoutFeedback,
+  Keyboard
+} from "react-native";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_BASE_URL } from "@/constants/api";
-
 
 const AUTH_STATUS_KEY = "auth:isSignedIn";
 const ONBOARDING_SEEN_KEY = "onboarding:seen";
@@ -44,8 +49,6 @@ export default function LoginScreen() {
       useNativeDriver: true,
     }).start();
   };
-
-  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   const handleLogin = async () => {
     const normalizedEmail = email.trim().toLowerCase();
@@ -98,65 +101,81 @@ export default function LoginScreen() {
   const titleFontSize = windowWidth < 380 ? 28 : 32;
 
   return (
-    <View style={styles.container}>
-      <ImageBackground
-        source={require("../assets/home/background.jpg")}
-        style={[styles.background, { height: windowHeight }]}
-        resizeMode="cover"
-      >
-      <View style={styles.overlay} />
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <View style={styles.container}>
+        <ImageBackground
+          source={require("../assets/home/background.jpg")}
+          style={[styles.background, { height: windowHeight }]}
+          resizeMode="cover"
+        >
+          <View style={styles.overlay} />
 
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.contentWrap}>
-          <Text style={[styles.title, { fontSize: titleFontSize }]}>
-            Welcome Back
-          </Text>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={{ flex: 1 }}
+          >
+            <ScrollView 
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              <SafeAreaView style={styles.safeArea}>
+                <View style={styles.contentWrap}>
+                  <Text style={[styles.title, { fontSize: titleFontSize }]}>
+                    Welcome Back
+                  </Text>
 
-          <Text style={styles.subtitle}>
-            Login to continue your journey across Sri Lanka.
-          </Text>
+                  <Text style={styles.subtitle}>
+                    Login to continue your journey across Sri Lanka.
+                  </Text>
 
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            placeholderTextColor="rgba(255,255,255,0.6)"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-          />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Email"
+                    placeholderTextColor="rgba(255,255,255,0.6)"
+                    value={email}
+                    onChangeText={setEmail}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    returnKeyType="next"
+                  />
 
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
-            placeholderTextColor="rgba(255,255,255,0.6)"
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-          />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Password"
+                    placeholderTextColor="rgba(255,255,255,0.6)"
+                    secureTextEntry
+                    value={password}
+                    onChangeText={setPassword}
+                    returnKeyType="done"
+                    onSubmitEditing={handleLogin}
+                  />
 
-          <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-              <Pressable
-                onPressIn={handlePressIn}
-                onPressOut={handlePressOut}
-                onPress={handleLogin}
-                style={styles.button}
-              >
-                {isSubmitting ? (
-                  <ActivityIndicator color="#1d140e" />
-                ) : (
-                  <Text style={styles.buttonText}>Login</Text>
-                )}
-              </Pressable>
-          </Animated.View>
+                  <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+                    <Pressable
+                      onPressIn={handlePressIn}
+                      onPressOut={handlePressOut}
+                      onPress={handleLogin}
+                      style={styles.button}
+                    >
+                      {isSubmitting ? (
+                        <ActivityIndicator color="#1d140e" />
+                      ) : (
+                        <Text style={styles.buttonText}>Login</Text>
+                      )}
+                    </Pressable>
+                  </Animated.View>
 
-          <Pressable onPress={() => router.back()}>
-            <Text style={styles.backText}>Go Back</Text>
-          </Pressable>
-        </View>
-      </SafeAreaView>
-    </ImageBackground>
-  </View>
+                  <Pressable onPress={() => router.back()}>
+                    <Text style={styles.backText}>Go Back</Text>
+                  </Pressable>
+                </View>
+              </SafeAreaView>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </ImageBackground>
+      </View>
+    </TouchableWithoutFeedback>
   );
 }
 
@@ -173,13 +192,16 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(7, 17, 29, 0.55)",
   },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: "flex-end",
+  },
   safeArea: {
-    flex: 1,
     justifyContent: "flex-end",
   },
   contentWrap: {
     paddingHorizontal: 28,
-    paddingBottom: Platform.OS === "ios" ? 20 : 40,
+    paddingBottom: Platform.OS === "ios" ? 40 : 60,
     gap: 14,
   },
   title: {
@@ -221,7 +243,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textDecorationLine: "underline",
   },
-  eyeButton: {
-    paddingHorizontal: 16,
-  },
 });
+
