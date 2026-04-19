@@ -34,8 +34,8 @@ const upload = multer({
 });
 
 router.get("/", getAllDestinations);
-router.post("/", protect, adminOnly, upload.single("image"), createDestination);
-router.put("/:id", protect, adminOnly, upload.single("image"), updateDestination);
+router.post("/", protect, adminOnly, upload.array("images", 5), createDestination);
+router.put("/:id", protect, adminOnly, upload.array("images", 5), updateDestination);
 router.delete("/:id", protect, adminOnly, deleteDestination);
 
 export default router;

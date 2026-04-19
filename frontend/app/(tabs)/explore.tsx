@@ -86,7 +86,7 @@ export default function SearchPlacesScreen() {
         ) : (
           filteredPlaces.map((place) => (
             <View key={place._id} style={styles.card}>
-              <Image source={{ uri: place.imageUrl }} style={styles.cardImage} />
+              <Image source={{ uri: place.images[0]?.url }} style={styles.cardImage} />
               <View style={styles.cardContent}>
                 <View style={styles.cardTopRow}>
                   <Text style={styles.placeName}>{place.name}</Text>

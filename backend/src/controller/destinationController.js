@@ -5,23 +5,30 @@ export const createDestination = async (req, res) => {
   try {
     const { name, location, category, description } = req.body;
     
-    if (!req.file) {
-      return res.status(400).json({ message: "Image is required." });
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: "At least one image is required." });
     }
 
     // Upload to Cloudinary
-    // multer might provide path or buffer depending on storage
-    const result = await cloudinary.uploader.upload(req.file.path, {
-      folder: "destinations",
-    });
+    const uploadPromises = req.files.map((file) =>
+      cloudinary.uploader.upload(file.path, {
+        folder: "destinations",
+      })
+    );
+
+    const uploadResults = await Promise.all(uploadPromises);
+
+    const images = uploadResults.map((result) => ({
+      url: result.secure_url,
+      cloudinaryId: result.public_id,
+    }));
 
     const destination = await Destination.create({
       name,
       location,
       category,
       description,
-      imageUrl: result.secure_url,
-      cloudinaryId: result.public_id,
+      images,
     });
 
     res.status(201).json({
@@ -55,16 +62,25 @@ export const updateDestination = async (req, res) => {
       return res.status(404).json({ message: "Destination not found." });
     }
 
-    if (req.file) {
-      // Delete old image
-      await cloudinary.uploader.destroy(destination.cloudinaryId);
+    if (req.files && req.files.length > 0) {
+      // Delete old images from Cloudinary
+      const deletePromises = destination.images.map((img) =>
+        cloudinary.uploader.destroy(img.cloudinaryId)
+      );
+      await Promise.all(deletePromises);
       
-      // Upload new image
-      const result = await cloudinary.uploader.upload(req.file.path, {
-        folder: "destinations",
-      });
-      updateData.imageUrl = result.secure_url;
-      updateData.cloudinaryId = result.public_id;
+      // Upload new images
+      const uploadPromises = req.files.map((file) =>
+        cloudinary.uploader.upload(file.path, {
+          folder: "destinations",
+        })
+      );
+      const uploadResults = await Promise.all(uploadPromises);
+      
+      updateData.images = uploadResults.map((result) => ({
+        url: result.secure_url,
+        cloudinaryId: result.public_id,
+      }));
     }
 
     const updatedDestination = await Destination.findByIdAndUpdate(id, updateData, { new: true });
@@ -87,8 +103,11 @@ export const deleteDestination = async (req, res) => {
       return res.status(404).json({ message: "Destination not found." });
     }
 
-    // Delete from Cloudinary
-    await cloudinary.uploader.destroy(destination.cloudinaryId);
+    // Delete all images from Cloudinary
+    const deletePromises = destination.images.map((img) =>
+      cloudinary.uploader.destroy(img.cloudinaryId)
+    );
+    await Promise.all(deletePromises);
 
     // Delete from DB
     await Destination.findByIdAndDelete(id);
