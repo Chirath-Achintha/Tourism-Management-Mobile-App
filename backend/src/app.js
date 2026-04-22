@@ -26,4 +26,17 @@ app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/destinations", destinationRoutes);
 
+// Global Error Handler
+app.use((err, req, res, next) => {
+  console.error("Global Error Handler:", err);
+  res.status(err.status || 500).json({
+    message: err.message || "Internal Server Error",
+    error: process.env.NODE_ENV === 'development' ? {
+      message: err.message,
+      stack: err.stack,
+      ...err
+    } : {}
+  });
+});
+
 export default app;

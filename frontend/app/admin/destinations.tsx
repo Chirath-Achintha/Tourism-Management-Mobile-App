@@ -116,12 +116,17 @@ export default function DestinationsManagementScreen() {
       formData.append('category', category);
       formData.append('description', description);
       
+      const existingImages = [];
+      
       for (let i = 0; i < images.length; i++) {
         const imgUri = images[i];
-        if (!imgUri.startsWith('http')) {
+        if (imgUri.startsWith('http')) {
+          existingImages.push(imgUri);
+        } else {
           const filename = imgUri.split('/').pop() || `image-${i}`;
           const match = /\.(\w+)$/.exec(filename);
-          const type = match ? `image/${match[1]}` : `image`;
+          let type = match ? `image/${match[1]}` : `image`;
+          if (type === 'image/jpg') type = 'image/jpeg';
 
           if (Platform.OS === 'web') {
             const response = await fetch(imgUri);
@@ -137,6 +142,10 @@ export default function DestinationsManagementScreen() {
         }
       }
 
+      if (existingImages.length > 0) {
+        formData.append('existingImages', JSON.stringify(existingImages));
+      }
+
       const url = editingId ? `${API_BASE_URL}/destinations/${editingId}` : `${API_BASE_URL}/destinations`;
       const method = editingId ? 'PUT' : 'POST';
 
@@ -145,7 +154,6 @@ export default function DestinationsManagementScreen() {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json',
-          'Content-Type': 'multipart/form-data',
         },
         body: formData,
       });
@@ -157,7 +165,7 @@ export default function DestinationsManagementScreen() {
         resetForm();
         fetchDestinations();
       } else {
-        const errorMessage = data.error || data.message || "Operation failed.";
+        const errorMessage = data.message || data.error?.message || JSON.stringify(data.error) || "Operation failed.";
         throw new Error(errorMessage);
       }
     } catch (error: any) {

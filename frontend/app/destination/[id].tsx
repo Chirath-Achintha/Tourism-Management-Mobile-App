@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   SafeAreaView,
   StatusBar,
+  FlatList,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,6 +26,7 @@ export default function DestinationDetailScreen() {
   const [destination, setDestination] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
     const fetchDestination = async () => {
@@ -44,6 +46,12 @@ export default function DestinationDetailScreen() {
 
     if (id) fetchDestination();
   }, [id]);
+
+  const handleScroll = (event: any) => {
+    const slideSize = event.nativeEvent.layoutMeasurement.width;
+    const index = event.nativeEvent.contentOffset.x / slideSize;
+    setActiveIndex(Math.round(index));
+  };
 
   if (loading) {
     return (
@@ -71,14 +79,26 @@ export default function DestinationDetailScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Header Image Section */}
         <View style={styles.headerContainer}>
-          <Image 
-            source={{ uri: destination.images[0]?.url }} 
-            style={styles.headerImage}
-            contentFit="cover"
+          <FlatList
+            data={destination.images}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+            keyExtractor={(item, index) => index.toString()}
+            renderItem={({ item }) => (
+              <Image 
+                source={{ uri: item.url }} 
+                style={styles.carouselImage}
+                contentFit="cover"
+              />
+            )}
           />
           <LinearGradient
             colors={['rgba(0,0,0,0.4)', 'transparent', 'rgba(0,0,0,0.8)']}
             style={styles.headerGradient}
+            pointerEvents="none"
           />
           
           <SafeAreaView style={styles.headerActions}>
@@ -94,12 +114,25 @@ export default function DestinationDetailScreen() {
             </Pressable>
           </SafeAreaView>
 
-          <View style={styles.headerTitleContainer}>
+          <View style={styles.headerTitleContainer} pointerEvents="none">
             <View style={styles.locationTag}>
               <Ionicons name="location" size={14} color="#FFD166" />
               <Text style={styles.locationText}>{destination.location}</Text>
             </View>
             <Text style={styles.destinationName}>{destination.name}</Text>
+          </View>
+
+          {/* Pagination Dots */}
+          <View style={styles.pagination}>
+            {destination.images.length > 1 && destination.images.map((_: any, i: number) => (
+              <View 
+                key={i} 
+                style={[
+                  styles.dot, 
+                  activeIndex === i ? styles.activeDot : styles.inactiveDot
+                ]} 
+              />
+            ))}
           </View>
         </View>
 
@@ -183,14 +216,23 @@ const styles = StyleSheet.create({
   headerImage: {
     ...StyleSheet.absoluteFillObject,
   },
+  carouselImage: {
+    width: width,
+    height: height * 0.55,
+  },
   headerGradient: {
     ...StyleSheet.absoluteFillObject,
   },
   headerActions: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     marginTop: 10,
+    zIndex: 20,
   },
   iconCircle: {
     width: 44,
@@ -207,9 +249,10 @@ const styles = StyleSheet.create({
   },
   headerTitleContainer: {
     position: 'absolute',
-    bottom: 30,
+    bottom: 45,
     left: 24,
     right: 24,
+    zIndex: 15,
   },
   locationTag: {
     flexDirection: 'row',
@@ -229,6 +272,26 @@ const styles = StyleSheet.create({
     fontSize: 36,
     fontWeight: '900',
     letterSpacing: -1,
+  },
+  pagination: {
+    position: 'absolute',
+    bottom: 50,
+    right: 24,
+    flexDirection: 'row',
+    gap: 6,
+    zIndex: 15,
+  },
+  dot: {
+    height: 6,
+    borderRadius: 3,
+  },
+  activeDot: {
+    width: 20,
+    backgroundColor: '#FFD166',
+  },
+  inactiveDot: {
+    width: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
   },
   detailsContainer: {
     padding: 24,

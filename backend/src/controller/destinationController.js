@@ -70,33 +70,66 @@ export const updateDestination = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, location, category, description } = req.body;
+    let { existingImages } = req.body;
     let updateData = { name, location, category, description };
+    let finalImages = [];
 
     const destination = await Destination.findById(id);
     if (!destination) {
       return res.status(404).json({ message: "Destination not found." });
     }
 
-    if (req.files && req.files.length > 0) {
-      // Delete old images from Cloudinary
-      const deletePromises = destination.images.map((img) =>
-        cloudinary.uploader.destroy(img.cloudinaryId)
-      );
-      await Promise.all(deletePromises);
+    // Process existing images to keep
+    if (existingImages) {
+      // existingImages will be a JSON string from FormData
+      const keepList = typeof existingImages === 'string' ? JSON.parse(existingImages) : existingImages;
       
-      // Upload new images
+      // Separate images to keep and images to delete
+      const imagesToKeep = [];
+      const imagesToDelete = [];
+
+      destination.images.forEach(img => {
+        if (keepList.includes(img.url)) {
+          imagesToKeep.push(img);
+        } else {
+          imagesToDelete.push(img);
+        }
+      });
+
+      // Delete removed images from Cloudinary
+      if (imagesToDelete.length > 0) {
+        const deletePromises = imagesToDelete.map(img => 
+          cloudinary.uploader.destroy(img.cloudinaryId)
+        );
+        await Promise.all(deletePromises);
+      }
+
+      finalImages = imagesToKeep;
+    } else if (!req.files || req.files.length === 0) {
+       // If no existing images provided and no new files, we might be clearing the gallery
+       // but typically we want to keep them if not specified. 
+       // However, to be safe, if existingImages is missing but we're updating other fields,
+       // we should keep the current gallery unless the user explicitly wants to clear it.
+       finalImages = destination.images;
+    }
+
+    // Process new uploads
+    if (req.files && req.files.length > 0) {
       const uploadPromises = req.files.map((file) =>
         cloudinary.uploader.upload(file.path, {
           folder: "destinations",
         })
       );
       const uploadResults = await Promise.all(uploadPromises);
-      
-      updateData.images = uploadResults.map((result) => ({
+      const newImages = uploadResults.map((result) => ({
         url: result.secure_url,
         cloudinaryId: result.public_id,
       }));
+      
+      finalImages = [...finalImages, ...newImages];
     }
+
+    updateData.images = finalImages;
 
     const updatedDestination = await Destination.findByIdAndUpdate(id, updateData, { new: true });
 
