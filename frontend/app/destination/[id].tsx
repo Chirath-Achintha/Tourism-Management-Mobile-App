@@ -1,0 +1,371 @@
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  Dimensions,
+  ActivityIndicator,
+  SafeAreaView,
+  StatusBar,
+} from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
+import { API_BASE_URL } from '@/constants/api';
+
+const { width, height } = Dimensions.get('window');
+
+export default function DestinationDetailScreen() {
+  const { id } = useLocalSearchParams();
+  const router = useRouter();
+  const [destination, setDestination] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  useEffect(() => {
+    const fetchDestination = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`${API_BASE_URL}/destinations/${id}`);
+        const data = await response.json();
+        if (response.ok) {
+          setDestination(data);
+        }
+      } catch (error) {
+        console.error("Fetch destination failed:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) fetchDestination();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#FFD166" />
+      </View>
+    );
+  }
+
+  if (!destination) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>Destination not found</Text>
+        <Pressable style={styles.backBtn} onPress={() => router.back()}>
+          <Text style={styles.backBtnText}>Go Back</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        {/* Header Image Section */}
+        <View style={styles.headerContainer}>
+          <Image 
+            source={{ uri: destination.images[0]?.url }} 
+            style={styles.headerImage}
+            contentFit="cover"
+          />
+          <LinearGradient
+            colors={['rgba(0,0,0,0.4)', 'transparent', 'rgba(0,0,0,0.8)']}
+            style={styles.headerGradient}
+          />
+          
+          <SafeAreaView style={styles.headerActions}>
+            <Pressable style={styles.iconCircle} onPress={() => router.back()}>
+              <Ionicons name="chevron-back" size={24} color="#1A3B2F" />
+            </Pressable>
+            <Pressable style={styles.iconCircle} onPress={() => setIsFavorite(!isFavorite)}>
+              <Ionicons 
+                name={isFavorite ? "heart" : "heart-outline"} 
+                size={24} 
+                color={isFavorite ? "#FF4D4D" : "#1A3B2F"} 
+              />
+            </Pressable>
+          </SafeAreaView>
+
+          <View style={styles.headerTitleContainer}>
+            <View style={styles.locationTag}>
+              <Ionicons name="location" size={14} color="#FFD166" />
+              <Text style={styles.locationText}>{destination.location}</Text>
+            </View>
+            <Text style={styles.destinationName}>{destination.name}</Text>
+          </View>
+        </View>
+
+        {/* Details Section */}
+        <View style={styles.detailsContainer}>
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <View style={[styles.statIcon, { backgroundColor: '#F0FAF5' }]}>
+                <Ionicons name="star" size={20} color="#FFD166" />
+              </View>
+              <View>
+                <Text style={styles.statValue}>4.8</Text>
+                <Text style={styles.statLabel}>Rating</Text>
+              </View>
+            </View>
+            <View style={styles.statItem}>
+              <View style={[styles.statIcon, { backgroundColor: '#F0FAF5' }]}>
+                <Ionicons name="time-outline" size={20} color="#1A3B2F" />
+              </View>
+              <View>
+                <Text style={styles.statValue}>2-3 Days</Text>
+                <Text style={styles.statLabel}>Duration</Text>
+              </View>
+            </View>
+            <View style={styles.statItem}>
+              <View style={[styles.statIcon, { backgroundColor: '#F0FAF5' }]}>
+                <Ionicons name="thermometer-outline" size={20} color="#1A3B2F" />
+              </View>
+              <View>
+                <Text style={styles.statValue}>{"24°C"}</Text>
+                <Text style={styles.statLabel}>{"Temp"}</Text>
+              </View>
+            </View>
+          </View>
+
+          <Text style={styles.sectionTitle}>About this place</Text>
+          <Text style={styles.description}>{destination.description}</Text>
+
+          <View style={styles.categoryInfo}>
+            <Text style={styles.categoryLabel}>{"Category"}</Text>
+            <View style={styles.categoryBadge}>
+              <Text style={styles.categoryText}>{destination.category}</Text>
+            </View>
+          </View>
+          <View style={{ height: 100 }} />
+        </View>
+      </ScrollView>
+      <BlurView intensity={90} tint="light" style={styles.footer}>
+        <View style={styles.footerContent}>
+          <View>
+            <Text style={styles.priceLabel}>{"Starting from"}</Text>
+            <Text style={styles.priceValue}>{"$150"}<Text style={styles.perPerson}>{"/person"}</Text></Text>
+          </View>
+          <Pressable style={styles.bookBtn}>
+            <Text style={styles.bookBtnText}>Book Now</Text>
+          </Pressable>
+        </View>
+      </BlurView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+  },
+  scrollContent: {
+    paddingBottom: 40,
+  },
+  headerContainer: {
+    height: height * 0.55,
+    width: '100%',
+  },
+  headerImage: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  headerGradient: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    marginTop: 10,
+  },
+  iconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  headerTitleContainer: {
+    position: 'absolute',
+    bottom: 30,
+    left: 24,
+    right: 24,
+  },
+  locationTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  locationText: {
+    color: '#FFD166',
+    fontSize: 14,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  destinationName: {
+    color: '#ffffff',
+    fontSize: 36,
+    fontWeight: '900',
+    letterSpacing: -1,
+  },
+  detailsContainer: {
+    padding: 24,
+    marginTop: -20,
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 32,
+  },
+  statItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  statIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#1A3B2F',
+  },
+  statLabel: {
+    fontSize: 11,
+    color: 'rgba(26, 59, 47, 0.4)',
+    fontWeight: '700',
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#1A3B2F',
+    marginBottom: 12,
+  },
+  description: {
+    fontSize: 15,
+    color: 'rgba(26, 59, 47, 0.6)',
+    lineHeight: 24,
+    fontWeight: '500',
+    marginBottom: 24,
+  },
+  categoryInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  categoryLabel: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1A3B2F',
+  },
+  categoryBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#F0FAF5',
+    borderWidth: 1,
+    borderColor: 'rgba(26, 59, 47, 0.1)',
+  },
+  categoryText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#1A3B2F',
+    textTransform: 'uppercase',
+  },
+  footer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingBottom: 40,
+    paddingTop: 20,
+    paddingHorizontal: 24,
+  },
+  footerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  priceLabel: {
+    fontSize: 12,
+    color: 'rgba(26, 59, 47, 0.5)',
+    fontWeight: '700',
+  },
+  priceValue: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#1A3B2F',
+  },
+  perPerson: {
+    fontSize: 14,
+    color: 'rgba(26, 59, 47, 0.4)',
+    fontWeight: '600',
+  },
+  bookBtn: {
+    backgroundColor: '#1A3B2F',
+    paddingHorizontal: 28,
+    paddingVertical: 16,
+    borderRadius: 20,
+    shadowColor: '#1A3B2F',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  bookBtnText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  errorText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1A3B2F',
+    marginBottom: 20,
+  },
+  backBtn: {
+    backgroundColor: '#FFD166',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  backBtnText: {
+    fontWeight: '800',
+    color: '#1A3B2F',
+  },
+});

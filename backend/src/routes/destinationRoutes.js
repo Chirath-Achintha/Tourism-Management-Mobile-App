@@ -6,6 +6,7 @@ import {
   getAllDestinations,
   updateDestination,
   deleteDestination,
+  getDestinationById,
 } from "../controller/destinationController.js";
 import { protect, adminOnly } from "../middleware/authMiddleware.js";
 
@@ -34,6 +35,7 @@ const upload = multer({
 });
 
 router.get("/", getAllDestinations);
+router.get("/:id", getDestinationById);
 router.post("/", protect, adminOnly, upload.array("images", 5), createDestination);
 router.put("/:id", protect, adminOnly, upload.array("images", 5), updateDestination);
 router.delete("/:id", protect, adminOnly, deleteDestination);

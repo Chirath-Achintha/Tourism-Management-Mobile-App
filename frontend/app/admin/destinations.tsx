@@ -116,18 +116,26 @@ export default function DestinationsManagementScreen() {
       formData.append('category', category);
       formData.append('description', description);
       
-      images.forEach((imgUri, index) => {
+      for (let i = 0; i < images.length; i++) {
+        const imgUri = images[i];
         if (!imgUri.startsWith('http')) {
-          const filename = imgUri.split('/').pop();
-          const match = /\.(\w+)$/.exec(filename || '');
+          const filename = imgUri.split('/').pop() || `image-${i}`;
+          const match = /\.(\w+)$/.exec(filename);
           const type = match ? `image/${match[1]}` : `image`;
-          formData.append('images', {
-            uri: imgUri,
-            name: `${filename}-${index}`,
-            type,
-          } as any);
+
+          if (Platform.OS === 'web') {
+            const response = await fetch(imgUri);
+            const blob = await response.blob();
+            formData.append('images', blob, filename);
+          } else {
+            formData.append('images', {
+              uri: imgUri,
+              name: filename,
+              type,
+            } as any);
+          }
         }
-      });
+      }
 
       const url = editingId ? `${API_BASE_URL}/destinations/${editingId}` : `${API_BASE_URL}/destinations`;
       const method = editingId ? 'PUT' : 'POST';
@@ -149,7 +157,8 @@ export default function DestinationsManagementScreen() {
         resetForm();
         fetchDestinations();
       } else {
-        throw new Error(data.message || "Operation failed.");
+        const errorMessage = data.error || data.message || "Operation failed.";
+        throw new Error(errorMessage);
       }
     } catch (error: any) {
       Alert.alert("Error", error.message);

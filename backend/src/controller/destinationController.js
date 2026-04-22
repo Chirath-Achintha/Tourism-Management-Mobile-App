@@ -36,6 +36,7 @@ export const createDestination = async (req, res) => {
       destination,
     });
   } catch (error) {
+    console.error("Error in createDestination:", error);
     res.status(500).json({ message: "Error creating destination.", error: error.message });
   }
 };
@@ -47,7 +48,21 @@ export const getAllDestinations = async (req, res) => {
     const destinations = await Destination.find(filter).sort({ createdAt: -1 });
     res.status(200).json(destinations);
   } catch (error) {
+    console.error("Error in getAllDestinations:", error);
     res.status(500).json({ message: "Error fetching destinations.", error: error.message });
+  }
+};
+
+export const getDestinationById = async (req, res) => {
+  try {
+    const destination = await Destination.findById(req.params.id);
+    if (!destination) {
+      return res.status(404).json({ message: "Destination not found" });
+    }
+    res.status(200).json(destination);
+  } catch (error) {
+    console.error("Error in getDestinationById:", error);
+    res.status(500).json({ message: "Error fetching destination.", error: error.message });
   }
 };
 
@@ -90,6 +105,7 @@ export const updateDestination = async (req, res) => {
       destination: updatedDestination,
     });
   } catch (error) {
+    console.error("Error in updateDestination:", error);
     res.status(500).json({ message: "Error updating destination.", error: error.message });
   }
 };
@@ -114,6 +130,7 @@ export const deleteDestination = async (req, res) => {
 
     res.status(200).json({ message: "Destination Deleted Successfully" });
   } catch (error) {
+    console.error("Error in deleteDestination:", error);
     res.status(500).json({ message: "Error deleting destination.", error: error.message });
   }
 };

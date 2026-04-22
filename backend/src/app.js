@@ -9,6 +9,15 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Request logger
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.originalUrl}`);
+  res.on('finish', () => {
+    console.log(`Response: ${res.statusCode}`);
+  });
+  next();
+});
+
 app.get("/api/health", (_req, res) => {
 	res.status(200).json({ message: "Backend is running" });
 });

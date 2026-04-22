@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   SafeAreaView,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -10,12 +9,16 @@ import {
   Image,
   Pressable,
   Dimensions,
+  FlatList,
 } from 'react-native';
 import { API_BASE_URL } from '@/constants/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 
 const { width } = Dimensions.get('window');
+const CARD_WIDTH = (width - 48 - 16) / 2;
 
 const CATEGORIES = ['All', 'Beach', 'Mountain', 'City', 'Cultural'];
 
@@ -24,6 +27,7 @@ export default function SearchPlacesScreen() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [places, setPlaces] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [favorites, setFavorites] = useState<string[]>([]);
   const router = useRouter();
 
   useEffect(() => {
@@ -44,6 +48,12 @@ export default function SearchPlacesScreen() {
     fetchPlaces();
   }, []);
 
+  const toggleFavorite = (id: string) => {
+    setFavorites(prev => 
+      prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]
+    );
+  };
+
   const filteredPlaces = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     
@@ -60,19 +70,19 @@ export default function SearchPlacesScreen() {
     });
   }, [query, places, selectedCategory]);
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.fixedHeader}>
-        <View style={styles.headerRow}>
-          <View>
-            <Text style={styles.title}>Explore</Text>
-            <Text style={styles.subtitle}>Discover the beauty of Sri Lanka</Text>
-          </View>
-          <Pressable style={styles.notificationBtn}>
-            <Ionicons name="notifications-outline" size={22} color="#1A3B2F" />
-          </Pressable>
+  const renderHeader = () => (
+    <View style={styles.fixedHeader}>
+      <View style={styles.headerRow}>
+        <View>
+          <Text style={styles.title}>Explore</Text>
+          <Text style={styles.subtitle}>Discover the beauty of Sri Lanka</Text>
         </View>
+        <Pressable style={styles.notificationBtn}>
+          <Ionicons name="notifications-outline" size={22} color="#1A3B2F" />
+        </Pressable>
+      </View>
 
+      <BlurView intensity={80} tint="light" style={styles.searchBlur}>
         <View style={styles.searchWrapper}>
           <Ionicons name="search-outline" size={20} color="rgba(26, 59, 47, 0.4)" />
           <TextInput
@@ -88,15 +98,17 @@ export default function SearchPlacesScreen() {
             </Pressable>
           )}
         </View>
+      </BlurView>
 
-        <ScrollView 
+      <BlurView intensity={60} tint="light" style={styles.categoryBlur}>
+        <FlatList 
           horizontal 
+          data={CATEGORIES}
           showsHorizontalScrollIndicator={false} 
           contentContainerStyle={styles.categoryScroll}
-        >
-          {CATEGORIES.map((cat) => (
+          keyExtractor={(item) => item}
+          renderItem={({ item: cat }) => (
             <Pressable
-              key={cat}
               onPress={() => setSelectedCategory(cat)}
               style={[
                 styles.categoryPill,
@@ -110,65 +122,82 @@ export default function SearchPlacesScreen() {
                 {cat}
               </Text>
             </Pressable>
-          ))}
-        </ScrollView>
-      </View>
+          )}
+        />
+      </BlurView>
+    </View>
+  );
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.resultsHeader}>
-          <Text style={styles.resultsText}>{filteredPlaces.length} Destinations Found</Text>
+  const renderDestinationCard = ({ item: place }: { item: any }) => (
+    <Pressable 
+      style={styles.card}
+      onPress={() => router.push(`/destination/${place._id}` as any)}
+    >
+      <View style={styles.cardImageWrapper}>
+        <Image source={{ uri: place.images[0]?.url }} style={styles.cardImage} />
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.8)']}
+          style={styles.gradient}
+        />
+        
+        <Pressable 
+          style={styles.heartIcon} 
+          onPress={() => toggleFavorite(place._id)}
+        >
+          <Ionicons 
+            name={favorites.includes(place._id) ? "heart" : "heart-outline"} 
+            size={20} 
+            color={favorites.includes(place._id) ? "#FF4D4D" : "#ffffff"} 
+          />
+        </Pressable>
+
+        <View style={styles.cardOverlayContent}>
+          <View style={styles.locationTag}>
+            <Ionicons name="location" size={10} color="#FFD166" />
+            <Text style={styles.locationText}>{place.location}</Text>
+          </View>
+          <Text style={styles.placeName} numberOfLines={1}>{place.name}</Text>
+          
+          <View style={styles.ratingRow}>
+            <Ionicons name="star" size={12} color="#FFD166" />
+            <Text style={styles.ratingText}>{"4.8"}</Text>
+            <Text style={styles.reviewsText}>{" (1.2k)"}</Text>
+          </View>
         </View>
+      </View>
+    </Pressable>
+  );
 
-        {loading ? (
-          <View style={styles.loadingState}>
-            <ActivityIndicator size="large" color="#FFD166" />
-            <Text style={styles.loadingText}>Loading gorgeous places...</Text>
-          </View>
-        ) : filteredPlaces.length === 0 ? (
-          <View style={styles.emptyState}>
-            <View style={styles.emptyIconCircle}>
-              <Ionicons name="map-outline" size={40} color="rgba(26, 59, 47, 0.2)" />
+  return (
+    <SafeAreaView style={styles.container}>
+      <FlatList
+        ListHeaderComponent={renderHeader()}
+        data={filteredPlaces}
+        keyExtractor={(item) => item._id}
+        renderItem={renderDestinationCard}
+        numColumns={2}
+        columnWrapperStyle={styles.row}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          loading ? (
+            <View style={styles.loadingState}>
+              <ActivityIndicator size="large" color="#FFD166" />
+              <Text style={styles.loadingText}>Loading gorgeous places...</Text>
             </View>
-            <Text style={styles.emptyStateTitle}>No results found</Text>
-            <Text style={styles.emptyStateSubtitle}>
-              Try adjusting your search or category filters.
-            </Text>
-          </View>
-        ) : (
-          filteredPlaces.map((place) => (
-            <Pressable 
-              key={place._id} 
-              style={styles.card}
-              onPress={() => router.push(`/destination/${place._id}` as any)}
-            >
-              <Image source={{ uri: place.images[0]?.url }} style={styles.cardImage} />
-              <View style={styles.cardContent}>
-                <View style={styles.cardTopRow}>
-                  <View style={styles.locationTag}>
-                    <Ionicons name="location" size={12} color="#FFD166" />
-                    <Text style={styles.locationText}>{place.location}</Text>
-                  </View>
-                  <View style={styles.categoryBadge}>
-                    <Text style={styles.badgeText}>{place.category}</Text>
-                  </View>
-                </View>
-                <Text style={styles.placeName}>{place.name}</Text>
-                <Text style={styles.description} numberOfLines={2}>{place.description}</Text>
-                
-                <View style={styles.cardFooter}>
-                  <View style={styles.ratingRow}>
-                    <Ionicons name="star" size={14} color="#FFD166" />
-                    <Text style={styles.ratingText}>4.8 (1.2k reviews)</Text>
-                  </View>
-                  <View style={styles.arrowCircle}>
-                    <Ionicons name="arrow-forward" size={16} color="#ffffff" />
-                  </View>
-                </View>
+          ) : (
+            <View style={styles.emptyState}>
+              <View style={styles.emptyIconCircle}>
+                <Ionicons name="map-outline" size={40} color="rgba(26, 59, 47, 0.2)" />
               </View>
-            </Pressable>
-          ))
-        )}
-      </ScrollView>
+              <Text style={styles.emptyStateTitle}>No results found</Text>
+              <Text style={styles.emptyStateSubtitle}>
+                Try adjusting your search or category filters.
+              </Text>
+            </View>
+          )
+        }
+      />
     </SafeAreaView>
   );
 }
@@ -180,7 +209,6 @@ const styles = StyleSheet.create({
   },
   fixedHeader: {
     paddingTop: 12,
-    backgroundColor: '#F0FAF5',
   },
   headerRow: {
     flexDirection: 'row',
@@ -190,62 +218,66 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   title: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: '900',
     color: '#1A3B2F',
-    letterSpacing: -0.5,
+    letterSpacing: -1,
   },
   subtitle: {
     fontSize: 14,
     color: 'rgba(26, 59, 47, 0.4)',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   notificationBtn: {
     width: 44,
     height: 44,
-    borderRadius: 14,
+    borderRadius: 15,
     backgroundColor: '#ffffff',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  searchBlur: {
+    marginHorizontal: 24,
+    borderRadius: 22,
+    overflow: 'hidden',
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(26, 59, 47, 0.05)',
+    borderColor: 'rgba(255, 255, 255, 0.5)',
   },
   searchWrapper: {
-    marginHorizontal: 24,
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
     paddingHorizontal: 16,
     height: 56,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(26, 59, 47, 0.06)',
-    marginBottom: 16,
-    shadowColor: '#1A3B2F',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.03,
-    shadowRadius: 10,
-    elevation: 2,
   },
   searchInput: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 16,
     color: '#1A3B2F',
-    fontWeight: '600',
+    fontWeight: '700',
+  },
+  categoryBlur: {
+    marginBottom: 8,
   },
   categoryScroll: {
     paddingHorizontal: 24,
-    paddingBottom: 16,
-    gap: 10,
+    paddingVertical: 12,
+    gap: 12,
   },
   categoryPill: {
-    paddingHorizontal: 18,
+    paddingHorizontal: 20,
     paddingVertical: 10,
-    borderRadius: 14,
-    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
     borderWidth: 1,
-    borderColor: 'rgba(26, 59, 47, 0.05)',
+    borderColor: 'rgba(255, 255, 255, 0.8)',
   },
   categoryPillActive: {
     backgroundColor: '#1A3B2F',
@@ -253,28 +285,101 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     fontSize: 13,
-    fontWeight: '700',
-    color: 'rgba(26, 59, 47, 0.6)',
+    fontWeight: '800',
+    color: 'rgba(26, 59, 47, 0.5)',
   },
   categoryTextActive: {
     color: '#ffffff',
   },
   content: {
-    padding: 24,
-    paddingTop: 8,
+    paddingHorizontal: 24,
+    paddingBottom: 24,
   },
-  resultsHeader: {
+  row: {
+    justifyContent: 'space-between',
+  },
+  card: {
+    width: CARD_WIDTH,
+    height: CARD_WIDTH * 1.4,
     marginBottom: 16,
+    borderRadius: 24,
+    overflow: 'hidden',
+    backgroundColor: '#ffffff',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
   },
-  resultsText: {
-    fontSize: 12,
-    color: 'rgba(26, 59, 47, 0.4)',
-    fontWeight: '800',
+  cardImageWrapper: {
+    flex: 1,
+  },
+  cardImage: {
+    width: '100%',
+    height: '100%',
+  },
+  gradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: '60%',
+  },
+  heartIcon: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cardOverlayContent: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 14,
+  },
+  locationTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 4,
+  },
+  locationText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#FFD166',
     textTransform: 'uppercase',
-    letterSpacing: 1.2,
+    letterSpacing: 0.5,
+  },
+  placeName: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#ffffff',
+    marginBottom: 4,
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  ratingText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#ffffff',
+    marginLeft: 4,
+  },
+  reviewsText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.7)',
   },
   loadingState: {
-    paddingVertical: 80,
+    width: width - 48,
+    paddingVertical: 100,
     alignItems: 'center',
     gap: 16,
   },
@@ -284,7 +389,8 @@ const styles = StyleSheet.create({
     color: 'rgba(26, 59, 47, 0.3)',
   },
   emptyState: {
-    paddingVertical: 80,
+    width: width - 48,
+    paddingVertical: 100,
     alignItems: 'center',
   },
   emptyIconCircle: {
@@ -308,98 +414,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
     paddingHorizontal: 40,
-  },
-  card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 30,
-    marginBottom: 20,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(26, 59, 47, 0.04)',
-    shadowColor: '#1A3B2F',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.05,
-    shadowRadius: 20,
-    elevation: 3,
-  },
-  cardImage: {
-    width: '100%',
-    height: 220,
-  },
-  cardContent: {
-    padding: 20,
-  },
-  cardTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  locationTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(26, 59, 47, 0.03)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
-    gap: 4,
-  },
-  locationText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: 'rgba(26, 59, 47, 0.7)',
-    textTransform: 'uppercase',
-  },
-  categoryBadge: {
-    backgroundColor: '#FFD166',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  badgeText: {
-    fontSize: 10,
-    fontWeight: '900',
-    color: '#1A3B2F',
-    textTransform: 'uppercase',
-  },
-  placeName: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#1A3B2F',
-    marginBottom: 8,
-  },
-  description: {
-    fontSize: 14,
-    color: 'rgba(26, 59, 47, 0.5)',
-    lineHeight: 20,
-    fontWeight: '500',
-    marginBottom: 20,
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(26, 59, 47, 0.05)',
-  },
-  ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  ratingText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#1A3B2F',
-  },
-  arrowCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#1A3B2F',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 });
 
