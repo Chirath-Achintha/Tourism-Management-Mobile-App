@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -6,8 +6,19 @@ import {
   Text,
   TextInput,
   View,
+  Pressable,
+  ActivityIndicator,
+  Alert,
+  Image,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL } from '@/constants/api';
+import { Colors } from '@/constants/theme';
+
+const AUTH_USER_KEY = "auth:user";
 
 type TouristPlace = {
   name: string;
@@ -57,6 +68,109 @@ const TOURIST_PLACES: TouristPlace[] = [
 
 export default function SearchPlacesScreen() {
   const [query, setQuery] = useState('');
+  const [role, setRole] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Add Hotel Form State
+  const [hotelName, setHotelName] = useState('');
+  const [location, setLocation] = useState('');
+  const [address, setAddress] = useState('');
+  const [description, setDescription] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  
+  // Dynamic Room Pricing State
+  const [roomConfigs, setRoomConfigs] = useState<{type: string, price: string, discountPrice: string}[]>([]);
+  const [tempType, setTempType] = useState('Single');
+  const [tempPrice, setTempPrice] = useState('');
+  const [tempDiscount, setTempDiscount] = useState('');
+
+  const [facilities, setFacilities] = useState({
+    freeWifi: false,
+    swimmingPool: false,
+    airConditioning: false,
+    parking: false,
+    restaurant: false,
+    gym: false,
+  });
+  const [mainImage, setMainImage] = useState<string | null>(null);
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const pickMainImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [16, 9],
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setMainImage(result.assets[0].uri);
+    }
+  };
+
+  const pickGalleryImages = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsMultipleSelection: true,
+      selectionLimit: 6 - galleryImages.length,
+      quality: 0.7,
+    });
+
+    if (!result.canceled) {
+      const newUris = result.assets.map(asset => asset.uri);
+      setGalleryImages(prev => [...prev, ...newUris].slice(0, 6));
+    }
+  };
+
+  const removeGalleryImage = (index: number) => {
+    setGalleryImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const uploadFile = async (uri: string, isMultiple = false) => {
+    const formData = new FormData();
+    const filename = uri.split('/').pop() || 'image.jpg';
+    const match = /\.(\w+)$/.exec(filename);
+    const type = match ? `image/${match[1]}` : `image`;
+
+    formData.append(isMultiple ? 'images' : 'image', {
+      uri,
+      name: filename,
+      type,
+    } as any);
+
+    const token = await AsyncStorage.getItem("auth:token");
+    const response = await fetch(`${API_BASE_URL}/upload/${isMultiple ? 'multiple' : 'single'}`, {
+      method: "POST",
+      body: formData,
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "multipart/form-data",
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Upload failed");
+    return isMultiple ? data.filePaths : data.filePath;
+  };
+
+  useEffect(() => {
+    const checkRole = async () => {
+      try {
+        const userData = await AsyncStorage.getItem(AUTH_USER_KEY);
+        if (userData) {
+          const user = JSON.parse(userData);
+          setRole(user.role);
+        }
+      } catch (error) {
+        console.error("Error checking role:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    checkRole();
+  }, []);
 
   const filteredPlaces = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -70,6 +184,406 @@ export default function SearchPlacesScreen() {
       );
     });
   }, [query]);
+
+  const toggleFacility = (key: keyof typeof facilities) => {
+    setFacilities(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const addRoomConfig = () => {
+    if (!tempPrice) {
+      Alert.alert("Validation", "Please enter a price for the room.");
+      return;
+    }
+    
+    // Check if type already exists
+    if (roomConfigs.some(r => r.type === tempType)) {
+      Alert.alert("Validation", `You already added a ${tempType} room.`);
+      return;
+    }
+
+    setRoomConfigs(prev => [...prev, {
+      type: tempType,
+      price: tempPrice,
+      discountPrice: tempDiscount
+    }]);
+    
+    // Reset temp inputs
+    setTempPrice('');
+    setTempDiscount('');
+  };
+
+  const removeRoomConfig = (index: number) => {
+    setRoomConfigs(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleGalleryChange = (text: string, index: number) => {
+    const newGallery = [...galleryImages];
+    newGallery[index] = text;
+    setGalleryImages(newGallery);
+  };
+
+  const handleAddHotel = async () => {
+    if (!hotelName || !location || !address || !description || !contactEmail || !contactPhone || !mainImage) {
+      Alert.alert("Validation", "Please fill in all essential details.");
+      return;
+    }
+
+    if (roomConfigs.length === 0) {
+      Alert.alert("Validation", "Please add at least one room type and price.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // 1. Upload Main Image
+      const uploadedMainImagePath = await uploadFile(mainImage);
+
+      // 2. Upload Gallery Images
+      let uploadedGalleryPaths: string[] = [];
+      if (galleryImages.length > 0) {
+        // Since our backend has a /multiple endpoint, we can use it, 
+        // but it's simpler to upload them one by one or all at once.
+        // Let's use the multiple endpoint logic.
+        const formData = new FormData();
+        for (const uri of galleryImages) {
+          const filename = uri.split('/').pop() || 'image.jpg';
+          const match = /\.(\w+)$/.exec(filename);
+          const type = match ? `image/${match[1]}` : `image`;
+          formData.append('images', { uri, name: filename, type } as any);
+        }
+        
+        const token = await AsyncStorage.getItem("auth:token");
+        const galleryRes = await fetch(`${API_BASE_URL}/upload/multiple`, {
+          method: "POST",
+          body: formData,
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        });
+        const galleryData = await galleryRes.json();
+        if (galleryRes.ok) uploadedGalleryPaths = galleryData.filePaths;
+      }
+
+      // 3. Save Hotel
+      const token = await AsyncStorage.getItem("auth:token");
+      const response = await fetch(`${API_BASE_URL}/hotels/add`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          hotelName,
+          location,
+          address,
+          description,
+          contactEmail,
+          contactPhone,
+          roomConfigs: roomConfigs.map(r => ({
+            type: r.type,
+            price: Number(r.price),
+            discountPrice: r.discountPrice ? Number(r.discountPrice) : undefined
+          })),
+          facilities,
+          mainImage: uploadedMainImagePath,
+          galleryImages: uploadedGalleryPaths,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to add hotel");
+      }
+
+      Alert.alert("Success", "Hotel registered successfully!");
+      
+      // Reset form
+      setHotelName('');
+      setLocation('');
+      setAddress('');
+      setDescription('');
+      setContactEmail('');
+      setContactPhone('');
+      setRoomConfigs([]);
+      setFacilities({
+        freeWifi: false,
+        swimmingPool: false,
+        airConditioning: false,
+        parking: false,
+        restaurant: false,
+        gym: false,
+      });
+      setMainImage(null);
+      setGalleryImages([]);
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Could not register hotel.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (loading) return null;
+
+  if (role === 'hotel_manager') {
+    return (
+      <SafeAreaView style={styles.container}>
+        <ScrollView contentContainerStyle={styles.content}>
+          <View style={styles.headerRow}>
+            <Text style={styles.title}>Register Hotel</Text>
+            <IconSymbol name="plus.circle.fill" size={30} color="#1A3B2F" />
+          </View>
+          <Text style={styles.subtitle}>
+            Fill in your property details to join our network.
+          </Text>
+
+          {/* Essential Details Section */}
+          <View style={styles.sectionHeader}>
+            <Ionicons name="information-circle-outline" size={20} color="#1A3B2F" />
+            <Text style={styles.sectionTitleText}>Essential Details</Text>
+          </View>
+
+          <View style={styles.formContainer}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Hotel Name *</Text>
+              <TextInput
+                value={hotelName}
+                onChangeText={setHotelName}
+                placeholder="e.g. Grand Heritage Resort"
+                style={styles.formInput}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Location (City / Area) *</Text>
+              <TextInput
+                value={location}
+                onChangeText={setLocation}
+                placeholder="e.g. Galle Fort"
+                style={styles.formInput}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Full Address *</Text>
+              <TextInput
+                value={address}
+                onChangeText={setAddress}
+                placeholder="Street address, City"
+                style={styles.formInput}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Description *</Text>
+              <TextInput
+                value={description}
+                onChangeText={setDescription}
+                placeholder="Tell guests what makes your hotel special..."
+                multiline
+                numberOfLines={4}
+                style={[styles.formInput, styles.textArea]}
+              />
+            </View>
+
+            <View style={styles.row}>
+              <View style={[styles.inputGroup, { flex: 1 }]}>
+                <Text style={styles.label}>Contact Email *</Text>
+                <TextInput
+                  value={contactEmail}
+                  onChangeText={setContactEmail}
+                  placeholder="hotel@example.com"
+                  keyboardType="email-address"
+                  style={styles.formInput}
+                />
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Contact Phone *</Text>
+              <TextInput
+                value={contactPhone}
+                onChangeText={setContactPhone}
+                placeholder="+94 77 123 4567"
+                keyboardType="phone-pad"
+                style={styles.formInput}
+              />
+            </View>
+          </View>
+
+          {/* Pricing Section */}
+          <View style={styles.sectionHeader}>
+            <Ionicons name="cash-outline" size={20} color="#1A3B2F" />
+            <Text style={styles.sectionTitleText}>Pricing & Room Types</Text>
+          </View>
+
+          <View style={styles.formContainer}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Select Room Type</Text>
+              <View style={styles.chipContainer}>
+                {['Single', 'Double', 'Deluxe', 'Suite'].map(type => (
+                  <Pressable
+                    key={type}
+                    onPress={() => setTempType(type)}
+                    style={[
+                      styles.chip,
+                      tempType === type && styles.chipActive
+                    ]}
+                  >
+                    <Text style={[
+                      styles.chipText,
+                      tempType === type && styles.chipTextActive
+                    ]}>{type}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.row}>
+              <View style={[styles.inputGroup, { flex: 1 }]}>
+                <Text style={styles.label}>Price (LKR) *</Text>
+                <TextInput
+                  value={tempPrice}
+                  onChangeText={setTempPrice}
+                  placeholder="15,000"
+                  keyboardType="numeric"
+                  style={styles.formInput}
+                />
+              </View>
+              <View style={[styles.inputGroup, { flex: 1, marginLeft: 12 }]}>
+                <Text style={styles.label}>Discount</Text>
+                <TextInput
+                  value={tempDiscount}
+                  onChangeText={setTempDiscount}
+                  placeholder="12,500"
+                  keyboardType="numeric"
+                  style={styles.formInput}
+                />
+              </View>
+              <Pressable style={styles.addRoomButton} onPress={addRoomConfig}>
+                <Ionicons name="add" size={24} color="#1A3B2F" />
+              </Pressable>
+            </View>
+
+            {roomConfigs.length > 0 && (
+              <View style={styles.roomList}>
+                {roomConfigs.map((config, index) => (
+                  <View key={index} style={styles.roomListItem}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.roomListType}>{config.type} Room</Text>
+                      <Text style={styles.roomListPrice}>
+                        {config.price} LKR {config.discountPrice ? `(Disc: ${config.discountPrice})` : ''}
+                      </Text>
+                    </View>
+                    <Pressable onPress={() => removeRoomConfig(index)}>
+                      <Ionicons name="trash-outline" size={20} color="#ff4444" />
+                    </Pressable>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+
+          {/* Facilities Section */}
+          <View style={styles.sectionHeader}>
+            <Ionicons name="list-outline" size={20} color="#1A3B2F" />
+            <Text style={styles.sectionTitleText}>Facilities</Text>
+          </View>
+
+          <View style={styles.formContainer}>
+            <View style={styles.facilitiesGrid}>
+              {[
+                { key: 'freeWifi', label: 'Free WiFi', icon: 'wifi-outline' },
+                { key: 'swimmingPool', label: 'Swimming Pool', icon: 'water-outline' },
+                { key: 'airConditioning', label: 'Air Conditioning', icon: 'snow-outline' },
+                { key: 'parking', label: 'Parking', icon: 'car-outline' },
+                { key: 'restaurant', label: 'Restaurant', icon: 'restaurant-outline' },
+                { key: 'gym', label: 'Gym', icon: 'fitness-outline' },
+              ].map((item) => (
+                <Pressable 
+                  key={item.key}
+                  style={styles.checkboxContainer}
+                  onPress={() => toggleFacility(item.key as any)}
+                >
+                  <View style={[
+                    styles.checkbox,
+                    facilities[item.key as keyof typeof facilities] && styles.checkboxChecked
+                  ]}>
+                    {facilities[item.key as keyof typeof facilities] && (
+                      <Ionicons name="checkmark" size={14} color="#1A3B2F" />
+                    )}
+                  </View>
+                  <Ionicons name={item.icon as any} size={18} color="#1A3B2F" style={{marginLeft: 8}} />
+                  <Text style={styles.checkboxLabel}>{item.label}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+
+          {/* Images Section */}
+          <View style={styles.sectionHeader}>
+            <Ionicons name="images-outline" size={20} color="#1A3B2F" />
+            <Text style={styles.sectionTitleText}>Images</Text>
+          </View>
+
+          <View style={styles.formContainer}>
+            <Text style={styles.label}>Main Image (Thumbnail) *</Text>
+            <Pressable style={styles.imagePickerMain} onPress={pickMainImage}>
+              {mainImage ? (
+                <Image source={{ uri: mainImage }} style={styles.previewMain} />
+              ) : (
+                <View style={styles.pickerPlaceholder}>
+                  <Ionicons name="camera-outline" size={32} color="rgba(26, 59, 47, 0.4)" />
+                  <Text style={styles.pickerText}>Upload Main Image</Text>
+                </View>
+              )}
+            </Pressable>
+
+            <Text style={[styles.label, { marginTop: 16 }]}>Gallery Images (Up to 6)</Text>
+            <View style={styles.galleryContainer}>
+              {galleryImages.map((uri, index) => (
+                <View key={index} style={styles.galleryItem}>
+                  <Image source={{ uri }} style={styles.previewGallery} />
+                  <Pressable style={styles.removeImage} onPress={() => removeGalleryImage(index)}>
+                    <Ionicons name="close-circle" size={20} color="#FFD166" />
+                  </Pressable>
+                </View>
+              ))}
+              {galleryImages.length < 6 && (
+                <Pressable style={styles.imagePickerGallery} onPress={pickGalleryImages}>
+                  <Ionicons name="add" size={24} color="rgba(26, 59, 47, 0.4)" />
+                </Pressable>
+              )}
+            </View>
+          </View>
+
+          <Pressable 
+            style={({ pressed }) => [
+              styles.submitButton,
+              pressed && { opacity: 0.8 },
+              isSubmitting && { opacity: 0.7 }
+            ]} 
+            onPress={handleAddHotel}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator color="#1A3B2F" />
+            ) : (
+              <Text style={styles.submitButtonText}>Register Property</Text>
+            )}
+          </Pressable>
+
+          <View style={{ height: 40 }} />
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+
+
+
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -224,5 +738,225 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     textAlign: 'center',
+  },
+  formContainer: {
+    marginTop: 20,
+    gap: 20,
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(26, 59, 47, 0.08)',
+  },
+  inputGroup: {
+    gap: 8,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1A3B2F',
+    marginLeft: 4,
+  },
+  formInput: {
+    backgroundColor: '#F0FAF5',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 15,
+    color: '#1A3B2F',
+    borderWidth: 1,
+    borderColor: 'rgba(26, 59, 47, 0.05)',
+  },
+  textArea: {
+    height: 120,
+    textAlignVertical: 'top',
+  },
+  submitButton: {
+    backgroundColor: '#FFD166',
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  submitButtonText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#1A3B2F',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 24,
+    marginBottom: 8,
+    marginLeft: 4,
+    gap: 8,
+  },
+  sectionTitleText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#1A3B2F',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  chipContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 4,
+  },
+  chip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F0FAF5',
+    borderWidth: 1,
+    borderColor: 'rgba(26, 59, 47, 0.1)',
+  },
+  chipActive: {
+    backgroundColor: '#FFD166',
+    borderColor: '#FFD166',
+  },
+  chipText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: 'rgba(26, 59, 47, 0.6)',
+  },
+  chipTextActive: {
+    color: '#1A3B2F',
+  },
+  facilitiesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '45%',
+    marginBottom: 8,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#FFD166',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+  },
+  checkboxChecked: {
+    backgroundColor: '#FFD166',
+  },
+  checkboxLabel: {
+    fontSize: 14,
+    color: '#1A3B2F',
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  imagePickerMain: {
+    height: 180,
+    backgroundColor: '#F0FAF5',
+    borderRadius: 16,
+    marginTop: 8,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: 'rgba(26, 59, 47, 0.2)',
+    overflow: 'hidden',
+  },
+  previewMain: {
+    width: '100%',
+    height: '100%',
+  },
+  pickerPlaceholder: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  pickerText: {
+    fontSize: 14,
+    color: 'rgba(26, 59, 47, 0.4)',
+    fontWeight: '600',
+  },
+  galleryContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginTop: 8,
+  },
+  galleryItem: {
+    width: '30%',
+    aspectRatio: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  previewGallery: {
+    width: '100%',
+    height: '100%',
+  },
+  removeImage: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+  },
+  imagePickerGallery: {
+    width: '30%',
+    aspectRatio: 1,
+    backgroundColor: '#F0FAF5',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: 'rgba(26, 59, 47, 0.2)',
+  },
+  addRoomButton: {
+    backgroundColor: '#FFD166',
+    width: 50,
+    height: 50,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 22,
+    marginLeft: 10,
+  },
+  roomList: {
+    marginTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(26, 59, 47, 0.05)',
+    paddingTop: 10,
+  },
+  roomListItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0FAF5',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  roomListType: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1A3B2F',
+  },
+  roomListPrice: {
+    fontSize: 12,
+    color: 'rgba(26, 59, 47, 0.6)',
+    fontWeight: '600',
   },
 });
