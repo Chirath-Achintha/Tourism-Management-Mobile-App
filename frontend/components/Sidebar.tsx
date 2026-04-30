@@ -115,6 +115,11 @@ export const Sidebar = ({ isVisible, onClose }: SidebarProps) => {
               onPress={() => handleNavigate('/(tabs)/explore')}
             />
             <SidebarItem
+              icon="airplane-outline"
+              label="Tour Packages"
+              onPress={() => handleNavigate('/tour-packages')}
+            />
+            <SidebarItem
               icon="bookmark-outline"
               label="My Bookings"
               onPress={() => {}}
@@ -137,6 +142,11 @@ export const Sidebar = ({ isVisible, onClose }: SidebarProps) => {
                   icon="business-outline"
                   label="Hotel Management"
                   onPress={() => {}}
+                />
+                <SidebarItem
+                  icon="airplane-outline"
+                  label="Tour Packages"
+                  onPress={() => handleNavigate('/admin/tour-packages')}
                 />
               </>
             )}
