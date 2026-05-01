@@ -12,33 +12,16 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack screenOptions={{ headerShown: false }}>
-
-          <Stack.Screen 
-            name="index" 
-            options={{ animation: 'fade' }} 
-          />
-
-          <Stack.Screen 
-            name="login" 
-            options={{ animation: 'slide_from_right' }} 
-          />
-
-          <Stack.Screen 
-            name="register" 
-            options={{ animation: 'slide_from_right' }} 
-          />
-
-          <Stack.Screen 
-            name="(tabs)" 
-            options={{ animation: 'fade' }} 
-          />
-
-          <Stack.Screen 
-            name="modal" 
-            options={{ presentation: 'modal' }} 
-          />
-
+        <Stack>
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="login" options={{ headerShown: false }} />
+          <Stack.Screen name="register" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="admin" options={{ headerShown: false }} />
+          <Stack.Screen name="tourist-hotels" options={{ headerShown: false }} />
+          <Stack.Screen name="tourist-hotel-detail" options={{ headerShown: false }} />
+          <Stack.Screen name="tour-packages" options={{ headerShown: false }} />
+          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
         </Stack>
 
         <StatusBar style="light" />

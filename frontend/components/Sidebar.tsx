@@ -7,6 +7,7 @@ import {
   Animated,
   Dimensions,
   SafeAreaView,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -103,9 +104,13 @@ export const Sidebar = ({ isVisible, onClose }: SidebarProps) => {
 
           <View style={styles.divider} />
 
-          <View style={styles.menuList}>
+          <ScrollView 
+            style={styles.menuList} 
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 20 }}
+          >
             <SidebarItem
-              icon="house-outline"
+              icon="home-outline"
               label="Home"
               onPress={() => handleNavigate('/(tabs)')}
             />
@@ -115,9 +120,19 @@ export const Sidebar = ({ isVisible, onClose }: SidebarProps) => {
               onPress={() => handleNavigate('/(tabs)/explore')}
             />
             <SidebarItem
+              icon="airplane-outline"
+              label="Tour Packages"
+              onPress={() => handleNavigate('/tour-packages')}
+            />
+            <SidebarItem
+              icon="business-outline"
+              label="Hotels"
+              onPress={() => handleNavigate('/tourist-hotels')}
+            />
+            <SidebarItem
               icon="bookmark-outline"
               label="My Bookings"
-              onPress={() => {}}
+              onPress={() => handleNavigate('/(tabs)/bookings')}
             />
             <SidebarItem
               icon="notifications-outline"
@@ -134,9 +149,30 @@ export const Sidebar = ({ isVisible, onClose }: SidebarProps) => {
                   onPress={() => handleNavigate('/admin/users')}
                 />
                 <SidebarItem
+                  icon="airplane-outline"
+                  label="Tour Packages"
+                  onPress={() => handleNavigate('/admin/tour-packages')}
+                />
+                <SidebarItem
                   icon="business-outline"
                   label="Hotel Management"
-                  onPress={() => {}}
+                  onPress={() => handleNavigate('/admin/hotels')}
+                />
+                <SidebarItem
+                  icon="list-outline"
+                  label="Reservation Management"
+                  onPress={() => handleNavigate('/admin/reservations')}
+                />
+              </>
+            )}
+            {user?.role === 'hotel_manager' && (
+              <>
+                <View style={styles.divider} />
+                <Text style={styles.sectionLabel}>MANAGER TOOLS</Text>
+                <SidebarItem
+                  icon="business-outline"
+                  label="My Hotels"
+                  onPress={() => handleNavigate('/manager/my-hotels')}
                 />
               </>
             )}
@@ -151,7 +187,7 @@ export const Sidebar = ({ isVisible, onClose }: SidebarProps) => {
               label="Help Center"
               onPress={() => {}}
             />
-          </View>
+          </ScrollView>
 
           <View style={styles.footer}>
             <Text style={styles.versionText}>Version 1.0.0</Text>

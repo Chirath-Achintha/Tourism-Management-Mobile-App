@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import {
   SafeAreaView,
   ScrollView,
@@ -69,6 +70,8 @@ const TOURIST_PLACES: TouristPlace[] = [
 ];
 
 export default function SearchPlacesScreen() {
+  const { id } = useLocalSearchParams();
+  const router = useRouter();
   const [query, setQuery] = useState('');
   const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -200,12 +203,55 @@ export default function SearchPlacesScreen() {
         }
       } catch (error) {
         console.error("Error checking role:", error);
+      }
+    };
+    
+    const fetchHotelData = async () => {
+      if (!id) {
+        setLoading(false);
+        return;
+      }
+      try {
+        const token = await AsyncStorage.getItem("auth:token");
+        const res = await fetch(`${API_BASE_URL}/hotels/${id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const hotel = await res.json();
+          setHotelName(hotel.hotelName);
+          setLocation(hotel.location);
+          setAddress(hotel.address);
+          setDescription(hotel.description);
+          setContactEmail(hotel.contactEmail);
+          setContactPhone(hotel.contactPhone);
+          setRoomConfigs(hotel.roomConfigs || []);
+          setFacilities(hotel.facilities || {
+            freeWifi: false, swimmingPool: false, airConditioning: false,
+            parking: false, restaurant: false, gym: false
+          });
+          setMainImage(hotel.mainImage ? `${API_BASE_URL}${hotel.mainImage}` : null);
+          setGalleryImages(hotel.galleryImages ? hotel.galleryImages.map((img: string) => `${API_BASE_URL}${img}`) : []);
+          
+          if (hotel.latitude && hotel.longitude) {
+            setSelectedLocation({ latitude: hotel.latitude, longitude: hotel.longitude });
+            setMapRegion({
+              latitude: hotel.latitude,
+              longitude: hotel.longitude,
+              latitudeDelta: 0.05,
+              longitudeDelta: 0.05,
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch hotel", err);
       } finally {
         setLoading(false);
       }
     };
+
     checkRole();
-  }, []);
+    fetchHotelData();
+  }, [id]);
 
   const filteredPlaces = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -347,16 +393,21 @@ export default function SearchPlacesScreen() {
     setIsSubmitting(true);
     try {
       // 1. Upload Main Image
-      const uploadedMainImagePath = await uploadFile(mainImage);
+      let uploadedMainImagePath = mainImage;
+      if (mainImage && !mainImage.startsWith('http')) {
+        uploadedMainImagePath = await uploadFile(mainImage);
+      } else if (mainImage && mainImage.startsWith(API_BASE_URL)) {
+        uploadedMainImagePath = mainImage.replace(API_BASE_URL, '');
+      }
 
       // 2. Upload Gallery Images
       let uploadedGalleryPaths: string[] = [];
-      if (galleryImages.length > 0) {
-        // Since our backend has a /multiple endpoint, we can use it, 
-        // but it's simpler to upload them one by one or all at once.
-        // Let's use the multiple endpoint logic.
+      const imagesToUpload = galleryImages.filter(img => !img.startsWith('http'));
+      const existingImages = galleryImages.filter(img => img.startsWith(API_BASE_URL)).map(img => img.replace(API_BASE_URL, ''));
+      
+      if (imagesToUpload.length > 0) {
         const formData = new FormData();
-        for (const uri of galleryImages) {
+        for (const uri of imagesToUpload) {
           const filename = uri.split('/').pop() || 'image.jpg';
           const match = /\.(\w+)$/.exec(filename);
           const type = match ? `image/${match[1]}` : `image`;
@@ -375,11 +426,15 @@ export default function SearchPlacesScreen() {
         const galleryData = await galleryRes.json();
         if (galleryRes.ok) uploadedGalleryPaths = galleryData.filePaths;
       }
+      uploadedGalleryPaths = [...existingImages, ...uploadedGalleryPaths];
 
       // 3. Save Hotel
       const token = await AsyncStorage.getItem("auth:token");
-      const response = await fetch(`${API_BASE_URL}/hotels/add`, {
-        method: "POST",
+      const url = id ? `${API_BASE_URL}/hotels/${id}` : `${API_BASE_URL}/hotels/add`;
+      const method = id ? "PUT" : "POST";
+      
+      const response = await fetch(url, {
+        method,
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
@@ -407,10 +462,14 @@ export default function SearchPlacesScreen() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Failed to add hotel");
+        throw new Error(data.message || (id ? "Failed to update hotel" : "Failed to add hotel"));
       }
 
-      Alert.alert("Success", "Hotel registered successfully!");
+      Alert.alert("Success", id ? "Hotel updated successfully!" : "Hotel registered successfully!");
+      if (id) {
+         router.back();
+         return;
+      }
       
       // Reset form
       setHotelName('');
@@ -442,9 +501,10 @@ export default function SearchPlacesScreen() {
   if (role === 'hotel_manager') {
     return (
       <SafeAreaView style={styles.container}>
+        <Stack.Screen options={{ headerShown: false }} />
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.headerRow}>
-            <Text style={styles.title}>Register Hotel</Text>
+            <Text style={styles.title}>{id ? "Edit Hotel" : "Register Hotel"}</Text>
             <IconSymbol name="plus.circle.fill" size={30} color="#1A3B2F" />
           </View>
           <Text style={styles.subtitle}>
@@ -758,7 +818,7 @@ export default function SearchPlacesScreen() {
             {isSubmitting ? (
               <ActivityIndicator color="#1A3B2F" />
             ) : (
-              <Text style={styles.submitButtonText}>Register Property</Text>
+              <Text style={styles.submitButtonText}>{id ? "Update Property" : "Register Property"}</Text>
             )}
           </Pressable>
 
@@ -775,6 +835,7 @@ export default function SearchPlacesScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <Stack.Screen options={{ headerShown: false }} />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.headerRow}>
           <Text style={styles.title}>Search Tourist Places</Text>
