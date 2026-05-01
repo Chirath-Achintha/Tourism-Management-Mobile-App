@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import {
   SafeAreaView,
   ScrollView,
@@ -11,6 +12,8 @@ import {
   Alert,
   Image,
 } from 'react-native';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -67,6 +70,8 @@ const TOURIST_PLACES: TouristPlace[] = [
 ];
 
 export default function SearchPlacesScreen() {
+  const { id } = useLocalSearchParams();
+  const router = useRouter();
   const [query, setQuery] = useState('');
   const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -96,6 +101,39 @@ export default function SearchPlacesScreen() {
   const [mainImage, setMainImage] = useState<string | null>(null);
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [addressSuggestions, setAddressSuggestions] = useState<any[]>([]);
+  const [isSearchingAddress, setIsSearchingAddress] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<{latitude: number, longitude: number} | null>(null);
+  const [mapRegion, setMapRegion] = useState({
+    latitude: 7.8731, // Sri Lanka Center
+    longitude: 80.7718,
+    latitudeDelta: 3.5,
+    longitudeDelta: 3.5,
+  });
+
+  const [touched, setTouched] = useState({
+    hotelName: false,
+    location: false,
+    address: false,
+    description: false,
+    contactEmail: false,
+    contactPhone: false,
+  });
+
+  const errors = useMemo(() => {
+    return {
+      hotelName: !hotelName ? "Hotel Name is required" : hotelName.length < 3 ? "Minimum 3 characters" : null,
+      location: !location ? "Location is required" : null,
+      address: !address ? "Full Address is required" : null,
+      description: !description ? "Description is required" : description.length < 10 ? "Minimum 10 characters" : null,
+      contactEmail: !contactEmail ? "Contact Email is required" : !/^\S+@\S+\.\S+$/.test(contactEmail) ? "Invalid email format" : null,
+      contactPhone: !contactPhone ? "Contact Phone is required" : !/^0\d{9}$/.test(contactPhone) ? "Must start with 0 and be exactly 10 digits" : null,
+    };
+  }, [hotelName, location, address, description, contactEmail, contactPhone]);
+
+  const markTouched = (field: keyof typeof touched) => {
+    setTouched(prev => ({ ...prev, [field]: true }));
+  };
 
   const pickMainImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -165,12 +203,55 @@ export default function SearchPlacesScreen() {
         }
       } catch (error) {
         console.error("Error checking role:", error);
+      }
+    };
+    
+    const fetchHotelData = async () => {
+      if (!id) {
+        setLoading(false);
+        return;
+      }
+      try {
+        const token = await AsyncStorage.getItem("auth:token");
+        const res = await fetch(`${API_BASE_URL}/hotels/${id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const hotel = await res.json();
+          setHotelName(hotel.hotelName);
+          setLocation(hotel.location);
+          setAddress(hotel.address);
+          setDescription(hotel.description);
+          setContactEmail(hotel.contactEmail);
+          setContactPhone(hotel.contactPhone);
+          setRoomConfigs(hotel.roomConfigs || []);
+          setFacilities(hotel.facilities || {
+            freeWifi: false, swimmingPool: false, airConditioning: false,
+            parking: false, restaurant: false, gym: false
+          });
+          setMainImage(hotel.mainImage ? `${API_BASE_URL}${hotel.mainImage}` : null);
+          setGalleryImages(hotel.galleryImages ? hotel.galleryImages.map((img: string) => `${API_BASE_URL}${img}`) : []);
+          
+          if (hotel.latitude && hotel.longitude) {
+            setSelectedLocation({ latitude: hotel.latitude, longitude: hotel.longitude });
+            setMapRegion({
+              latitude: hotel.latitude,
+              longitude: hotel.longitude,
+              latitudeDelta: 0.05,
+              longitudeDelta: 0.05,
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch hotel", err);
       } finally {
         setLoading(false);
       }
     };
+
     checkRole();
-  }, []);
+    fetchHotelData();
+  }, [id]);
 
   const filteredPlaces = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -194,6 +275,13 @@ export default function SearchPlacesScreen() {
       Alert.alert("Validation", "Please enter a price for the room.");
       return;
     }
+
+    const cleanPrice = tempPrice.replace(/,/g, '');
+    const priceVal = parseFloat(cleanPrice);
+    if (isNaN(priceVal) || priceVal <= 0) {
+      Alert.alert("Validation", "Price must be a positive number.");
+      return;
+    }
     
     // Check if type already exists
     if (roomConfigs.some(r => r.type === tempType)) {
@@ -202,10 +290,12 @@ export default function SearchPlacesScreen() {
     }
 
     let calculatedDiscountPrice = '';
-    const cleanPrice = tempPrice.replace(/,/g, '');
     if (tempDiscount) {
-      const priceVal = parseFloat(cleanPrice);
       const discountPercentage = parseFloat(tempDiscount);
+      if (isNaN(discountPercentage) || discountPercentage < 0 || discountPercentage > 100) {
+        Alert.alert("Validation", "Discount must be between 0% and 100%.");
+        return;
+      }
       if (!isNaN(priceVal) && !isNaN(discountPercentage)) {
         const finalPrice = priceVal - (priceVal * (discountPercentage / 100));
         calculatedDiscountPrice = finalPrice.toFixed(2); // Store the calculated LKR price
@@ -223,6 +313,47 @@ export default function SearchPlacesScreen() {
     setTempDiscount('');
   };
 
+  const handleAddressSearch = async (text: string) => {
+    setAddress(text);
+    if (text.length > 2) {
+      setIsSearchingAddress(true);
+      try {
+        const response = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(text)}&limit=5`);
+        const data = await response.json();
+        if (data && data.features) {
+          setAddressSuggestions(data.features);
+        } else {
+          setAddressSuggestions([]);
+        }
+      } catch (error) {
+        console.error("Address search error", error);
+      } finally {
+        setIsSearchingAddress(false);
+      }
+    } else {
+      setAddressSuggestions([]);
+    }
+  };
+
+  const handleSelectAddress = (feature: any) => {
+    const props = feature.properties;
+    const name = props.name || '';
+    const city = props.city || props.state || '';
+    const country = props.country || '';
+    const displayName = [name, city, country].filter(Boolean).join(', ');
+
+    setAddress(displayName);
+    const [lon, lat] = feature.geometry.coordinates;
+    setSelectedLocation({ latitude: lat, longitude: lon });
+    setMapRegion({
+      latitude: lat,
+      longitude: lon,
+      latitudeDelta: 0.05,
+      longitudeDelta: 0.05,
+    });
+    setAddressSuggestions([]);
+  };
+
   const removeRoomConfig = (index: number) => {
     setRoomConfigs(prev => prev.filter((_, i) => i !== index));
   };
@@ -234,6 +365,21 @@ export default function SearchPlacesScreen() {
   };
 
   const handleAddHotel = async () => {
+    setTouched({
+      hotelName: true,
+      location: true,
+      address: true,
+      description: true,
+      contactEmail: true,
+      contactPhone: true,
+    });
+
+    const hasErrors = Object.values(errors).some(e => e !== null);
+    if (hasErrors) {
+      Alert.alert("Validation Error", "Please correct all highlighted errors.");
+      return;
+    }
+
     if (!hotelName || !location || !address || !description || !contactEmail || !contactPhone || !mainImage) {
       Alert.alert("Validation", "Please fill in all essential details.");
       return;
@@ -247,16 +393,21 @@ export default function SearchPlacesScreen() {
     setIsSubmitting(true);
     try {
       // 1. Upload Main Image
-      const uploadedMainImagePath = await uploadFile(mainImage);
+      let uploadedMainImagePath = mainImage;
+      if (mainImage && !mainImage.startsWith('http')) {
+        uploadedMainImagePath = await uploadFile(mainImage);
+      } else if (mainImage && mainImage.startsWith(API_BASE_URL)) {
+        uploadedMainImagePath = mainImage.replace(API_BASE_URL, '');
+      }
 
       // 2. Upload Gallery Images
       let uploadedGalleryPaths: string[] = [];
-      if (galleryImages.length > 0) {
-        // Since our backend has a /multiple endpoint, we can use it, 
-        // but it's simpler to upload them one by one or all at once.
-        // Let's use the multiple endpoint logic.
+      const imagesToUpload = galleryImages.filter(img => !img.startsWith('http'));
+      const existingImages = galleryImages.filter(img => img.startsWith(API_BASE_URL)).map(img => img.replace(API_BASE_URL, ''));
+      
+      if (imagesToUpload.length > 0) {
         const formData = new FormData();
-        for (const uri of galleryImages) {
+        for (const uri of imagesToUpload) {
           const filename = uri.split('/').pop() || 'image.jpg';
           const match = /\.(\w+)$/.exec(filename);
           const type = match ? `image/${match[1]}` : `image`;
@@ -275,11 +426,15 @@ export default function SearchPlacesScreen() {
         const galleryData = await galleryRes.json();
         if (galleryRes.ok) uploadedGalleryPaths = galleryData.filePaths;
       }
+      uploadedGalleryPaths = [...existingImages, ...uploadedGalleryPaths];
 
       // 3. Save Hotel
       const token = await AsyncStorage.getItem("auth:token");
-      const response = await fetch(`${API_BASE_URL}/hotels/add`, {
-        method: "POST",
+      const url = id ? `${API_BASE_URL}/hotels/${id}` : `${API_BASE_URL}/hotels/add`;
+      const method = id ? "PUT" : "POST";
+      
+      const response = await fetch(url, {
+        method,
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
@@ -299,16 +454,22 @@ export default function SearchPlacesScreen() {
           facilities,
           mainImage: uploadedMainImagePath,
           galleryImages: uploadedGalleryPaths,
+          latitude: selectedLocation?.latitude,
+          longitude: selectedLocation?.longitude,
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Failed to add hotel");
+        throw new Error(data.message || (id ? "Failed to update hotel" : "Failed to add hotel"));
       }
 
-      Alert.alert("Success", "Hotel registered successfully!");
+      Alert.alert("Success", id ? "Hotel updated successfully!" : "Hotel registered successfully!");
+      if (id) {
+         router.back();
+         return;
+      }
       
       // Reset form
       setHotelName('');
@@ -340,9 +501,10 @@ export default function SearchPlacesScreen() {
   if (role === 'hotel_manager') {
     return (
       <SafeAreaView style={styles.container}>
+        <Stack.Screen options={{ headerShown: false }} />
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.headerRow}>
-            <Text style={styles.title}>Register Hotel</Text>
+            <Text style={styles.title}>{id ? "Edit Hotel" : "Register Hotel"}</Text>
             <IconSymbol name="plus.circle.fill" size={30} color="#1A3B2F" />
           </View>
           <Text style={styles.subtitle}>
@@ -360,42 +522,109 @@ export default function SearchPlacesScreen() {
               <Text style={styles.label}>Hotel Name *</Text>
               <TextInput
                 value={hotelName}
-                onChangeText={setHotelName}
+                onChangeText={(t) => { setHotelName(t); markTouched('hotelName'); }}
+                onBlur={() => markTouched('hotelName')}
                 placeholder="e.g. Grand Heritage Resort"
-                style={styles.formInput}
+                style={[styles.formInput, touched.hotelName && errors.hotelName && styles.errorInput]}
               />
+              {touched.hotelName && errors.hotelName && (
+                <Text style={styles.errorText}>{errors.hotelName}</Text>
+              )}
             </View>
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Location (City / Area) *</Text>
               <TextInput
                 value={location}
-                onChangeText={setLocation}
+                onChangeText={(t) => { setLocation(t); markTouched('location'); }}
+                onBlur={() => markTouched('location')}
                 placeholder="e.g. Galle Fort"
-                style={styles.formInput}
+                style={[styles.formInput, touched.location && errors.location && styles.errorInput]}
               />
+              {touched.location && errors.location && (
+                <Text style={styles.errorText}>{errors.location}</Text>
+              )}
+            </View>
+
+            <View style={[styles.inputGroup, { zIndex: 10 }]}>
+              <Text style={styles.label}>Full Address (Search to Pin) *</Text>
+              <View style={{ position: 'relative' }}>
+                <TextInput
+                  value={address}
+                  onChangeText={(t) => { handleAddressSearch(t); markTouched('address'); }}
+                  onBlur={() => markTouched('address')}
+                  placeholder="Type address to search..."
+                  style={[styles.formInput, touched.address && errors.address && styles.errorInput]}
+                />
+                {isSearchingAddress && (
+                  <ActivityIndicator style={styles.searchLoader} color="#1A3B2F" size="small" />
+                )}
+                {addressSuggestions.length > 0 && (
+                  <View style={styles.suggestionsContainer}>
+                    {addressSuggestions.map((item, index) => {
+                      const props = item.properties;
+                      const displayName = [props.name, props.city || props.state, props.country].filter(Boolean).join(', ');
+                      return (
+                        <Pressable 
+                          key={item.id || index} 
+                          style={styles.suggestionItem}
+                          onPress={() => handleSelectAddress(item)}
+                        >
+                          <Ionicons name="location-outline" size={16} color="#1A3B2F" />
+                          <Text style={styles.suggestionText} numberOfLines={2}>
+                            {displayName}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                )}
+              </View>
+              {touched.address && errors.address && (
+                <Text style={styles.errorText}>{errors.address}</Text>
+              )}
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Full Address *</Text>
-              <TextInput
-                value={address}
-                onChangeText={setAddress}
-                placeholder="Street address, City"
-                style={styles.formInput}
-              />
+              <Text style={styles.label}>Map Location (Tap to pin)</Text>
+              <View style={styles.mapContainer}>
+                <MapView
+                  provider={PROVIDER_GOOGLE}
+                  style={styles.map}
+                  region={mapRegion}
+                  onRegionChangeComplete={(region) => setMapRegion(region)}
+                  onPress={(e) => setSelectedLocation(e.nativeEvent.coordinate)}
+                >
+                  {selectedLocation && (
+                    <Marker 
+                      draggable
+                      coordinate={selectedLocation} 
+                      onDragEnd={(e) => setSelectedLocation(e.nativeEvent.coordinate)}
+                    />
+                  )}
+                </MapView>
+              </View>
+              {selectedLocation && (
+                <Text style={styles.coordinatesText}>
+                  Pinned: {selectedLocation.latitude.toFixed(4)}, {selectedLocation.longitude.toFixed(4)}
+                </Text>
+              )}
             </View>
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Description *</Text>
               <TextInput
                 value={description}
-                onChangeText={setDescription}
+                onChangeText={(t) => { setDescription(t); markTouched('description'); }}
+                onBlur={() => markTouched('description')}
                 placeholder="Tell guests what makes your hotel special..."
                 multiline
                 numberOfLines={4}
-                style={[styles.formInput, styles.textArea]}
+                style={[styles.formInput, styles.textArea, touched.description && errors.description && styles.errorInput]}
               />
+              {touched.description && errors.description && (
+                <Text style={styles.errorText}>{errors.description}</Text>
+              )}
             </View>
 
             <View style={styles.row}>
@@ -403,11 +632,15 @@ export default function SearchPlacesScreen() {
                 <Text style={styles.label}>Contact Email *</Text>
                 <TextInput
                   value={contactEmail}
-                  onChangeText={setContactEmail}
+                  onChangeText={(t) => { setContactEmail(t); markTouched('contactEmail'); }}
+                  onBlur={() => markTouched('contactEmail')}
                   placeholder="hotel@example.com"
                   keyboardType="email-address"
-                  style={styles.formInput}
+                  style={[styles.formInput, touched.contactEmail && errors.contactEmail && styles.errorInput]}
                 />
+                {touched.contactEmail && errors.contactEmail && (
+                  <Text style={styles.errorText}>{errors.contactEmail}</Text>
+                )}
               </View>
             </View>
 
@@ -415,11 +648,15 @@ export default function SearchPlacesScreen() {
               <Text style={styles.label}>Contact Phone *</Text>
               <TextInput
                 value={contactPhone}
-                onChangeText={setContactPhone}
+                onChangeText={(t) => { setContactPhone(t); markTouched('contactPhone'); }}
+                onBlur={() => markTouched('contactPhone')}
                 placeholder="+94 77 123 4567"
                 keyboardType="phone-pad"
-                style={styles.formInput}
+                style={[styles.formInput, touched.contactPhone && errors.contactPhone && styles.errorInput]}
               />
+              {touched.contactPhone && errors.contactPhone && (
+                <Text style={styles.errorText}>{errors.contactPhone}</Text>
+              )}
             </View>
           </View>
 
@@ -581,7 +818,7 @@ export default function SearchPlacesScreen() {
             {isSubmitting ? (
               <ActivityIndicator color="#1A3B2F" />
             ) : (
-              <Text style={styles.submitButtonText}>Register Property</Text>
+              <Text style={styles.submitButtonText}>{id ? "Update Property" : "Register Property"}</Text>
             )}
           </Pressable>
 
@@ -598,6 +835,7 @@ export default function SearchPlacesScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <Stack.Screen options={{ headerShown: false }} />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.headerRow}>
           <Text style={styles.title}>Search Tourist Places</Text>
@@ -969,5 +1207,69 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: 'rgba(26, 59, 47, 0.6)',
     fontWeight: '600',
+  },
+  mapContainer: {
+    height: 200,
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(26, 59, 47, 0.05)',
+  },
+  map: {
+    width: '100%',
+    height: '100%',
+  },
+  coordinatesText: {
+    fontSize: 12,
+    color: 'rgba(26, 59, 47, 0.6)',
+    marginTop: 4,
+    marginLeft: 4,
+  },
+  suggestionsContainer: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(26, 59, 47, 0.1)',
+    marginTop: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 5,
+    maxHeight: 200,
+    zIndex: 999,
+  },
+  suggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(26, 59, 47, 0.05)',
+    gap: 8,
+  },
+  suggestionText: {
+    fontSize: 13,
+    color: '#1A3B2F',
+    flex: 1,
+  },
+  searchLoader: {
+    position: 'absolute',
+    right: 12,
+    top: 16,
+  },
+  errorText: {
+    color: '#ff4444',
+    fontSize: 12,
+    marginTop: 4,
+    marginLeft: 4,
+    fontWeight: '600',
+  },
+  errorInput: {
+    borderColor: '#ff4444',
+    backgroundColor: '#fffcfc',
   },
 });

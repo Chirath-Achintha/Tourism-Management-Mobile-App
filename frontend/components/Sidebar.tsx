@@ -105,7 +105,7 @@ export const Sidebar = ({ isVisible, onClose }: SidebarProps) => {
 
           <View style={styles.menuList}>
             <SidebarItem
-              icon="house-outline"
+              icon="home-outline"
               label="Home"
               onPress={() => handleNavigate('/(tabs)')}
             />
@@ -118,6 +118,11 @@ export const Sidebar = ({ isVisible, onClose }: SidebarProps) => {
               icon="airplane-outline"
               label="Tour Packages"
               onPress={() => handleNavigate('/tour-packages')}
+            />
+            <SidebarItem
+              icon="business-outline"
+              label="Hotels"
+              onPress={() => handleNavigate('/tourist-hotels')}
             />
             <SidebarItem
               icon="bookmark-outline"
@@ -139,14 +144,14 @@ export const Sidebar = ({ isVisible, onClose }: SidebarProps) => {
                   onPress={() => handleNavigate('/admin/users')}
                 />
                 <SidebarItem
-                  icon="business-outline"
-                  label="Hotel Management"
-                  onPress={() => {}}
-                />
-                <SidebarItem
                   icon="airplane-outline"
                   label="Tour Packages"
                   onPress={() => handleNavigate('/admin/tour-packages')}
+                />
+                <SidebarItem
+                  icon="business-outline"
+                  label="Hotel Management"
+                  onPress={() => handleNavigate('/admin/hotels')}
                 />
               </>
             )}
