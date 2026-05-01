@@ -3,7 +3,7 @@ import Destination from "../models/Destination.js";
 
 export const createDestination = async (req, res) => {
   try {
-    const { name, location, category, description } = req.body;
+    const { name, location, category, description, startingPrice, averageTemp, bestTimeToVisit } = req.body;
     
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ message: "At least one image is required." });
@@ -28,6 +28,9 @@ export const createDestination = async (req, res) => {
       location,
       category,
       description,
+      startingPrice,
+      averageTemp,
+      bestTimeToVisit,
       images,
     });
 
@@ -69,9 +72,18 @@ export const getDestinationById = async (req, res) => {
 export const updateDestination = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, location, category, description } = req.body;
+    const { name, location, category, description, startingPrice, averageTemp, bestTimeToVisit } = req.body;
     let { existingImages } = req.body;
-    let updateData = { name, location, category, description };
+    
+    let updateData = { 
+      name, 
+      location, 
+      category, 
+      description, 
+      startingPrice, 
+      averageTemp, 
+      bestTimeToVisit
+    };
     let finalImages = [];
 
     const destination = await Destination.findById(id);

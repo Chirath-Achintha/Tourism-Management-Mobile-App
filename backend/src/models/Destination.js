@@ -22,6 +22,18 @@ const destinationSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    startingPrice: {
+      type: Number,
+      default: 0,
+    },
+    averageTemp: {
+      type: String,
+      default: "25°C",
+    },
+    bestTimeToVisit: {
+      type: String,
+      default: "Year-round",
+    },
     images: [
       {
         url: { type: String, required: true },

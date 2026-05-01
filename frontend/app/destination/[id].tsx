@@ -10,6 +10,8 @@ import {
   SafeAreaView,
   StatusBar,
   FlatList,
+  Linking,
+  Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +19,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { API_BASE_URL } from '@/constants/api';
+import * as WebBrowser from 'expo-web-browser';
 
 const { width, height } = Dimensions.get('window');
 
@@ -144,17 +147,17 @@ export default function DestinationDetailScreen() {
                 <Ionicons name="star" size={20} color="#FFD166" />
               </View>
               <View>
-                <Text style={styles.statValue}>4.8</Text>
+                <Text style={styles.statValue}>{destination.averageRating || "4.8"}</Text>
                 <Text style={styles.statLabel}>Rating</Text>
               </View>
             </View>
             <View style={styles.statItem}>
               <View style={[styles.statIcon, { backgroundColor: '#F0FAF5' }]}>
-                <Ionicons name="time-outline" size={20} color="#1A3B2F" />
+                <Ionicons name="calendar-outline" size={20} color="#1A3B2F" />
               </View>
               <View>
-                <Text style={styles.statValue}>2-3 Days</Text>
-                <Text style={styles.statLabel}>Duration</Text>
+                <Text style={styles.statValue}>{destination.bestTimeToVisit || "Year-round"}</Text>
+                <Text style={styles.statLabel}>Best Time</Text>
               </View>
             </View>
             <View style={styles.statItem}>
@@ -162,8 +165,8 @@ export default function DestinationDetailScreen() {
                 <Ionicons name="thermometer-outline" size={20} color="#1A3B2F" />
               </View>
               <View>
-                <Text style={styles.statValue}>{"24°C"}</Text>
-                <Text style={styles.statLabel}>{"Temp"}</Text>
+                <Text style={styles.statValue}>{destination.averageTemp || "24°C"}</Text>
+                <Text style={styles.statLabel}>Temp</Text>
               </View>
             </View>
           </View>
@@ -177,14 +180,41 @@ export default function DestinationDetailScreen() {
               <Text style={styles.categoryText}>{destination.category}</Text>
             </View>
           </View>
+
+          {/* Map Section - Simplified */}
+          <View style={styles.mapContainer}>
+            <Text style={styles.sectionTitle}>Location</Text>
+            <Pressable 
+              style={styles.simpleMapBtn} 
+              onPress={async () => {
+                const query = encodeURIComponent(`${destination.name}, ${destination.location}`);
+                const url = `https://www.google.com/maps/search/?api=1&query=${query}`;
+                try {
+                  await WebBrowser.openBrowserAsync(url);
+                } catch (error) {
+                  console.error("Error opening map:", error);
+                  // Final fallback to Linking if WebBrowser fails
+                  Linking.openURL(url);
+                }
+              }}
+            >
+              <Ionicons name="map-outline" size={24} color="#1A3B2F" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.mapBtnTitle}>View on Maps</Text>
+                <Text style={styles.mapBtnSub}>{destination.location}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#1A3B2F" />
+            </Pressable>
+          </View>
+
           <View style={{ height: 100 }} />
         </View>
       </ScrollView>
       <BlurView intensity={90} tint="light" style={styles.footer}>
         <View style={styles.footerContent}>
           <View>
-            <Text style={styles.priceLabel}>{"Starting from"}</Text>
-            <Text style={styles.priceValue}>{"$150"}<Text style={styles.perPerson}>{"/person"}</Text></Text>
+            <Text style={styles.priceLabel}>Starting from</Text>
+            <Text style={styles.priceValue}>${destination.startingPrice || "150"}<Text style={styles.perPerson}>/person</Text></Text>
           </View>
           <Pressable style={styles.bookBtn} onPress={() => router.push('/tour-packages')}>
             <Text style={styles.bookBtnText}>Packages</Text>
@@ -430,5 +460,29 @@ const styles = StyleSheet.create({
   backBtnText: {
     fontWeight: '800',
     color: '#1A3B2F',
+  },
+  mapContainer: {
+    marginTop: 32,
+  },
+  simpleMapBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 20,
+    marginTop: 12,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(26, 59, 47, 0.1)',
+  },
+  mapBtnTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1A3B2F',
+  },
+  mapBtnSub: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
   },
 });

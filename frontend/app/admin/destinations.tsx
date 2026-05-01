@@ -41,6 +41,9 @@ export default function DestinationsManagementScreen() {
   const [category, setCategory] = useState<Category>('Beach');
   const [description, setDescription] = useState('');
   const [images, setImages] = useState<string[]>([]);
+  const [startingPrice, setStartingPrice] = useState('');
+  const [averageTemp, setAverageTemp] = useState('25°C');
+  const [bestTimeToVisit, setBestTimeToVisit] = useState('Year-round');
 
   const router = useRouter();
 
@@ -90,6 +93,9 @@ export default function DestinationsManagementScreen() {
     setCategory('Beach');
     setDescription('');
     setImages([]);
+    setStartingPrice('');
+    setAverageTemp('25°C');
+    setBestTimeToVisit('Year-round');
     setEditingId(null);
   };
 
@@ -115,6 +121,9 @@ export default function DestinationsManagementScreen() {
       formData.append('location', location);
       formData.append('category', category);
       formData.append('description', description);
+      formData.append('startingPrice', startingPrice);
+      formData.append('averageTemp', averageTemp);
+      formData.append('bestTimeToVisit', bestTimeToVisit);
       
       const existingImages = [];
       
@@ -181,6 +190,9 @@ export default function DestinationsManagementScreen() {
     setLocation(item.location);
     setCategory(item.category);
     setDescription(item.description);
+    setStartingPrice(item.startingPrice?.toString() || '');
+    setAverageTemp(item.averageTemp || '25°C');
+    setBestTimeToVisit(item.bestTimeToVisit || 'Year-round');
     setImages(item.images.map((img: any) => img.url));
     setModalVisible(true);
   };
@@ -340,6 +352,36 @@ export default function DestinationsManagementScreen() {
                   placeholder="Describe the beauty of this place..."
                   multiline
                   numberOfLines={4}
+                />
+
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.inputLabel}>Starting Price ($)</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={startingPrice}
+                      onChangeText={setStartingPrice}
+                      placeholder="e.g. 150"
+                      keyboardType="numeric"
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.inputLabel}>Temp</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={averageTemp}
+                      onChangeText={setAverageTemp}
+                      placeholder="e.g. 24°C"
+                    />
+                  </View>
+                </View>
+
+                <Text style={styles.inputLabel}>Best Time to Visit</Text>
+                <TextInput
+                  style={styles.input}
+                  value={bestTimeToVisit}
+                  onChangeText={setBestTimeToVisit}
+                  placeholder="e.g. Dec - April"
                 />
 
                 <Text style={styles.inputLabel}>Images (Max 5)</Text>
