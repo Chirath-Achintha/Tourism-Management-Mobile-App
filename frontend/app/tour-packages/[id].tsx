@@ -50,7 +50,16 @@ export default function TourPackageDetailScreen() {
   };
 
   const handleBookNow = () => {
-    Alert.alert('Booking', `Book ${pkg?.name} for $${pkg?.price}`);
+    if (!pkg) return;
+    
+    router.push({
+      pathname: "/reservation-form",
+      params: { 
+        packageId: pkg._id,
+        packageName: pkg.name,
+        packagePrice: pkg.price
+      }
+    });
   };
 
   if (loading) {
