@@ -14,7 +14,11 @@ export const createTourPackage = async (req, res) => {
       maxParticipants,
       coverImageUri,
       timeline,
-      published,
+        published,
+        meals,
+        accommodation,
+        guide,
+        transport,
     } = req.body;
 
     if (!name) return res.status(400).json({ message: 'Package name is required.' });
@@ -31,6 +35,10 @@ export const createTourPackage = async (req, res) => {
       maxParticipants: Number(maxParticipants) || 0,
       coverImageUri: coverImageUri || '',
       timeline: Array.isArray(timeline) ? timeline : [],
+      meals: meals || '',
+      accommodation: accommodation || '',
+      guide: guide || '',
+      transport: transport || '',
       published: published !== undefined ? Boolean(published) : true,
       createdBy: req.user ? req.user._id : undefined,
     });
