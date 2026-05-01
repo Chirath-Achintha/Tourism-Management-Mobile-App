@@ -13,7 +13,8 @@ const ONBOARDING_SEEN_KEY = "onboarding:seen";
 
 // --- Components ---
 
-const TouristDashboardContent = ({ user, onLogout, onExplore, onOpenSidebar }: any) => (
+//const TouristDashboardContent = ({ user, onLogout, onExplore, onOpenSidebar }: any) => (
+const TouristDashboardContent = ({ user, onLogout, onExplore, onOpenReviews, onOpenSidebar }: any) => (
   <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
     <View style={styles.header}>
       <View style={styles.headerLeft}>
@@ -60,6 +61,9 @@ const TouristDashboardContent = ({ user, onLogout, onExplore, onOpenSidebar }: a
       <Pressable style={styles.actionButton} onPress={onExplore}>
         <Text style={styles.actionButtonText}>Explore Options</Text>
       </Pressable>
+     <Pressable style={styles.reviewButton} onPress={onOpenReviews}>
+  <Text style={styles.reviewButtonText}>Review & Ratings</Text>
+</Pressable>
     </View>
   </ScrollView>
 );
@@ -286,12 +290,13 @@ export default function DashboardScreen() {
             onOpenSidebar={() => setSidebarVisible(true)}
           />
         ) : (
-          <TouristDashboardContent 
-            user={user} 
-            onLogout={handleLogout} 
-            onExplore={() => router.push('/(tabs)/explore')} 
-            onOpenSidebar={() => setSidebarVisible(true)}
-          />
+         <TouristDashboardContent 
+  user={user} 
+  onLogout={handleLogout} 
+  onExplore={() => router.push('/(tabs)/explore')} 
+  onOpenReviews={() => router.push('/reviews')} 
+  onOpenSidebar={() => setSidebarVisible(true)}
+/>
         )}
       </SafeAreaView>
       <Sidebar isVisible={isSidebarVisible} onClose={() => setSidebarVisible(false)} />
@@ -465,6 +470,20 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     fontSize: 16,
   },
+  reviewButton: {
+  backgroundColor: "#1A3B2F",
+  paddingHorizontal: 24,
+  paddingVertical: 14,
+  borderRadius: 18,
+  width: "100%",
+  alignItems: "center",
+  marginTop: 12,
+},
+reviewButtonText: {
+  color: "#ffffff",
+  fontWeight: "900",
+  fontSize: 16,
+},
   quickActionsGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
