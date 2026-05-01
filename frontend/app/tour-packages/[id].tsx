@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { API_BASE_URL } from '@/constants/api';
@@ -62,6 +62,20 @@ export default function TourPackageDetailScreen() {
     });
   };
 
+  const formatCategory = (value?: string) => {
+    const raw = String(value || '').trim();
+    if (!raw) return 'Tour';
+    return raw
+      .split('-')
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ');
+  };
+
+  const normalizeValue = (value?: string) => {
+    const raw = String(value || '').trim();
+    return raw || 'Not specified';
+  };
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -73,6 +87,7 @@ export default function TourPackageDetailScreen() {
   if (!pkg) {
     return (
       <SafeAreaView style={styles.container}>
+        <Stack.Screen options={{ title: 'Package Details' }} />
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>Package not found</Text>
           <Pressable
@@ -88,6 +103,7 @@ export default function TourPackageDetailScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <Stack.Screen options={{ title: pkg.name || 'Package Details' }} />
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header with Image */}
         <View style={styles.imageContainer}>
@@ -164,7 +180,7 @@ export default function TourPackageDetailScreen() {
           />
           <StatCard
             icon="bar-chart-outline"
-            label={pkg.category || 'Tour'}
+            label={formatCategory(pkg.category)}
           />
         </View>
 
@@ -181,10 +197,21 @@ export default function TourPackageDetailScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>What's Included</Text>
           <View style={styles.includedGrid}>
-            <IncludedItem icon="restaurant-outline" label="Meals" />
-            <IncludedItem icon="car-outline" label="Transport" />
-            <IncludedItem icon="bed-outline" label="Accommodation" />
-            <IncludedItem icon="person-outline" label="Guide" />
+            <IncludedItem icon="restaurant-outline" label="Meals" value={normalizeValue(pkg.meals)} />
+            <IncludedItem icon="car-outline" label="Transport" value={normalizeValue(pkg.transport)} />
+            <IncludedItem icon="bed-outline" label="Accommodation" value={normalizeValue(pkg.accommodation)} />
+            <IncludedItem icon="person-outline" label="Guide" value={normalizeValue(pkg.guide)} />
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Package Details</Text>
+          <View style={styles.detailsCard}>
+            <DetailRow label="Category" value={formatCategory(pkg.category)} />
+            <DetailRow label="Start Date" value={normalizeValue(pkg.startDate)} />
+            <DetailRow label="End Date" value={normalizeValue(pkg.endDate)} />
+            <DetailRow label="Duration" value={`${pkg.duration || 'N/A'} day(s)`} />
+            <DetailRow label="Max Participants" value={String(pkg.maxParticipants || 'N/A')} />
           </View>
         </View>
 
@@ -247,12 +274,20 @@ const StatCard = ({ icon, label }: any) => (
   </View>
 );
 
-const IncludedItem = ({ icon, label }: any) => (
+const IncludedItem = ({ icon, label, value }: any) => (
   <View style={styles.includedItem}>
     <View style={styles.includedIconBox}>
       <Ionicons name={icon} size={18} color={COLORS.blue} />
     </View>
     <Text style={styles.includedLabel}>{label}</Text>
+    <Text style={styles.includedValue} numberOfLines={2}>{value}</Text>
+  </View>
+);
+
+const DetailRow = ({ label, value }: { label: string; value: string }) => (
+  <View style={styles.detailRow}>
+    <Text style={styles.detailLabel}>{label}</Text>
+    <Text style={styles.detailValue}>{value}</Text>
   </View>
 );
 
@@ -448,6 +483,37 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: COLORS.text,
+  },
+  includedValue: {
+    fontSize: 11,
+    color: COLORS.secondary,
+    textAlign: 'center',
+    lineHeight: 15,
+  },
+
+  detailsCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(100, 116, 139, 0.15)',
+  },
+  detailLabel: {
+    fontSize: 12,
+    color: COLORS.secondary,
+    fontWeight: '600',
+  },
+  detailValue: {
+    fontSize: 12,
+    color: COLORS.text,
+    fontWeight: '700',
   },
 
   // Itinerary

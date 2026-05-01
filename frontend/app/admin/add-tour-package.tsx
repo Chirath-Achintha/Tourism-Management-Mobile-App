@@ -36,6 +36,20 @@ const CATEGORY_OPTIONS = [
 const DURATION_PRESETS = [1, 3, 5, 7, 10, 14];
 const PRICE_PRESETS = [199, 299, 499, 799, 1299];
 const PARTICIPANT_PRESETS = [5, 8, 10, 12, 15, 20, 25];
+const MEAL_OPTIONS = ['Breakfast', 'Lunch', 'Dinner', 'All Inclusive'];
+const ACCOMMODATION_OPTIONS = ['No accommodation', '3-star hotel', '4-star hotel', '5-star hotel', 'Resort', 'Villa'];
+const GUIDE_OPTIONS = ['No guide', 'English-speaking guide', 'Multi-language guide'];
+const TRANSPORT_OPTIONS = [
+  'Car (Sedan/Hatchback)',
+  'Van',
+  'Mini bus / Coach',
+  'Luxury SUV',
+  'Three-wheeler (Tuk-tuk)',
+  'Tourist bus',
+  'Local bus',
+  'Air-conditioned coach',
+  'Luxury bus',
+];
 
 // Color palette (user-specified)
 const COLOR_BG = '#EBF5EA'; // soft mint green canvas
@@ -46,16 +60,36 @@ const SELECTED_TEXT = ACCENT; // selected pill text
 const STEP_LABEL_COLOR = '#7aad00'; // deep olive-green for step labels
 const TIMELINE_BG_RGBA = 'rgba(255,209,102,0.12)';
 
-const INITIAL_STATE = {
+type FormData = {
+  name: string;
+  location: string;
+  meals: string[];
+  accommodation: string;
+  guide: string;
+  transport: string;
+  category: string;
+  duration: string;
+  startDate: string;
+  endDate: string;
+  price: string;
+  maxParticipants: string;
+  timeline: Array<{ title: string; notes: string }>;
+};
+
+const INITIAL_STATE: FormData = {
   name: '',
   location: '',
+  meals: [],
+  accommodation: '',
+  guide: '',
+  transport: '',
   category: 'adventure',
   duration: '',
   startDate: '',
   endDate: '',
   price: '',
   maxParticipants: '',
-  timeline: [] as Array<{ title: string; notes: string }>,
+  timeline: [],
 };
 
 type Step = 0 | 1 | 2;
@@ -108,9 +142,9 @@ export default function AddTourPackageScreen() {
     return new Date(y, m - 1, d);
   };
 
-  const updateField = (field: keyof typeof INITIAL_STATE, value: string) => {
+  const updateField = <K extends keyof FormData>(field: K, value: FormData[K]) => {
     setFormData(prev => {
-      const next = { ...prev, [field]: value } as typeof prev;
+      const next = { ...prev, [field]: value } as FormData;
 
       // when duration changes and we have a start date, recompute endDate
       if (field === 'duration' && prev.startDate) {
@@ -124,6 +158,16 @@ export default function AddTourPackageScreen() {
       }
 
       return next;
+    });
+  };
+
+  const toggleMeal = (meal: string) => {
+    setFormData(prev => {
+      const isSelected = prev.meals.includes(meal);
+      return {
+        ...prev,
+        meals: isSelected ? prev.meals.filter(item => item !== meal) : [...prev.meals, meal],
+      };
     });
   };
 
@@ -209,6 +253,10 @@ export default function AddTourPackageScreen() {
     if (currentStep === 0) {
       if (!formData.name.trim()) return 'Please enter a package name.';
       if (!formData.location.trim()) return 'Please enter a destination location.';
+      if (formData.meals.length === 0) return 'Please select at least one meal option.';
+      if (!formData.accommodation) return 'Please choose an accommodation type.';
+      if (!formData.guide) return 'Please choose a guide option.';
+      if (!formData.transport) return 'Please choose a transport option.';
       return null;
     }
 
@@ -268,6 +316,10 @@ export default function AddTourPackageScreen() {
         maxParticipants: Number(formData.maxParticipants),
         coverImageUri,
         timeline: formData.timeline || [],
+        meals: formData.meals.join(', '),
+        accommodation: formData.accommodation || '',
+        guide: formData.guide || '',
+        transport: formData.transport || '',
       };
 
       const response = await fetch(`${API_BASE_URL}/admin/tour-packages`, {
@@ -304,6 +356,12 @@ export default function AddTourPackageScreen() {
     duration: formData.duration ? `${formData.duration} days` : '—',
     participants: formData.maxParticipants || '—',
     price: formData.price ? `$${formData.price}` : '—',
+  };
+  const includedSummary = {
+    meals: formData.meals.length ? formData.meals.join(', ') : '—',
+    accommodation: formData.accommodation || '—',
+    guide: formData.guide || '—',
+    transport: formData.transport || '—',
   };
 
   if (publishingSuccess) {
@@ -472,6 +530,58 @@ export default function AddTourPackageScreen() {
                   />
                 </View>
               </Field>
+
+              <Text style={[styles.sectionTitle, { marginTop: 8 }]}>What's Included</Text>
+              <Text style={styles.sectionCopy}>Use quick selectors to define exactly what is included in this package.</Text>
+
+              <View style={styles.includedPanel}>
+                <Field label="Meals" required>
+                  <View style={styles.checkboxGrid}>
+                    {MEAL_OPTIONS.map((meal) => {
+                      const selected = formData.meals.includes(meal);
+                      return (
+                        <Pressable
+                          key={meal}
+                          onPress={() => toggleMeal(meal)}
+                          style={[styles.checkItem, selected && styles.checkItemSelected]}
+                        >
+                          <View style={[styles.checkBox, selected && styles.checkBoxSelected]}>
+                            {selected ? <Ionicons name="checkmark" size={12} color={TEXT_DARK} /> : null}
+                          </View>
+                          <Text style={[styles.checkItemText, selected && styles.checkItemTextSelected]}>{meal}</Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </Field>
+
+                <SelectField
+                  label="Accommodation"
+                  value={formData.accommodation}
+                  placeholder="Select accommodation"
+                  options={ACCOMMODATION_OPTIONS}
+                  onSelect={(value) => updateField('accommodation', value)}
+                  required
+                />
+
+                <SelectField
+                  label="Guide"
+                  value={formData.guide}
+                  placeholder="Select guide option"
+                  options={GUIDE_OPTIONS}
+                  onSelect={(value) => updateField('guide', value)}
+                  required
+                />
+
+                <SelectField
+                  label="Transport"
+                  value={formData.transport}
+                  placeholder="Select transport"
+                  options={TRANSPORT_OPTIONS}
+                  onSelect={(value) => updateField('transport', value)}
+                  required
+                />
+              </View>
             </View>
           )}
 
@@ -647,6 +757,10 @@ export default function AddTourPackageScreen() {
                 </View>
                 <SummaryRow label="Destination" value={formData.location || '—'} />
                 <SummaryRow label="Category" value={activeSummary.category} />
+                <SummaryRow label="Meals" value={includedSummary.meals} />
+                <SummaryRow label="Accommodation" value={includedSummary.accommodation} />
+                <SummaryRow label="Guide" value={includedSummary.guide} />
+                <SummaryRow label="Transport" value={includedSummary.transport} />
                 <SummaryRow label="Duration" value={activeSummary.duration} />
                 <SummaryRow label="Price" value={activeSummary.price} />
                 <SummaryRow label="Group Size" value={formData.maxParticipants ? `${formData.maxParticipants} guests` : '—'} />
@@ -700,6 +814,54 @@ function Field({ label, required, children, style }: any) {
       </Text>
       {children}
     </View>
+  );
+}
+
+function SelectField({
+  label,
+  value,
+  placeholder,
+  options,
+  onSelect,
+  required,
+}: {
+  label: string;
+  value: string;
+  placeholder: string;
+  options: string[];
+  onSelect: (value: string) => void;
+  required?: boolean;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <Field label={label} required={required}>
+      <Pressable style={[styles.selectTrigger, expanded && styles.selectTriggerExpanded]} onPress={() => setExpanded((prev) => !prev)}>
+        <Text style={[styles.selectTriggerText, !value && styles.placeholderText]}>{value || placeholder}</Text>
+        <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={16} color="#64748b" />
+      </Pressable>
+
+      {expanded ? (
+        <View style={styles.selectMenu}>
+          {options.map((option) => {
+            const selected = value === option;
+            return (
+              <Pressable
+                key={option}
+                onPress={() => {
+                  onSelect(option);
+                  setExpanded(false);
+                }}
+                style={[styles.selectOption, selected && styles.selectOptionSelected]}
+              >
+                <Text style={[styles.selectOptionText, selected && styles.selectOptionTextSelected]}>{option}</Text>
+                {selected ? <Ionicons name="checkmark-circle" size={16} color={ACCENT} /> : null}
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : null}
+    </Field>
   );
 }
 
@@ -928,6 +1090,102 @@ const styles = StyleSheet.create({
     color: '#0f172a',
     borderWidth: 1,
     borderColor: 'rgba(15, 23, 42, 0.06)',
+  },
+  includedPanel: {
+    backgroundColor: '#f6f9ff',
+    borderRadius: 18,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(49,82,197,0.12)',
+  },
+  checkboxGrid: {
+    gap: 8,
+  },
+  checkItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#eef4ff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(15, 23, 42, 0.06)',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  checkItemSelected: {
+    backgroundColor: '#fff3c9',
+    borderColor: 'rgba(255,209,102,0.8)',
+  },
+  checkBox: {
+    width: 18,
+    height: 18,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#9fb0c8',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  checkBoxSelected: {
+    borderColor: ACCENT,
+    backgroundColor: ACCENT,
+  },
+  checkItemText: {
+    color: '#1f2937',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  checkItemTextSelected: {
+    color: '#0f172a',
+    fontWeight: '800',
+  },
+  selectTrigger: {
+    backgroundColor: '#f8fbff',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    borderWidth: 1,
+    borderColor: 'rgba(15, 23, 42, 0.08)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  selectTriggerExpanded: {
+    borderColor: 'rgba(49,82,197,0.5)',
+  },
+  selectTriggerText: {
+    color: '#0f172a',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  selectMenu: {
+    marginTop: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(15, 23, 42, 0.08)',
+    overflow: 'hidden',
+  },
+  selectOption: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(15, 23, 42, 0.05)',
+  },
+  selectOptionSelected: {
+    backgroundColor: '#fff9e8',
+  },
+  selectOptionText: {
+    color: '#334155',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  selectOptionTextSelected: {
+    color: '#0f172a',
+    fontWeight: '800',
   },
   iconInputWrap: {
     flexDirection: 'row',

@@ -122,7 +122,7 @@ export const Sidebar = ({ isVisible, onClose }: SidebarProps) => {
             <SidebarItem
               icon="airplane-outline"
               label="Tour Packages"
-              onPress={() => handleNavigate('/tour-packages')}
+              onPress={() => handleNavigate(user?.role === 'admin' ? '/admin/tour-packages' : '/tour-packages')}
             />
             <SidebarItem
               icon="business-outline"
@@ -149,6 +149,7 @@ export const Sidebar = ({ isVisible, onClose }: SidebarProps) => {
                   onPress={() => handleNavigate('/admin/users')}
                 />
                 <SidebarItem
+<<<<<<< Updated upstream
                   icon="airplane-outline"
                   label="Tour Packages"
                   onPress={() => handleNavigate('/admin/tour-packages')}
@@ -173,6 +174,11 @@ export const Sidebar = ({ isVisible, onClose }: SidebarProps) => {
                   icon="business-outline"
                   label="My Hotels"
                   onPress={() => handleNavigate('/manager/my-hotels')}
+=======
+                  icon="business-outline"
+                  label="Hotel Management"
+                  onPress={() => {}}
+>>>>>>> Stashed changes
                 />
               </>
             )}
