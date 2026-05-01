@@ -7,6 +7,7 @@ import {
   Animated,
   Dimensions,
   SafeAreaView,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -103,7 +104,11 @@ export const Sidebar = ({ isVisible, onClose }: SidebarProps) => {
 
           <View style={styles.divider} />
 
-          <View style={styles.menuList}>
+          <ScrollView 
+            style={styles.menuList} 
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 20 }}
+          >
             <SidebarItem
               icon="home-outline"
               label="Home"
@@ -127,7 +132,7 @@ export const Sidebar = ({ isVisible, onClose }: SidebarProps) => {
             <SidebarItem
               icon="bookmark-outline"
               label="My Bookings"
-              onPress={() => {}}
+              onPress={() => handleNavigate('/(tabs)/bookings')}
             />
             <SidebarItem
               icon="notifications-outline"
@@ -153,6 +158,11 @@ export const Sidebar = ({ isVisible, onClose }: SidebarProps) => {
                   label="Hotel Management"
                   onPress={() => handleNavigate('/admin/hotels')}
                 />
+                <SidebarItem
+                  icon="list-outline"
+                  label="Reservation Management"
+                  onPress={() => handleNavigate('/admin/reservations')}
+                />
               </>
             )}
             {user?.role === 'hotel_manager' && (
@@ -177,7 +187,7 @@ export const Sidebar = ({ isVisible, onClose }: SidebarProps) => {
               label="Help Center"
               onPress={() => {}}
             />
-          </View>
+          </ScrollView>
 
           <View style={styles.footer}>
             <Text style={styles.versionText}>Version 1.0.0</Text>

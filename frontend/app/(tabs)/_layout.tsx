@@ -81,7 +81,16 @@ export default function TabLayout() {
       />
       
       <Tabs.Screen
+        name="bookings"
+        options={{
+          title: 'Bookings',
+          tabBarIcon: ({ color }) => <IconSymbol size={26} name="calendar.fill" color={color} />,
+        }}
+      />
+      
+      <Tabs.Screen
         name="profile"
+
         options={{
           title: 'Profile',
           tabBarIcon: ({ color }) => <IconSymbol size={26} name="person.crop.circle.fill" color={color} />,
