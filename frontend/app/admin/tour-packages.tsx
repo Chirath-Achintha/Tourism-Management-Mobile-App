@@ -31,16 +31,22 @@ export default function TourPackagesScreen() {
         }
       });
 
-      const data = await response.json();
+      console.log('Fetch response status:', response.status);
+      console.log('API URL:', `${API_BASE_URL}/admin/tour-packages`);
       
-      if (response.ok) {
-        setPackages(data);
-      } else {
-        throw new Error(data.message || "Failed to fetch tour packages.");
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        Alert.alert("API Error", `Status ${response.status}: ${errorText.slice(0, 100)}`);
+        return;
       }
+
+      const data = await response.json();
+      console.log('Fetched packages:', data);
+      setPackages(Array.isArray(data) ? data : []);
     } catch (error: any) {
-      console.error("Fetch tour packages failed:", error);
-      Alert.alert("API Error", error.message || "Could not connect to the database.");
+      console.error("Fetch tour packages failed:", error.message);
+      Alert.alert("Error", error.message || "Could not connect to the database.");
     } finally {
       setLoading(false);
     }
@@ -85,14 +91,19 @@ export default function TourPackagesScreen() {
                 }
               });
 
-              if (response.ok) {
-                Alert.alert("Success", "Tour package deleted successfully");
-                fetchTourPackages();
-              } else {
-                const data = await response.json();
-                Alert.alert("Error", data.message || "Failed to delete tour package");
+              console.log('Delete response status:', response.status);
+
+              if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Delete error response:', errorText);
+                Alert.alert("Error", `Failed to delete: ${errorText.slice(0, 100)}`);
+                return;
               }
+
+              Alert.alert("Success", "Tour package deleted successfully");
+              fetchTourPackages();
             } catch (error: any) {
+              console.error("Delete error:", error.message);
               Alert.alert("Error", error.message || "An error occurred while deleting");
             }
           }

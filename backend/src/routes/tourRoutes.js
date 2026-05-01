@@ -1,9 +1,10 @@
 import express from 'express';
-import { getPublishedPackages } from '../controller/tourPackageController.js';
+import { getPublishedPackages, getTourPackageById } from '../controller/tourPackageController.js';
 
 const router = express.Router();
 
-// Public route for users to browse published tour packages
+// Public routes for users to browse published tour packages
 router.get('/', getPublishedPackages);
+router.get('/:id', getTourPackageById);
 
 export default router;
