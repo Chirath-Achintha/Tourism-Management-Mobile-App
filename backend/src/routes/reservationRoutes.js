@@ -7,11 +7,12 @@ import {
   cancelReservation,
 } from '../controller/reservationController.js';
 import { protect, adminOnly } from '../middleware/authMiddleware.js';
+import { uploadDoc } from '../middleware/uploadMiddleware.js';
 
 const router = express.Router();
 
 // User & Admin routes
-router.post('/', protect, createReservation);
+router.post('/', protect, uploadDoc.single('document'), createReservation);
 router.get('/my', protect, getMyReservations);
 
 // Admin-only routes

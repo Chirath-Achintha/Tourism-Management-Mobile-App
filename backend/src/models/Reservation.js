@@ -29,6 +29,15 @@ const reservationSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    documentType: {
+      type: String,
+      enum: ['NIC', 'Driving License', 'Passport', 'International Driving License'],
+      default: 'NIC',
+    },
+    documentPath: {
+      type: String,
+      default: '',
+    },
     status: {
       type: String,
       enum: ['Pending', 'Approved', 'Rejected', 'Cancelled'],
