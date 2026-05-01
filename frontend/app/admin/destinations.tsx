@@ -44,6 +44,8 @@ export default function DestinationsManagementScreen() {
   const [startingPrice, setStartingPrice] = useState('');
   const [averageTemp, setAverageTemp] = useState('25°C');
   const [bestTimeToVisit, setBestTimeToVisit] = useState('Year-round');
+  const [isFeatured, setIsFeatured] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const router = useRouter();
 
@@ -96,6 +98,7 @@ export default function DestinationsManagementScreen() {
     setStartingPrice('');
     setAverageTemp('25°C');
     setBestTimeToVisit('Year-round');
+    setIsFeatured(false);
     setEditingId(null);
   };
 
@@ -124,6 +127,7 @@ export default function DestinationsManagementScreen() {
       formData.append('startingPrice', startingPrice);
       formData.append('averageTemp', averageTemp);
       formData.append('bestTimeToVisit', bestTimeToVisit);
+      formData.append('isFeatured', String(isFeatured));
       
       const existingImages = [];
       
@@ -193,6 +197,7 @@ export default function DestinationsManagementScreen() {
     setStartingPrice(item.startingPrice?.toString() || '');
     setAverageTemp(item.averageTemp || '25°C');
     setBestTimeToVisit(item.bestTimeToVisit || 'Year-round');
+    setIsFeatured(item.isFeatured || false);
     setImages(item.images.map((img: any) => img.url));
     setModalVisible(true);
   };
@@ -229,19 +234,29 @@ export default function DestinationsManagementScreen() {
     );
   };
 
+  const filteredDestinations = destinations.filter(dest => 
+    dest.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    dest.location.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const renderDestinationItem = ({ item }: { item: any }) => (
     <View style={styles.card}>
       <Image source={{ uri: item.images[0]?.url }} style={styles.cardImage} />
       <View style={styles.cardContent}>
-        <View style={styles.cardHeaderRow}>
-          <Text style={styles.cardName}>{item.name}</Text>
-          <View style={styles.categoryBadge}>
-            <Text style={styles.categoryBadgeText}>{item.category.toUpperCase()}</Text>
+        <View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={styles.cardName}>{item.name}</Text>
+            {item.isFeatured && (
+              <View style={styles.featuredBadge}>
+                <Ionicons name="star" size={10} color="#1A3B2F" />
+                <Text style={styles.featuredText}>Featured</Text>
+              </View>
+            )}
           </View>
-        </View>
-        <View style={styles.locationRow}>
-          <Ionicons name="location-outline" size={14} color="#1A3B2F" />
           <Text style={styles.cardLocation}>{item.location}</Text>
+        </View>
+        <View style={styles.categoryBadge}>
+          <Text style={styles.categoryBadgeText}>{item.category.toUpperCase()}</Text>
         </View>
         <Text style={styles.cardDesc} numberOfLines={2}>{item.description}</Text>
         
@@ -276,13 +291,28 @@ export default function DestinationsManagementScreen() {
           </Pressable>
         </View>
 
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={20} color="rgba(26, 59, 47, 0.4)" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by name or location..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 && (
+            <Pressable onPress={() => setSearchQuery('')}>
+              <Ionicons name="close-circle" size={18} color="rgba(26, 59, 47, 0.4)" />
+            </Pressable>
+          )}
+        </View>
+
         {loading ? (
           <View style={styles.centerArea}>
             <ActivityIndicator size="large" color="#FFD166" />
           </View>
         ) : (
           <FlatList
-            data={destinations}
+            data={filteredDestinations}
             keyExtractor={(item) => item._id}
             renderItem={renderDestinationItem}
             contentContainerStyle={styles.listContent}
@@ -383,6 +413,16 @@ export default function DestinationsManagementScreen() {
                   onChangeText={setBestTimeToVisit}
                   placeholder="e.g. Dec - April"
                 />
+
+                <Pressable 
+                  style={styles.featuredToggle} 
+                  onPress={() => setIsFeatured(!isFeatured)}
+                >
+                  <View style={[styles.toggleCircle, isFeatured && styles.toggleCircleActive]}>
+                    {isFeatured && <Ionicons name="checkmark" size={12} color="#FFFFFF" />}
+                  </View>
+                  <Text style={styles.featuredLabel}>Featured Destination (Show on Home Screen)</Text>
+                </Pressable>
 
                 <Text style={styles.inputLabel}>Images (Max 5)</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imageList}>
@@ -503,6 +543,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
+    alignSelf: 'flex-start',
+    marginTop: 4,
   },
   categoryBadgeText: {
     fontSize: 10,
@@ -521,14 +563,48 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   cardDesc: {
-    fontSize: 13,
+    fontSize: 14,
     color: 'rgba(26, 59, 47, 0.6)',
+    marginTop: 12,
     lineHeight: 18,
+  },
+  featuredBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFD166',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    gap: 3,
+  },
+  featuredText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#1A3B2F',
+    textTransform: 'uppercase',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
     marginBottom: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 16,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(26, 59, 47, 0.1)',
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#1A3B2F',
   },
   actionRow: {
     flexDirection: 'row',
     gap: 12,
+    marginTop: 16,
   },
   actionBtn: {
     flex: 1,
@@ -710,6 +786,67 @@ const styles = StyleSheet.create({
   submitBtnText: {
     fontSize: 16,
     fontWeight: '900',
+    color: '#1A3B2F',
+  },
+  featuredBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFD166',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    gap: 3,
+  },
+  featuredText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#1A3B2F',
+    textTransform: 'uppercase',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    marginBottom: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 16,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(26, 59, 47, 0.1)',
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#1A3B2F',
+  },
+  featuredToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 20,
+    gap: 12,
+    backgroundColor: 'rgba(255, 209, 102, 0.1)',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 209, 102, 0.3)',
+  },
+  toggleCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: '#FFD166',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toggleCircleActive: {
+    backgroundColor: '#FFD166',
+  },
+  featuredLabel: {
+    fontSize: 13,
+    fontWeight: '600',
     color: '#1A3B2F',
   },
 });

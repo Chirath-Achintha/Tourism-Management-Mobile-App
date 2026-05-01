@@ -118,11 +118,19 @@ export default function DestinationDetailScreen() {
           </SafeAreaView>
 
           <View style={styles.headerTitleContainer} pointerEvents="none">
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <Text style={styles.destinationName}>{destination.name}</Text>
+              {destination.isFeatured && (
+                <View style={styles.featuredBadge}>
+                  <Ionicons name="star" size={12} color="#1A3B2F" />
+                  <Text style={styles.featuredText}>Featured</Text>
+                </View>
+              )}
+            </View>
             <View style={styles.locationTag}>
               <Ionicons name="location" size={14} color="#FFD166" />
               <Text style={styles.locationText}>{destination.location}</Text>
             </View>
-            <Text style={styles.destinationName}>{destination.name}</Text>
           </View>
 
           {/* Pagination Dots */}
@@ -141,6 +149,21 @@ export default function DestinationDetailScreen() {
 
         {/* Details Section */}
         <View style={styles.detailsContainer}>
+          <View style={styles.titleSection}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <Text style={styles.name}>{destination.name}</Text>
+              {destination.isFeatured && (
+                <View style={styles.featuredBadge}>
+                  <Ionicons name="star" size={12} color="#1A3B2F" />
+                  <Text style={styles.featuredText}>Featured</Text>
+                </View>
+              )}
+            </View>
+            <View style={styles.locationRowMain}>
+              <Ionicons name="location" size={16} color="#FFD166" />
+              <Text style={styles.location}>{destination.location}</Text>
+            </View>
+          </View>
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
               <View style={[styles.statIcon, { backgroundColor: '#F0FAF5' }]}>
@@ -484,5 +507,40 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     marginTop: 2,
+  },
+  titleSection: {
+    marginBottom: 24,
+  },
+  name: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#1A3B2F',
+    letterSpacing: -0.5,
+  },
+  locationRowMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 4,
+  },
+  location: {
+    fontSize: 16,
+    color: 'rgba(26, 59, 47, 0.6)',
+    fontWeight: '600',
+  },
+  featuredBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFD166',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    gap: 4,
+  },
+  featuredText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#1A3B2F',
+    textTransform: 'uppercase',
   },
 });

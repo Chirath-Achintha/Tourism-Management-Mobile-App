@@ -168,6 +168,10 @@ export default function SearchPlacesScreen() {
       return matchesQuery && matchesCategory;
     });
   }, [query, places, selectedCategory]);
+  
+  const featuredPlaces = useMemo(() => {
+    return places.filter(place => place.isFeatured);
+  }, [places]);
 
   const toggleFacility = (key: keyof typeof facilities) => {
     setFacilities(prev => ({ ...prev, [key]: !prev[key] }));
@@ -605,6 +609,45 @@ export default function SearchPlacesScreen() {
         </View>
       </BlurView>
 
+      {featuredPlaces.length > 0 && (
+        <View style={styles.featuredSection}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.featuredSectionTitle}>Featured Destinations</Text>
+            <View style={styles.featuredDot} />
+          </View>
+          <FlatList
+            horizontal
+            data={featuredPlaces}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.featuredList}
+            keyExtractor={(item) => `featured-${item._id}`}
+            renderItem={({ item: place }) => (
+              <Pressable 
+                style={styles.featuredCard}
+                onPress={() => router.push(`/destination/${place._id}` as any)}
+              >
+                <Image source={{ uri: place.images[0]?.url }} style={styles.featuredCardImage} />
+                <LinearGradient
+                  colors={['transparent', 'rgba(0,0,0,0.9)']}
+                  style={styles.featuredGradient}
+                />
+                <View style={styles.featuredInfo}>
+                  <View style={styles.featuredTag}>
+                    <Ionicons name="sparkles" size={12} color="#1A3B2F" />
+                    <Text style={styles.featuredTagText}>Must Visit</Text>
+                  </View>
+                  <Text style={styles.featuredName}>{place.name}</Text>
+                  <View style={styles.featuredLocationRow}>
+                    <Ionicons name="location" size={14} color="#FFD166" />
+                    <Text style={styles.featuredLocationText}>{place.location}</Text>
+                  </View>
+                </View>
+              </Pressable>
+            )}
+          />
+        </View>
+      )}
+
       <BlurView intensity={60} tint="light" style={styles.categoryBlur}>
         <FlatList 
           horizontal 
@@ -644,6 +687,13 @@ export default function SearchPlacesScreen() {
           colors={['transparent', 'rgba(0,0,0,0.8)']}
           style={styles.gradient}
         />
+        
+        {place.isFeatured && (
+          <View style={styles.featuredBadge}>
+            <Ionicons name="star" size={12} color="#1A3B2F" />
+            <Text style={styles.featuredBadgeText}>Featured</Text>
+          </View>
+        )}
         
         <Pressable 
           style={styles.heartIcon} 
@@ -1042,9 +1092,34 @@ const styles = StyleSheet.create({
   },
   checkboxLabel: {
     fontSize: 14,
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  featuredBadge: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFD166',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    gap: 4,
+    zIndex: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  featuredBadgeText: {
+    fontSize: 10,
+    fontWeight: '900',
     color: '#1A3B2F',
-    fontWeight: '600',
-    marginLeft: 8,
+    textTransform: 'uppercase',
   },
   imagePickerMain: {
     height: 180,
@@ -1138,6 +1213,120 @@ const styles = StyleSheet.create({
   roomListPrice: {
     fontSize: 12,
     color: 'rgba(26, 59, 47, 0.6)',
+    fontWeight: '600',
+  },
+  featuredBadge: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFD166',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    gap: 4,
+    zIndex: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  featuredBadgeText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#1A3B2F',
+    textTransform: 'uppercase',
+  },
+  featuredSection: {
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    marginBottom: 12,
+    gap: 8,
+  },
+  featuredSectionTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#1A3B2F',
+  },
+  featuredDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#FFD166',
+  },
+  featuredList: {
+    paddingLeft: 24,
+    paddingRight: 12,
+  },
+  featuredCard: {
+    width: width * 0.75,
+    height: 200,
+    marginRight: 16,
+    borderRadius: 28,
+    overflow: 'hidden',
+    backgroundColor: '#ffffff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
+    elevation: 8,
+  },
+  featuredCardImage: {
+    width: '100%',
+    height: '100%',
+  },
+  featuredGradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: '60%',
+  },
+  featuredInfo: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 20,
+  },
+  featuredTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFD166',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    alignSelf: 'flex-start',
+    marginBottom: 8,
+    gap: 4,
+  },
+  featuredTagText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#1A3B2F',
+    textTransform: 'uppercase',
+  },
+  featuredName: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#ffffff',
+    marginBottom: 4,
+  },
+  featuredLocationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  featuredLocationText: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.8)',
     fontWeight: '600',
   },
 });

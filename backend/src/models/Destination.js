@@ -34,6 +34,10 @@ const destinationSchema = new mongoose.Schema(
       type: String,
       default: "Year-round",
     },
+    isFeatured: {
+      type: Boolean,
+      default: false,
+    },
     images: [
       {
         url: { type: String, required: true },
