@@ -17,7 +17,6 @@ import { API_BASE_URL } from '@/constants/api';
 
 const DASHBOARD_PRIMARY = '#1A3B2F';
 const MEAL_OPTIONS = ['Breakfast', 'Lunch', 'Dinner', 'All Inclusive'];
-const ACCOMMODATION_OPTIONS = ['No accommodation', '3-star hotel', '4-star hotel', '5-star hotel', 'Resort', 'Villa'];
 const GUIDE_OPTIONS = ['No guide', 'English-speaking guide', 'Multi-language guide'];
 const TRANSPORT_OPTIONS = [
   'Car (Sedan/Hatchback)',
@@ -40,7 +39,6 @@ type FormState = {
   price: string;
   maxParticipants: string;
   meals: string[];
-  accommodation: string;
   guide: string;
   transport: string;
 };
@@ -54,7 +52,6 @@ const INITIAL_FORM: FormState = {
   price: '',
   maxParticipants: '',
   meals: [],
-  accommodation: '',
   guide: '',
   transport: '',
 };
@@ -66,8 +63,33 @@ export default function EditTourPackageScreen() {
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [hotels, setHotels] = useState<any[]>([]);
+  const [hotelsLoading, setHotelsLoading] = useState(false);
 
   const packageId = useMemo(() => String(id || '').trim(), [id]);
+
+  // Fetch hotels
+  useEffect(() => {
+    const fetchHotels = async () => {
+      try {
+        setHotelsLoading(true);
+        const token = await AsyncStorage.getItem('auth:token');
+        if (!token) return;
+        
+        const response = await fetch(`${API_BASE_URL}/admin/hotels`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        setHotels(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error('Failed to fetch hotels:', err);
+      } finally {
+        setHotelsLoading(false);
+      }
+    };
+    fetchHotels();
+  }, []);
+
 
   useEffect(() => {
     const loadPackage = async () => {
@@ -112,7 +134,6 @@ export default function EditTourPackageScreen() {
             .split(',')
             .map((item) => item.trim())
             .filter(Boolean),
-          accommodation: data?.accommodation || '',
           guide: data?.guide || '',
           transport: data?.transport || '',
         });
@@ -165,7 +186,7 @@ export default function EditTourPackageScreen() {
         price: Number(form.price),
         maxParticipants: Number(form.maxParticipants),
         meals: form.meals.join(', '),
-        accommodation: form.accommodation.trim(),
+
         guide: form.guide.trim(),
         transport: form.transport.trim(),
       };
@@ -301,15 +322,6 @@ export default function EditTourPackageScreen() {
             options={MEAL_OPTIONS}
             placeholder="Select meals"
             onChange={(value) => updateField('meals', value)}
-          />
-        </Field>
-
-        <Field label="Accommodation">
-          <SelectField
-            value={form.accommodation}
-            options={ACCOMMODATION_OPTIONS}
-            placeholder="Select accommodation"
-            onChange={(value) => updateField('accommodation', value)}
           />
         </Field>
 

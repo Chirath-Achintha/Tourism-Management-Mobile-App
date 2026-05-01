@@ -10,8 +10,9 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Platform,
 } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import { MapView, Marker, PROVIDER_GOOGLE } from '@/components/MapViewComponent';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -528,21 +529,33 @@ export default function SearchPlacesScreen() {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Map Location (Tap to pin)</Text>
               <View style={styles.mapContainer}>
-                <MapView
-                  provider={PROVIDER_GOOGLE}
-                  style={styles.map}
-                  region={mapRegion}
-                  onRegionChangeComplete={(region) => setMapRegion(region)}
-                  onPress={(e) => setSelectedLocation(e.nativeEvent.coordinate)}
-                >
-                  {selectedLocation && (
-                    <Marker 
-                      draggable
-                      coordinate={selectedLocation} 
-                      onDragEnd={(e) => setSelectedLocation(e.nativeEvent.coordinate)}
-                    />
-                  )}
-                </MapView>
+                {Platform.OS !== 'web' ? (
+                  <MapView
+                    provider={PROVIDER_GOOGLE}
+                    style={styles.map}
+                    region={mapRegion}
+                    onRegionChangeComplete={(region: any) => setMapRegion(region)}
+                    onPress={(e: any) => setSelectedLocation(e.nativeEvent.coordinate)}
+                  >
+                    {selectedLocation && (
+                      <Marker 
+                        draggable
+                        coordinate={selectedLocation} 
+                          onDragEnd={(e: any) => setSelectedLocation(e.nativeEvent.coordinate)}
+                      />
+                    )}
+                  </MapView>
+                ) : (
+                  <View style={styles.webMapFallback}>
+                    <Ionicons name="map" size={40} color="#999" />
+                    <Text style={styles.webMapText}>Map view is available on mobile</Text>
+                    {selectedLocation && (
+                      <Text style={styles.coordinatesText}>
+                        Pinned: {selectedLocation.latitude.toFixed(4)}, {selectedLocation.longitude.toFixed(4)}
+                      </Text>
+                    )}
+                  </View>
+                )}
               </View>
               {selectedLocation && (
                 <Text style={styles.coordinatesText}>
@@ -1210,5 +1223,20 @@ const styles = StyleSheet.create({
   errorInput: {
     borderColor: '#ff4444',
     backgroundColor: '#fffcfc',
+  },
+  webMapFallback: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F0FAF5',
+    borderRadius: 12,
+    gap: 12,
+  },
+  webMapText: {
+    fontSize: 14,
+    color: '#999',
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });
