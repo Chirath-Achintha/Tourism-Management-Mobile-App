@@ -5,6 +5,7 @@ import adminRoutes from "./routes/adminRoutes.js";
 import hotelRoutes from "./routes/hotelRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
 import path from "path";
+import tourRoutes from "./routes/tourRoutes.js";
 
 const app = express();
 
@@ -22,5 +23,6 @@ app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/hotels", hotelRoutes);
 app.use("/api/upload", uploadRoutes);
+app.use("/api/tour-packages", tourRoutes);
 
 export default app;
