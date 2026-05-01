@@ -1,5 +1,5 @@
 import express from "express";
-import { upload } from "../middleware/uploadMiddleware.js";
+import { upload, uploadDoc } from "../middleware/uploadMiddleware.js";
 import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
@@ -20,6 +20,15 @@ router.post("/multiple", protect, upload.array("images", 6), (req, res) => {
   }
   const filePaths = req.files.map((file) => `/uploads/${file.filename}`);
   res.status(200).json({ filePaths });
+});
+
+// Route for reservation document upload (PDF or Image)
+router.post("/reservation-doc", protect, uploadDoc.single("document"), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ message: "No document uploaded" });
+  }
+  const filePath = `/uploads/${req.file.filename}`;
+  res.status(200).json({ filePath });
 });
 
 export default router;

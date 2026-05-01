@@ -6,7 +6,8 @@ import TourPackage from '../models/TourPackage.js';
 // @access  Private
 export const createReservation = async (req, res) => {
   try {
-    const { packageId, travelDate, numberOfPeople, specialRequest } = req.body;
+    const { packageId, travelDate, numberOfPeople, specialRequest, documentType } = req.body;
+    const documentPath = req.file ? `/uploads/${req.file.filename}` : '';
 
     // Fetch the package to get current price for calculation
     const tourPackage = await TourPackage.findById(packageId);
@@ -24,6 +25,8 @@ export const createReservation = async (req, res) => {
       numberOfPeople,
       totalPrice,
       specialRequest,
+      documentType: documentType || 'NIC',
+      documentPath,
       status: 'Pending', // Enforce Pending status on creation
     });
 
