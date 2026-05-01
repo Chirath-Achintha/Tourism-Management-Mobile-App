@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, SafeAreaView, Pressable, Image } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, SafeAreaView, Pressable, Image, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '@/constants/api';
 import { Ionicons } from '@expo/vector-icons';
@@ -35,6 +35,41 @@ export default function MyHotelsScreen() {
     }
   };
 
+  const handleDelete = (id: string, name: string) => {
+    Alert.alert(
+      "Delete Hotel",
+      `Are you sure you want to delete ${name}?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Delete", 
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const token = await AsyncStorage.getItem('auth:token');
+              const response = await fetch(`${API_BASE_URL}/hotels/${id}`, {
+                method: 'DELETE',
+                headers: {
+                  'Authorization': `Bearer ${token}`
+                }
+              });
+              if (response.ok) {
+                setHotels(prev => prev.filter(h => h._id !== id));
+                Alert.alert("Success", "Hotel deleted successfully");
+              } else {
+                const data = await response.json();
+                Alert.alert("Error", data.message || "Failed to delete hotel");
+              }
+            } catch (error) {
+              console.error("Error deleting hotel:", error);
+              Alert.alert("Error", "Server error deleting hotel");
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const renderHotelItem = ({ item }: { item: any }) => (
     <View style={styles.card}>
       {item.mainImage ? (
@@ -57,11 +92,11 @@ export default function MyHotelsScreen() {
         <Text style={styles.contact} numberOfLines={1}>{item.contactEmail} | {item.contactPhone}</Text>
         
         <View style={styles.actions}>
-          <Pressable style={styles.actionBtn}>
+          <Pressable style={styles.actionBtn} onPress={() => router.push({ pathname: '/manager/edit-hotel', params: { id: item._id } })}>
             <Ionicons name="pencil" size={16} color="#1A3B2F" />
             <Text style={styles.actionBtnText}>Edit</Text>
           </Pressable>
-          <Pressable style={[styles.actionBtn, styles.deleteBtn]}>
+          <Pressable style={[styles.actionBtn, styles.deleteBtn]} onPress={() => handleDelete(item._id, item.hotelName)}>
             <Ionicons name="trash" size={16} color="#ff4444" />
             <Text style={[styles.actionBtnText, { color: '#ff4444' }]}>Delete</Text>
           </Pressable>
