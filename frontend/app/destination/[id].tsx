@@ -186,8 +186,8 @@ export default function DestinationDetailScreen() {
             <Text style={styles.priceLabel}>{"Starting from"}</Text>
             <Text style={styles.priceValue}>{"$150"}<Text style={styles.perPerson}>{"/person"}</Text></Text>
           </View>
-          <Pressable style={styles.bookBtn}>
-            <Text style={styles.bookBtnText}>Book Now</Text>
+          <Pressable style={styles.bookBtn} onPress={() => router.push('/tour-packages')}>
+            <Text style={styles.bookBtnText}>Packages</Text>
           </Pressable>
         </View>
       </BlurView>
