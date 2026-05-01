@@ -150,6 +150,17 @@ export const Sidebar = ({ isVisible, onClose }: SidebarProps) => {
                 />
               </>
             )}
+            {user?.role === 'hotel_manager' && (
+              <>
+                <View style={styles.divider} />
+                <Text style={styles.sectionLabel}>MANAGER TOOLS</Text>
+                <SidebarItem
+                  icon="business-outline"
+                  label="My Hotels"
+                  onPress={() => handleNavigate('/manager/my-hotels')}
+                />
+              </>
+            )}
             <View style={styles.divider} />
             <SidebarItem
               icon="settings-outline"

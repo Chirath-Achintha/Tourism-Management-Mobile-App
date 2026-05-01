@@ -1,7 +1,7 @@
 import { Tabs } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, Platform } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -13,6 +13,7 @@ const AUTH_USER_KEY = "auth:user";
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isHotelManager, setIsHotelManager] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -22,6 +23,7 @@ export default function TabLayout() {
         if (userData) {
           const user = JSON.parse(userData);
           setIsAdmin(user?.role === 'admin');
+          setIsHotelManager(user?.role === 'hotel_manager');
         }
       } catch (error) {
         console.error("Layout role check failed:", error);
@@ -67,8 +69,14 @@ export default function TabLayout() {
       <Tabs.Screen
         name="explore"
         options={{
-          title: 'Search',
-          tabBarIcon: ({ color }) => <IconSymbol size={26} name="magnifyingglass" color={color} />,
+          title: isHotelManager ? 'Add Hotel' : 'Search',
+          tabBarIcon: ({ color }) => (
+            <IconSymbol 
+              size={26} 
+              name={isHotelManager ? "plus.circle.fill" : "magnifyingglass"} 
+              color={color} 
+            />
+          ),
         }}
       />
       
@@ -83,5 +91,3 @@ export default function TabLayout() {
   );
 }
 
-// Add Platform if needed (it wasn't imported in my CodeContent but used in the object)
-import { Platform } from 'react-native';
