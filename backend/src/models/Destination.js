@@ -12,12 +12,12 @@ const destinationSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-    category: {
+    categories: [{
       type: String,
       required: true,
       enum: ["Beach", "Mountain", "City", "Cultural"],
       trim: true,
-    },
+    }],
     description: {
       type: String,
       required: true,

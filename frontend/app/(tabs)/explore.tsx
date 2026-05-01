@@ -163,7 +163,7 @@ export default function SearchPlacesScreen() {
         place.category.toLowerCase().includes(normalizedQuery)
       );
 
-      const matchesCategory = selectedCategory === 'All' || place.category === selectedCategory;
+      const matchesCategory = selectedCategory === 'All' || (place.categories && place.categories.includes(selectedCategory));
 
       return matchesQuery && matchesCategory;
     });

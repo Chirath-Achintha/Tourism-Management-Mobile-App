@@ -198,9 +198,13 @@ export default function DestinationDetailScreen() {
           <Text style={styles.description}>{destination.description}</Text>
 
           <View style={styles.categoryInfo}>
-            <Text style={styles.categoryLabel}>{"Category"}</Text>
-            <View style={styles.categoryBadge}>
-              <Text style={styles.categoryText}>{destination.category}</Text>
+            <Text style={styles.categoryLabel}>{"Categories"}</Text>
+            <View style={styles.categoryRowList}>
+              {(destination.categories || []).map((cat: string, index: number) => (
+                <View key={index} style={styles.categoryBadge}>
+                  <Text style={styles.categoryText}>{cat}</Text>
+                </View>
+              ))}
             </View>
           </View>
 
@@ -394,9 +398,13 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   categoryInfo: {
+    marginTop: 24,
+  },
+  categoryRowList: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 8,
   },
   categoryLabel: {
     fontSize: 14,

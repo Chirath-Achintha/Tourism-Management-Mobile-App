@@ -38,7 +38,7 @@ export default function DestinationsManagementScreen() {
   // Form states
   const [name, setName] = useState('');
   const [location, setLocation] = useState('');
-  const [category, setCategory] = useState<Category>('Beach');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [description, setDescription] = useState('');
   const [images, setImages] = useState<string[]>([]);
   const [startingPrice, setStartingPrice] = useState('');
@@ -92,7 +92,7 @@ export default function DestinationsManagementScreen() {
   const resetForm = () => {
     setName('');
     setLocation('');
-    setCategory('Beach');
+    setSelectedCategories([]);
     setDescription('');
     setImages([]);
     setStartingPrice('');
@@ -122,7 +122,7 @@ export default function DestinationsManagementScreen() {
       const formData = new FormData();
       formData.append('name', name);
       formData.append('location', location);
-      formData.append('category', category);
+      formData.append('categories', JSON.stringify(selectedCategories));
       formData.append('description', description);
       formData.append('startingPrice', startingPrice);
       formData.append('averageTemp', averageTemp);
@@ -192,7 +192,7 @@ export default function DestinationsManagementScreen() {
     setEditingId(item._id);
     setName(item.name);
     setLocation(item.location);
-    setCategory(item.category);
+    setSelectedCategories(item.categories || []);
     setDescription(item.description);
     setStartingPrice(item.startingPrice?.toString() || '');
     setAverageTemp(item.averageTemp || '25°C');
@@ -255,8 +255,12 @@ export default function DestinationsManagementScreen() {
           </View>
           <Text style={styles.cardLocation}>{item.location}</Text>
         </View>
-        <View style={styles.categoryBadge}>
-          <Text style={styles.categoryBadgeText}>{item.category.toUpperCase()}</Text>
+        <View style={styles.categoryRow}>
+          {(item.categories || []).map((cat: string, index: number) => (
+            <View key={index} style={styles.categoryBadge}>
+              <Text style={styles.categoryBadgeText}>{cat.toUpperCase()}</Text>
+            </View>
+          ))}
         </View>
         <Text style={styles.cardDesc} numberOfLines={2}>{item.description}</Text>
         
@@ -361,17 +365,26 @@ export default function DestinationsManagementScreen() {
                   placeholder="e.g. Matale District"
                 />
 
-                <Text style={styles.inputLabel}>Category</Text>
+                <Text style={styles.inputLabel}>Categories (Select multiple)</Text>
                 <View style={styles.categoryGrid}>
-                  {CATEGORIES.map(cat => (
-                    <Pressable
-                      key={cat}
-                      style={[styles.catPill, category === cat && styles.catPillActive]}
-                      onPress={() => setCategory(cat)}
-                    >
-                      <Text style={[styles.catText, category === cat && styles.catTextActive]}>{cat}</Text>
-                    </Pressable>
-                  ))}
+                  {CATEGORIES.map(cat => {
+                    const isActive = selectedCategories.includes(cat);
+                    return (
+                      <Pressable
+                        key={cat}
+                        style={[styles.catPill, isActive && styles.catPillActive]}
+                        onPress={() => {
+                          if (isActive) {
+                            setSelectedCategories(selectedCategories.filter(c => c !== cat));
+                          } else {
+                            setSelectedCategories([...selectedCategories, cat]);
+                          }
+                        }}
+                      >
+                        <Text style={[styles.catText, isActive && styles.catTextActive]}>{cat}</Text>
+                      </Pressable>
+                    );
+                  })}
                 </View>
 
                 <Text style={styles.inputLabel}>Description</Text>
