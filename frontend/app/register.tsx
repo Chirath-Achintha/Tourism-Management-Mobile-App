@@ -1,21 +1,22 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import {
   Alert,
   View,
   Text,
   TextInput,
-  ImageBackground,
-  SafeAreaView,
-  Pressable,
   StyleSheet,
   useWindowDimensions,
   Platform,
-  ActivityIndicator,
-  Animated,
+  Pressable,
+  KeyboardAvoidingView,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { API_BASE_URL } from "@/constants/api";
 
 const AUTH_STATUS_KEY = "auth:isSignedIn";
@@ -25,8 +26,7 @@ const AUTH_USER_KEY = "auth:user";
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
-
+  const { height: windowHeight } = useWindowDimensions();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -36,23 +36,6 @@ export default function RegisterScreen() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [role, setRole] = useState("tourist");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-
-  const handlePressIn = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 0.95,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const handlePressOut = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      useNativeDriver: true,
-    }).start();
-  };
 
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const phonePattern = /^[0-9]{10}$/;
@@ -72,7 +55,7 @@ export default function RegisterScreen() {
     }
 
     if (!phonePattern.test(normalizedPhone)) {
-      Alert.alert("Validation", "Enter a valid phone number.");
+      Alert.alert("Validation", "Enter a valid 10-digit phone number.");
       return;
     }
 
@@ -116,103 +99,172 @@ export default function RegisterScreen() {
       await AsyncStorage.setItem(AUTH_TOKEN_KEY, data.token);
       await AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(data.user));
 
-      router.replace("/(tabs)" as never);
-    } catch {
+      router.replace("/(tabs)/" as never);
+    } catch (error) {
+      console.error("Registration error:", error);
       Alert.alert("Network Error", "Could not connect to backend.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const titleFontSize = windowWidth < 380 ? 26 : 30;
-
   return (
     <View style={styles.container}>
-      <ImageBackground
-        source={require("../assets/home/background.jpg")}
-        style={[styles.background, { height: windowHeight }]}
-        resizeMode="cover"
-      >
-        <View style={styles.overlay} />
-
-        <SafeAreaView style={styles.safeArea}>
+      <StatusBar style="dark" translucent />
+      <View style={styles.backgroundContent}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1 }}
+        >
           <ScrollView
-            contentContainerStyle={styles.contentWrap}
+            contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            <Text style={[styles.title, { fontSize: titleFontSize }]}>
-              Create Account
-            </Text>
-
-            <Text style={styles.subtitle}>
-              Start your journey across Sri Lanka today.
-            </Text>
-
-            <TextInput
-              style={styles.input}
-              placeholder="Full Name"
-              placeholderTextColor="rgba(255,255,255,0.6)"
-              value={fullName}
-              onChangeText={setFullName}
-            />
-
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              placeholderTextColor="rgba(255,255,255,0.6)"
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-            />
-
-            <TextInput
-              style={styles.input}
-              placeholder="Phone Number"
-              placeholderTextColor="rgba(255,255,255,0.6)"
-              value={phoneNumber}
-              onChangeText={setPhoneNumber}
-              keyboardType="phone-pad"
-            />
-
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              placeholderTextColor="rgba(255,255,255,0.6)"
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-            />
-
-            <TextInput
-              style={styles.input}
-              placeholder="Confirm Password"
-              placeholderTextColor="rgba(255,255,255,0.6)"
-              secureTextEntry
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-            />
-
-            <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+            <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
               <Pressable
-                onPressIn={handlePressIn}
-                onPressOut={handlePressOut}
-                onPress={handleRegister}
-                style={styles.button}
+                style={styles.topBackButton}
+                onPress={() => router.back()}
               >
-                {isSubmitting ? (
-                  <ActivityIndicator color="#1d140e" />
-                ) : (
-                  <Text style={styles.buttonText}>Sign Up</Text>
-                )}
+                <Ionicons name="arrow-back" size={28} color="#1A3B2F" />
               </Pressable>
-            </Animated.View>
 
-            <Pressable onPress={() => router.back()}>
-              <Text style={styles.backText}>Already have an account? Sign In</Text>
-            </Pressable>
+              <View style={styles.header}>
+                <Text style={styles.title}>Create Account</Text>
+                <Text style={styles.subtitle}>Join us and start your journey today</Text>
+              </View>
+
+              <View style={styles.roleToggleContainer}>
+                <Pressable
+                  style={[styles.roleButton, role === "tourist" && styles.roleButtonActive]}
+                  onPress={() => setRole("tourist")}
+                >
+                  <Text style={[styles.roleButtonText, role === "tourist" && styles.roleButtonTextActive]}>
+                    Tourist
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.roleButton, role === "hotel_manager" && styles.roleButtonActive]}
+                  onPress={() => setRole("hotel_manager")}
+                >
+                  <Text style={[styles.roleButtonText, role === "hotel_manager" && styles.roleButtonTextActive]}>
+                    Hotel Manager
+                  </Text>
+                </Pressable>
+              </View>
+
+              <View style={styles.form}>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Full Name</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter your name"
+                    placeholderTextColor="rgba(26, 59, 47, 0.4)"
+                    value={fullName}
+                    onChangeText={setFullName}
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Email Address</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="name@example.com"
+                    placeholderTextColor="rgba(26, 59, 47, 0.4)"
+                    value={email}
+                    onChangeText={setEmail}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Phone Number</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="077 123 4567"
+                    placeholderTextColor="rgba(26, 59, 47, 0.4)"
+                    keyboardType="phone-pad"
+                    maxLength={10}
+                    value={phoneNumber}
+                    onChangeText={setPhoneNumber}
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Password</Text>
+                  <View style={styles.passwordWrapper}>
+                    <TextInput
+                      style={styles.passwordInput}
+                      placeholder="Min. 6 characters"
+                      placeholderTextColor="rgba(26, 59, 47, 0.4)"
+                      secureTextEntry={!showPassword}
+                      value={password}
+                      onChangeText={setPassword}
+                    />
+                    <Pressable
+                      style={styles.eyeButton}
+                      onPress={() => setShowPassword(!showPassword)}
+                    >
+                      <Ionicons
+                        name={showPassword ? "eye-off" : "eye"}
+                        size={22}
+                        color="rgba(26, 59, 47, 0.6)"
+                      />
+                    </Pressable>
+                  </View>
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Confirm Password</Text>
+                  <View style={styles.passwordWrapper}>
+                    <TextInput
+                      style={styles.passwordInput}
+                      placeholder="Repeat your password"
+                      placeholderTextColor="rgba(26, 59, 47, 0.4)"
+                      secureTextEntry={!showConfirmPassword}
+                      value={confirmPassword}
+                      onChangeText={setConfirmPassword}
+                    />
+                    <Pressable
+                      style={styles.eyeButton}
+                      onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                    >
+                      <Ionicons
+                        name={showConfirmPassword ? "eye-off" : "eye"}
+                        size={22}
+                        color="rgba(26, 59, 47, 0.6)"
+                      />
+                    </Pressable>
+                  </View>
+                </View>
+
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.button,
+                    pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
+                    isSubmitting && { opacity: 0.7 }
+                  ]}
+                  onPress={handleRegister}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <ActivityIndicator color="#ffffff" />
+                  ) : (
+                    <Text style={styles.buttonText}>Register</Text>
+                  )}
+                </Pressable>
+
+                <View style={styles.footer}>
+                  <Text style={styles.footerText}>ALREADY HAVE AN ACCOUNT? </Text>
+                  <Pressable onPress={() => router.push("/login")}>
+                    <Text style={styles.footerLink}>SIGN IN</Text>
+                  </Pressable>
+                </View>
+              </View>
+            </SafeAreaView>
           </ScrollView>
-        </SafeAreaView>
-      </ImageBackground>
+        </KeyboardAvoidingView>
+      </View>
     </View>
   );
 }
@@ -220,33 +272,52 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#07111D",
+    backgroundColor: "#F0FAF5", // Light mint green / off-white
   },
-  background: {
-    width: "100%",
+  backgroundContent: {
     flex: 1,
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(7, 17, 29, 0.55)",
   },
   safeArea: {
     flex: 1,
   },
-  contentWrap: {
+  scrollContent: {
+    flexGrow: 1,
     paddingHorizontal: 28,
-    paddingTop: 40,
+    paddingTop: Platform.OS === "ios" ? 40 : 60,
     paddingBottom: 40,
-    gap: 14,
+  },
+  topBackButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(26, 59, 47, 0.05)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 20,
+    marginLeft: -8,
+  },
+  header: {
+    marginBottom: 24,
+    alignItems: "center",
   },
   title: {
-    color: "#ffffff",
-    fontWeight: "800",
+    color: "#1A3B2F",
+    fontSize: 34,
+    fontWeight: "900",
+    letterSpacing: -0.8,
+    marginBottom: 8,
   },
   subtitle: {
-    color: "rgba(236, 242, 248, 0.85)",
-    fontSize: 14,
-    marginBottom: 10,
+    color: "rgba(26, 59, 47, 0.6)",
+    fontSize: 15,
+    fontWeight: "500",
+  },
+  roleToggleContainer: {
+    flexDirection: "row",
+    backgroundColor: "rgba(26, 59, 47, 0.05)",
+    borderRadius: 20,
+    padding: 4,
+    marginBottom: 30,
   },
   roleButton: {
     flex: 1,
@@ -278,33 +349,71 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   input: {
-    width: "100%",
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderRadius: 12,
-    padding: 14,
-    color: "#fff",
-    fontSize: 15,
+    backgroundColor: "#ffffff",
+    borderWidth: 1,
+    borderColor: "rgba(26, 59, 47, 0.1)",
+    borderRadius: 16,
+    padding: 16,
+    color: "#1A3B2F",
+    fontSize: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  button: {
-    marginTop: 10,
-    backgroundColor: "#f2a978",
-    minHeight: 54,
+  passwordWrapper: {
+    flexDirection: "row",
+    backgroundColor: "#ffffff",
+    borderWidth: 1,
+    borderColor: "rgba(26, 59, 47, 0.1)",
     borderRadius: 16,
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 16,
+    color: "#1A3B2F",
+    fontSize: 16,
+  },
+  eyeButton: {
+    paddingHorizontal: 16,
+  },
+  button: {
+    backgroundColor: "#FFD166", // Travel-friendly yellow
+    height: 60,
+    borderRadius: 30,
+    alignItems: "center",
     justifyContent: "center",
+    elevation: 4,
+    marginTop: 10,
   },
   buttonText: {
     color: "#1d140e",
-    fontSize: 15,
-    fontWeight: "700",
-    letterSpacing: 0.8,
+    fontSize: 18,
+    fontWeight: "800",
+    letterSpacing: 1.2,
     textTransform: "uppercase",
   },
-  backText: {
-    marginTop: 10,
-    textAlign: "center",
-    color: "rgba(255,255,255,0.7)",
+  footer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 8,
+  },
+  footerText: {
+    color: "rgba(26, 59, 47, 0.6)",
     fontSize: 13,
+  },
+  footerLink: {
+    color: "#1A3B2F",
+    fontSize: 13,
+    fontWeight: "800",
     textDecorationLine: "underline",
   },
 });

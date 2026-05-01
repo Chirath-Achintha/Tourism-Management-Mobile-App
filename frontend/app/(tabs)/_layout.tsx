@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-import { Tabs } from "expo-router";
-=======
 import { Tabs } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -10,20 +7,10 @@ import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
->>>>>>> origin/main
 
 const AUTH_USER_KEY = "auth:user";
 
 export default function TabLayout() {
-<<<<<<< HEAD
-  return (
-    <Tabs screenOptions={{ headerShown: false }}>
-      <Tabs.Screen name="index" />
-      <Tabs.Screen name="explore" />
-    </Tabs>
-  );
-}
-=======
   const colorScheme = useColorScheme();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isHotelManager, setIsHotelManager] = useState(false);
@@ -103,5 +90,3 @@ export default function TabLayout() {
     </Tabs>
   );
 }
-
->>>>>>> origin/main

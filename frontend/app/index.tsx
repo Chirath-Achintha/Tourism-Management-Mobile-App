@@ -12,9 +12,6 @@ import {
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-
-const AUTH_STATUS_KEY = "auth:isSignedIn";
 
 export default function IndexScreen() {
   const router = useRouter();
@@ -26,33 +23,8 @@ export default function IndexScreen() {
   const subtitleFontSize = windowWidth < 380 ? 14 : 16;
 
   useEffect(() => {
-    let isMounted = true;
-
-    const redirectUser = async () => {
-      try {
-        const signedInValue = await AsyncStorage.getItem(AUTH_STATUS_KEY);
-
-        if (!isMounted) return;
-
-        if (signedInValue === "true") {
-          router.push("/(tabs)" as never);
-          return;
-        }
-
-        setCheckingAuth(false);
-      } catch {
-        if (isMounted) {
-          setCheckingAuth(false);
-        }
-      }
-    };
-
-    redirectUser();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [router]);
+    setCheckingAuth(false);
+  }, []);
 
   if (checkingAuth) {
     return (

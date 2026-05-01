@@ -5,25 +5,17 @@ import {
   Text,
   TextInput,
   View,
-<<<<<<< HEAD
   ActivityIndicator,
   Image,
   Pressable,
   Dimensions,
   FlatList,
+  Alert,
 } from 'react-native';
-import { API_BASE_URL } from '@/constants/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
-=======
-  Pressable,
-  ActivityIndicator,
-  Alert,
-  Image,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -31,7 +23,6 @@ import { API_BASE_URL } from '@/constants/api';
 import { Colors } from '@/constants/theme';
 
 const AUTH_USER_KEY = "auth:user";
->>>>>>> origin/main
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48 - 16) / 2;
@@ -40,25 +31,12 @@ const CATEGORIES = ['All', 'Beach', 'Mountain', 'City', 'Cultural'];
 
 export default function SearchPlacesScreen() {
   const [query, setQuery] = useState('');
-<<<<<<< HEAD
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [places, setPlaces] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [favorites, setFavorites] = useState<string[]>([]);
   const router = useRouter();
 
-  useEffect(() => {
-    const fetchPlaces = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch(`${API_BASE_URL}/destinations`);
-        const data = await response.json();
-        if (response.ok) {
-          setPlaces(data);
-        }
-      } catch (error) {
-        console.error("Fetch places failed:", error);
-=======
+  // Shared State
   const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -147,22 +125,26 @@ export default function SearchPlacesScreen() {
   };
 
   useEffect(() => {
-    const checkRole = async () => {
+    const initialize = async () => {
       try {
+        setLoading(true);
         const userData = await AsyncStorage.getItem(AUTH_USER_KEY);
         if (userData) {
           const user = JSON.parse(userData);
           setRole(user.role);
         }
+        const response = await fetch(`${API_BASE_URL}/destinations`);
+        const data = await response.json();
+        if (response.ok) {
+          setPlaces(data);
+        }
       } catch (error) {
-        console.error("Error checking role:", error);
->>>>>>> origin/main
+        console.error("Initialization failed:", error);
       } finally {
         setLoading(false);
       }
     };
-<<<<<<< HEAD
-    fetchPlaces();
+    initialize();
   }, []);
 
   const toggleFavorite = (id: string) => {
@@ -170,10 +152,6 @@ export default function SearchPlacesScreen() {
       prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]
     );
   };
-=======
-    checkRole();
-  }, []);
->>>>>>> origin/main
 
   const filteredPlaces = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -191,14 +169,6 @@ export default function SearchPlacesScreen() {
     });
   }, [query, places, selectedCategory]);
 
-<<<<<<< HEAD
-  const renderHeader = () => (
-    <View style={styles.fixedHeader}>
-      <View style={styles.headerRow}>
-        <View>
-          <Text style={styles.title}>Explore</Text>
-          <Text style={styles.subtitle}>Discover the beauty of Sri Lanka</Text>
-=======
   const toggleFacility = (key: keyof typeof facilities) => {
     setFacilities(prev => ({ ...prev, [key]: !prev[key] }));
   };
@@ -605,18 +575,12 @@ export default function SearchPlacesScreen() {
     );
   }
 
-
-
-
-
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.headerRow}>
-          <Text style={styles.title}>Search Tourist Places</Text>
-          <IconSymbol name="magnifyingglass" size={22} color="#0b3a53" />
->>>>>>> origin/main
+  const renderHeader = () => (
+    <View style={styles.fixedHeader}>
+      <View style={styles.headerRow}>
+        <View>
+          <Text style={styles.title}>Explore</Text>
+          <Text style={styles.subtitle}>Discover the beauty of Sri Lanka</Text>
         </View>
         <Pressable style={styles.notificationBtn}>
           <Ionicons name="notifications-outline" size={22} color="#1A3B2F" />

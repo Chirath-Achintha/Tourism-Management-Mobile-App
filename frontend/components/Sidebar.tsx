@@ -179,11 +179,11 @@ export const Sidebar = ({ isVisible, onClose }: SidebarProps) => {
                   onPress={() => {}}
                 />
                 <SidebarItem
-<<<<<<< HEAD
                   icon="map-outline"
                   label="Destination Management"
                   onPress={() => handleNavigate('/admin/destinations')}
-=======
+                />
+                <SidebarItem
                   icon="airplane-outline"
                   label="Tour Packages"
                   onPress={() => handleNavigate('/admin/tour-packages')}
@@ -198,7 +198,6 @@ export const Sidebar = ({ isVisible, onClose }: SidebarProps) => {
                   icon="business-outline"
                   label="My Hotels"
                   onPress={() => handleNavigate('/manager/my-hotels')}
->>>>>>> origin/main
                 />
               </>
             )}
