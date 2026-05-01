@@ -189,7 +189,7 @@ export default function TourPackagesScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar style="dark" backgroundColor="#FFFFFF" />
       
       {/* Header */}
       <View style={styles.header}>
@@ -290,7 +290,7 @@ export default function TourPackagesScreen() {
                 <View style={styles.packageDetails}>
                   <View style={styles.detailBadge}>
                     <Text style={styles.badgeText}>
-                      ${item.price || 'N/A'}
+                      LKR {item.price ? Number(item.price).toLocaleString() : 'N/A'}
                     </Text>
                   </View>
                   <View style={styles.detailBadge}>

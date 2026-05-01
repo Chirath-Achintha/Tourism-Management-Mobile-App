@@ -34,22 +34,10 @@ const CATEGORY_OPTIONS = [
 ];
 
 const DURATION_PRESETS = [1, 3, 5, 7, 10, 14];
-const PRICE_PRESETS = [199, 299, 499, 799, 1299];
-const PARTICIPANT_PRESETS = [5, 8, 10, 12, 15, 20, 25];
+const PRICE_PRESETS = [10000, 25000, 50000, 100000, 200000];
 const MEAL_OPTIONS = ['Breakfast', 'Lunch', 'Dinner', 'All Inclusive'];
-const ACCOMMODATION_OPTIONS = ['No accommodation', '3-star hotel', '4-star hotel', '5-star hotel', 'Resort', 'Villa'];
 const GUIDE_OPTIONS = ['No guide', 'English-speaking guide', 'Multi-language guide'];
-const TRANSPORT_OPTIONS = [
-  'Car (Sedan/Hatchback)',
-  'Van',
-  'Mini bus / Coach',
-  'Luxury SUV',
-  'Three-wheeler (Tuk-tuk)',
-  'Tourist bus',
-  'Local bus',
-  'Air-conditioned coach',
-  'Luxury bus',
-];
+
 
 // Color palette (user-specified)
 const COLOR_BG = '#EBF5EA'; // soft mint green canvas
@@ -64,33 +52,48 @@ type FormData = {
   name: string;
   location: string;
   meals: string[];
-  accommodation: string;
+  included: string[];
   guide: string;
-  transport: string;
   category: string;
   duration: string;
   startDate: string;
   endDate: string;
   price: string;
+  minParticipants: string;
   maxParticipants: string;
-  timeline: Array<{ title: string; notes: string }>;
+  timeline: Array<{
+    title: string;
+    notes: string;
+    hotel: string;
+    hotelName: string;
+    hotelLocation: string;
+    places: Array<{ name: string; notes: string; location: string }>;
+  }>;
 };
 
 const INITIAL_STATE: FormData = {
   name: '',
   location: '',
   meals: [],
-  accommodation: '',
+  included: [],
   guide: '',
-  transport: '',
   category: 'adventure',
   duration: '',
   startDate: '',
   endDate: '',
   price: '',
+  minParticipants: '',
   maxParticipants: '',
   timeline: [],
 };
+
+const INCLUDED_OPTIONS = [
+  { key: 'hotels', label: 'Hotels', icon: 'bed-outline' },
+  { key: 'meals', label: 'Meals', icon: 'restaurant-outline' },
+  { key: 'transport', label: 'Transport', icon: 'car-outline' },
+  { key: 'activities', label: 'Activities', icon: 'sparkles-outline' },
+  { key: 'insurance', label: 'Insurance', icon: 'shield-checkmark-outline' },
+];
 
 type Step = 0 | 1 | 2;
 
@@ -106,10 +109,38 @@ export default function AddTourPackageScreen() {
   const [coverImageUri, setCoverImageUri] = useState<string | null>(null);
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [formData, setFormData] = useState(INITIAL_STATE);
+  const [hotels, setHotels] = useState<any[]>([]);
+  const [hotelsLoading, setHotelsLoading] = useState(false);
+  const [durationError, setDurationError] = useState<string | null>(null);
+  const [dateError, setDateError] = useState<string | null>(null);
+  const [participantsError, setParticipantsError] = useState<string | null>(null);
 
   const progressValue = useMemo(() => {
     return step === 0 ? 0.16 : step === 1 ? 0.58 : 1;
   }, [step]);
+
+  // Fetch hotels on component mount
+  useEffect(() => {
+    const fetchHotels = async () => {
+      try {
+        setHotelsLoading(true);
+        const token = await AsyncStorage.getItem('auth:token');
+        if (!token) return;
+        
+        const response = await fetch(`${API_BASE_URL}/admin/hotels`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        setHotels(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error('Failed to fetch hotels:', err);
+      } finally {
+        setHotelsLoading(false);
+      }
+    };
+    fetchHotels();
+  }, []);
+
 
   useEffect(() => {
     Animated.timing(progressAnim, {
@@ -147,18 +178,67 @@ export default function AddTourPackageScreen() {
       const next = { ...prev, [field]: value } as FormData;
 
       // when duration changes and we have a start date, recompute endDate
-      if (field === 'duration' && prev.startDate) {
-        const start = parseMMDDYYYY(prev.startDate);
-        const dur = Number(value);
-        if (start && !Number.isNaN(dur) && dur > 0) {
-          const end = new Date(start);
-          end.setDate(end.getDate() + (dur - 1));
-          next.endDate = formatDate(end);
+      if (field === 'duration') {
+        const raw = String(value || '').trim();
+        const dur = Number(raw);
+        if (!raw || Number.isNaN(dur) || !Number.isInteger(dur) || dur < 1) {
+          setDurationError('Enter a valid number of days (1 or more).');
+        } else if (dur > 365) {
+          setDurationError('Please choose a duration less than or equal to 365 days.');
+        } else {
+          setDurationError(null);
+          // sync timeline length to duration
+          next.timeline = syncTimelineToDuration(next.timeline || [], dur);
+
+          // if we have a startDate, recompute endDate
+          if (prev.startDate) {
+            const start = parseMMDDYYYY(prev.startDate);
+            if (start) {
+              const end = new Date(start);
+              end.setDate(end.getDate() + (dur - 1));
+              next.endDate = formatDate(end);
+              setDateError(null);
+            }
+          }
+        }
+      }
+
+      // validate minParticipants or maxParticipants if updated
+      if (field === 'minParticipants' || field === 'maxParticipants') {
+        const minRaw = field === 'minParticipants' ? String(value || '').trim() : String(next.minParticipants || '').trim();
+        const maxRaw = field === 'maxParticipants' ? String(value || '').trim() : String(next.maxParticipants || '').trim();
+        const minNum = Number(minRaw);
+        const maxNum = Number(maxRaw);
+
+        if (!minRaw || Number.isNaN(minNum) || !Number.isInteger(minNum) || minNum < 1) {
+          setParticipantsError('Min participants must be 1 or more.');
+        } else if (!maxRaw || Number.isNaN(maxNum) || !Number.isInteger(maxNum) || maxNum < 1) {
+          setParticipantsError('Max participants must be 1 or more.');
+        } else if (maxNum > 500) {
+          setParticipantsError('Max participants cannot exceed 500.');
+        } else if (maxNum <= minNum) {
+          setParticipantsError('Max participants must be greater than min participants.');
+        } else {
+          setParticipantsError(null);
         }
       }
 
       return next;
     });
+  };
+
+  const syncTimelineToDuration = (timeline: FormData['timeline'], duration: number) => {
+    const next = Array.isArray(timeline) ? [...timeline] : [];
+    // expand
+    while (next.length < duration) {
+      const newIndex = next.length + 1;
+      next.push({ title: `Day ${newIndex}`, notes: '', hotel: '', hotelName: '', hotelLocation: '', places: [] });
+    }
+    // trim
+    if (next.length > duration) {
+      return next.slice(0, duration);
+    }
+    return next;
   };
 
   const toggleMeal = (meal: string) => {
@@ -168,6 +248,13 @@ export default function AddTourPackageScreen() {
         ...prev,
         meals: isSelected ? prev.meals.filter(item => item !== meal) : [...prev.meals, meal],
       };
+    });
+  };
+
+  const toggleIncluded = (key: string) => {
+    setFormData(prev => {
+      const has = prev.included.includes(key);
+      return { ...prev, included: has ? prev.included.filter(i => i !== key) : [...prev.included, key] } as FormData;
     });
   };
 
@@ -194,6 +281,7 @@ export default function AddTourPackageScreen() {
         end.setDate(end.getDate() + (dur - 1));
         next.endDate = formatDate(end);
       }
+      setDateError(null);
       return next;
     });
   };
@@ -226,18 +314,52 @@ export default function AddTourPackageScreen() {
     setFormData(prev => {
       const nextTimeline = prev.timeline ? [...prev.timeline] : [];
       const newIndex = nextTimeline.length + 1;
-      nextTimeline.push({ title: `Day ${newIndex}`, notes: '' });
+      nextTimeline.push({ title: `Day ${newIndex}`, notes: '', hotel: '', hotelName: '', hotelLocation: '', places: [] });
       return { ...prev, timeline: nextTimeline } as typeof prev;
     });
     // scroll to bottom so user sees the new day
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 120);
   };
 
-  const updateTimelineDay = (index: number, field: 'title' | 'notes', value: string) => {
+  const updateTimelineDay = (index: number, field: 'title' | 'notes' | 'hotel' | 'hotelName' | 'hotelLocation', value: string) => {
     setFormData(prev => {
       const nextTimeline = prev.timeline ? [...prev.timeline] : [];
       if (!nextTimeline[index]) return prev;
       nextTimeline[index] = { ...nextTimeline[index], [field]: value };
+      return { ...prev, timeline: nextTimeline } as typeof prev;
+    });
+  };
+
+  // Places helpers (per-day)
+  const addPlaceToDay = (dayIndex: number) => {
+    setFormData(prev => {
+      const nextTimeline = prev.timeline ? [...prev.timeline] : [];
+      if (!nextTimeline[dayIndex]) return prev;
+      const nextPlaces = nextTimeline[dayIndex].places ? [...nextTimeline[dayIndex].places] : [];
+      nextPlaces.push({ name: '', notes: '', location: '' });
+      nextTimeline[dayIndex] = { ...nextTimeline[dayIndex], places: nextPlaces };
+      return { ...prev, timeline: nextTimeline } as typeof prev;
+    });
+  };
+
+  const updatePlaceField = (dayIndex: number, placeIndex: number, field: 'name' | 'notes' | 'location', value: string) => {
+    setFormData(prev => {
+      const nextTimeline = prev.timeline ? [...prev.timeline] : [];
+      if (!nextTimeline[dayIndex]) return prev;
+      const nextPlaces = nextTimeline[dayIndex].places ? [...nextTimeline[dayIndex].places] : [];
+      if (!nextPlaces[placeIndex]) return prev;
+      nextPlaces[placeIndex] = { ...nextPlaces[placeIndex], [field]: value };
+      nextTimeline[dayIndex] = { ...nextTimeline[dayIndex], places: nextPlaces };
+      return { ...prev, timeline: nextTimeline } as typeof prev;
+    });
+  };
+
+  const removePlaceFromDay = (dayIndex: number, placeIndex: number) => {
+    setFormData(prev => {
+      const nextTimeline = prev.timeline ? [...prev.timeline] : [];
+      if (!nextTimeline[dayIndex]) return prev;
+      const nextPlaces = nextTimeline[dayIndex].places ? nextTimeline[dayIndex].places.filter((_, i) => i !== placeIndex) : [];
+      nextTimeline[dayIndex] = { ...nextTimeline[dayIndex], places: nextPlaces };
       return { ...prev, timeline: nextTimeline } as typeof prev;
     });
   };
@@ -253,22 +375,29 @@ export default function AddTourPackageScreen() {
     if (currentStep === 0) {
       if (!formData.name.trim()) return 'Please enter a package name.';
       if (!formData.location.trim()) return 'Please enter a destination location.';
-      if (formData.meals.length === 0) return 'Please select at least one meal option.';
-      if (!formData.accommodation) return 'Please choose an accommodation type.';
       if (!formData.guide) return 'Please choose a guide option.';
-      if (!formData.transport) return 'Please choose a transport option.';
       return null;
     }
 
     if (currentStep === 1) {
-      if (!formData.duration.trim() || Number.isNaN(Number(formData.duration))) return 'Please choose a valid duration.';
-      if (!formData.startDate.trim()) return 'Please select a departure date.';
+      if (durationError) return durationError;
+      if (!formData.duration.trim() || Number.isNaN(Number(formData.duration)) || !Number.isInteger(Number(formData.duration)) || Number(formData.duration) < 1) return 'Please choose a valid duration.';
+      if (!formData.startDate.trim()) {
+        setDateError('Please select a departure date.');
+        return 'Please select a departure date.';
+      }
       return null;
     }
 
     if (currentStep === 2) {
       if (!formData.price.trim() || Number.isNaN(Number(formData.price))) return 'Please select a valid price.';
-      if (!formData.maxParticipants.trim() || Number.isNaN(Number(formData.maxParticipants))) return 'Please select the group size.';
+      if (participantsError) return participantsError;
+      const minVal = Number(formData.minParticipants);
+      const maxVal = Number(formData.maxParticipants);
+      if (!formData.minParticipants.trim() || Number.isNaN(minVal) || minVal < 1) return 'Please enter min participants.';
+      if (!formData.maxParticipants.trim() || Number.isNaN(maxVal) || maxVal < 1) return 'Please enter max participants.';
+      if (minVal > maxVal) return 'Min participants cannot exceed max participants.';
+      if (maxVal > 500) return 'Max participants cannot exceed 500.';
       return null;
     }
 
@@ -313,23 +442,63 @@ export default function AddTourPackageScreen() {
         startDate: formData.startDate,
         endDate: formData.endDate,
         price: Number(formData.price),
+        minParticipants: Number(formData.minParticipants),
         maxParticipants: Number(formData.maxParticipants),
-        coverImageUri,
         timeline: formData.timeline || [],
         meals: formData.meals.join(', '),
-        accommodation: formData.accommodation || '',
         guide: formData.guide || '',
-        transport: formData.transport || '',
+        included: formData.included || [],
       };
 
-      const response = await fetch(`${API_BASE_URL}/admin/tour-packages`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
+      let response;
+      // If a cover image is selected, upload as multipart/form-data so server can handle Cloudinary upload
+      if (coverImageUri) {
+        const form = new FormData();
+        // append fields
+        Object.entries({ ...payload }).forEach(([k, v]) => {
+          if (v !== undefined && v !== null) {
+            if (k === 'timeline' || k === 'included') {
+              form.append(k, JSON.stringify(v));
+            } else {
+              form.append(k, String(v));
+            }
+          }
+        });
+
+        // append image
+        if (Platform.OS === 'web') {
+          const res = await fetch(coverImageUri);
+          const blob = await res.blob();
+          form.append('cover', blob, 'cover.jpg');
+        } else {
+          // react native: provide file object with uri
+          const uriParts = coverImageUri.split('.');
+          const fileType = uriParts[uriParts.length - 1] || 'jpg';
+          form.append('cover', {
+            uri: coverImageUri,
+            name: `cover.${fileType}`,
+            type: `image/${fileType}`,
+          } as any);
+        }
+
+        response = await fetch(`${API_BASE_URL}/admin/tour-packages`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            // NOTE: Let fetch set Content-Type with boundary
+          },
+          body: form,
+        });
+      } else {
+        response = await fetch(`${API_BASE_URL}/admin/tour-packages`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+      }
 
       const data = await response.json();
 
@@ -354,14 +523,12 @@ export default function AddTourPackageScreen() {
   const activeSummary = {
     category: CATEGORY_OPTIONS.find(item => item.key === formData.category)?.label || 'Adventure',
     duration: formData.duration ? `${formData.duration} days` : '—',
-    participants: formData.maxParticipants || '—',
-    price: formData.price ? `$${formData.price}` : '—',
+    participants: formData.minParticipants && formData.maxParticipants ? `${formData.minParticipants}-${formData.maxParticipants}` : '—',
+    price: formData.price ? `LKR ${formData.price}` : '—',
   };
   const includedSummary = {
     meals: formData.meals.length ? formData.meals.join(', ') : '—',
-    accommodation: formData.accommodation || '—',
     guide: formData.guide || '—',
-    transport: formData.transport || '—',
   };
 
   if (publishingSuccess) {
@@ -535,34 +702,24 @@ export default function AddTourPackageScreen() {
               <Text style={styles.sectionCopy}>Use quick selectors to define exactly what is included in this package.</Text>
 
               <View style={styles.includedPanel}>
-                <Field label="Meals" required>
-                  <View style={styles.checkboxGrid}>
-                    {MEAL_OPTIONS.map((meal) => {
-                      const selected = formData.meals.includes(meal);
-                      return (
-                        <Pressable
-                          key={meal}
-                          onPress={() => toggleMeal(meal)}
-                          style={[styles.checkItem, selected && styles.checkItemSelected]}
-                        >
-                          <View style={[styles.checkBox, selected && styles.checkBoxSelected]}>
-                            {selected ? <Ionicons name="checkmark" size={12} color={TEXT_DARK} /> : null}
-                          </View>
-                          <Text style={[styles.checkItemText, selected && styles.checkItemTextSelected]}>{meal}</Text>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                </Field>
-
-                <SelectField
-                  label="Accommodation"
-                  value={formData.accommodation}
-                  placeholder="Select accommodation"
-                  options={ACCOMMODATION_OPTIONS}
-                  onSelect={(value) => updateField('accommodation', value)}
-                  required
-                />
+                <Text style={[styles.sectionCopy, { marginBottom: 8 }]}>Choose what the package includes (will appear on public listing)</Text>
+                <View style={styles.includedGrid}>
+                  {INCLUDED_OPTIONS.map((opt) => {
+                    const active = formData.included.includes(opt.key);
+                    return (
+                      <Pressable
+                        key={opt.key}
+                        onPress={() => toggleIncluded(opt.key)}
+                        style={[styles.includeItem, active && styles.includeItemActive]}
+                      >
+                        <View style={[styles.includeIconWrap, active && styles.includeIconWrapActive]}>
+                          <Ionicons name={opt.icon as any} size={20} color={active ? '#0f172a' : '#3152c5'} />
+                        </View>
+                        <Text style={[styles.includeLabel, active && styles.includeLabelActive]} numberOfLines={1}>{opt.label}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
 
                 <SelectField
                   label="Guide"
@@ -570,15 +727,6 @@ export default function AddTourPackageScreen() {
                   placeholder="Select guide option"
                   options={GUIDE_OPTIONS}
                   onSelect={(value) => updateField('guide', value)}
-                  required
-                />
-
-                <SelectField
-                  label="Transport"
-                  value={formData.transport}
-                  placeholder="Select transport"
-                  options={TRANSPORT_OPTIONS}
-                  onSelect={(value) => updateField('transport', value)}
                   required
                 />
               </View>
@@ -617,6 +765,7 @@ export default function AddTourPackageScreen() {
                     keyboardType="number-pad"
                   />
                 </View>
+                  {durationError ? <Text style={{ color: '#ef4444', marginTop: 6 }}>{durationError}</Text> : null}
               </Field>
 
               <View style={styles.dateGrid}>
@@ -625,6 +774,9 @@ export default function AddTourPackageScreen() {
                     <Ionicons name="calendar-outline" size={18} color={ACCENT} />
                     <Text style={[styles.dateInputText, !formData.startDate && styles.placeholderText]}>{formData.startDate || 'mm/dd/yyyy'}</Text>
                   </Pressable>
+                  {!formData.startDate && durationError == null ? (
+                    <Text style={{ color: '#ef4444', marginTop: 6 }}>{dateError || ''}</Text>
+                  ) : null}
                 </Field>
 
                 <Field label="Return Date" required style={styles.halfField}>
@@ -685,6 +837,81 @@ export default function AddTourPackageScreen() {
                           multiline
                           numberOfLines={3}
                         />
+
+                        <View style={styles.hotelSelectorWrap}>
+                          <Text style={styles.hotelLabel}>Select Hotel</Text>
+                          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.hotelListScroll}>
+                            {hotels.length === 0 ? (
+                              <Text style={styles.noHotelsText}>No hotels available</Text>
+                            ) : (
+                              hotels.map((hotel) => (
+                                <Pressable
+                                  key={hotel._id}
+                                  style={[
+                                    styles.hotelChip,
+                                    day.hotel === hotel._id && styles.hotelChipSelected
+                                  ]}
+                                  onPress={() => {
+                                    updateTimelineDay(idx, 'hotel', hotel._id);
+                                    updateTimelineDay(idx, 'hotelName', hotel.hotelName || hotel.name || '');
+                                    updateTimelineDay(idx, 'hotelLocation', hotel.location || hotel.address || '');
+                                  }}
+                                >
+                                  <Text style={[
+                                    styles.hotelChipText,
+                                    day.hotel === hotel._id && styles.hotelChipTextSelected
+                                  ]}>{hotel.hotelName || hotel.name}</Text>
+                                </Pressable>
+                              ))
+                            )}
+                          </ScrollView>
+                        </View>
+                        <View style={{ marginTop: 8 }}>
+                          <TextInput
+                            placeholder="Hotel name (type to override or enter new)"
+                            placeholderTextColor="#94a3b8"
+                            value={day.hotelName || ''}
+                            onChangeText={(val) => updateTimelineDay(idx, 'hotelName', val)}
+                            style={styles.formInput}
+                          />
+                          <TextInput
+                            placeholder="Hotel location (city/address)"
+                            placeholderTextColor="#94a3b8"
+                            value={day.hotelLocation || ''}
+                            onChangeText={(val) => updateTimelineDay(idx, 'hotelLocation', val)}
+                            style={[styles.formInput, { marginTop: 8 }]}
+                          />
+
+                          {/* Places (visited locations) */}
+                          <View style={{ marginTop: 10 }}>
+                            <Text style={[styles.hotelLabel, { marginBottom: 6 }]}>Places to visit this day</Text>
+                            {Array.isArray(day.places) && day.places.length > 0 ? (
+                              day.places.map((place, pIdx) => (
+                                <View key={pIdx} style={styles.placeRow}>
+                                  <View style={{ flex: 1 }}>
+                                    <TextInput
+                                      placeholder="Place name"
+                                      placeholderTextColor="#94a3b8"
+                                      value={place.name || ''}
+                                      onChangeText={(val) => updatePlaceField(idx, pIdx, 'name', val)}
+                                      style={styles.placeInput}
+                                    />
+                                  </View>
+                                  <Pressable onPress={() => removePlaceFromDay(idx, pIdx)} style={styles.placeRemoveButton}>
+                                    <Ionicons name="trash-outline" size={18} color="#ef4444" />
+                                  </Pressable>
+                                </View>
+                              ))
+                            ) : (
+                              <Text style={styles.noHotelsText}>No places added yet</Text>
+                            )}
+
+                            <Pressable onPress={() => addPlaceToDay(idx)} style={[styles.addDayButton, { marginTop: 8 }]}>
+                              <Ionicons name="add" size={14} color={SELECTED_TEXT} />
+                              <Text style={styles.addDayButtonText}>Add Place</Text>
+                            </Pressable>
+                          </View>
+                        </View>
                       </View>
                     </View>
                   ))
@@ -712,43 +939,40 @@ export default function AddTourPackageScreen() {
                     onChangeText={(value) => updateField('price', value)}
                     keyboardType="decimal-pad"
                   />
-                  <Text style={styles.priceSuffix}>USD</Text>
-                </View>
-                <View style={styles.pillRowWrap}>
-                  {PRICE_PRESETS.map(price => {
-                    const selected = formData.price === String(price);
-                    return (
-                      <Pressable key={price} onPress={() => selectPreset('price', price)} style={[styles.pricePill, selected && styles.pillSelected]}>
-                        <Text style={[styles.pricePillText, selected && styles.pillTextSelected]}>${price}</Text>
-                      </Pressable>
-                    );
-                  })}
+                  <Text style={styles.priceSuffix}>LKR</Text>
                 </View>
               </Field>
 
-              <Field label="Max Participants" required>
-                <View style={styles.iconInputWrap}>
-                  <Ionicons name="people-outline" size={18} color="#64748b" />
-                  <TextInput
-                    style={styles.iconInput}
-                    placeholder="e.g., 12"
-                    placeholderTextColor="#94a3b8"
-                    value={formData.maxParticipants}
-                    onChangeText={(value) => updateField('maxParticipants', value)}
-                    keyboardType="number-pad"
-                  />
-                </View>
-                <View style={styles.pillRowWrap}>
-                  {PARTICIPANT_PRESETS.map(count => {
-                    const selected = formData.maxParticipants === String(count);
-                    return (
-                      <Pressable key={count} onPress={() => selectPreset('maxParticipants', count)} style={[styles.smallPill, selected && styles.pillSelected]}>
-                        <Text style={[styles.smallPillText, selected && styles.pillTextSelected]}>{count}</Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              </Field>
+              <View style={styles.twoColRow}>
+                <Field label="Min Participants" required style={styles.col}>
+                  <View style={styles.iconInputWrap}>
+                    <Ionicons name="people-outline" size={18} color="#64748b" />
+                    <TextInput
+                      style={styles.iconInput}
+                      placeholder="e.g., 5"
+                      placeholderTextColor="#94a3b8"
+                      value={formData.minParticipants}
+                      onChangeText={(value) => updateField('minParticipants', value)}
+                      keyboardType="number-pad"
+                    />
+                  </View>
+                </Field>
+
+                <Field label="Max Participants" required style={styles.col}>
+                  <View style={styles.iconInputWrap}>
+                    <Ionicons name="people-outline" size={18} color="#64748b" />
+                    <TextInput
+                      style={styles.iconInput}
+                      placeholder="e.g., 20"
+                      placeholderTextColor="#94a3b8"
+                      value={formData.maxParticipants}
+                      onChangeText={(value) => updateField('maxParticipants', value)}
+                      keyboardType="number-pad"
+                    />
+                  </View>
+                </Field>
+              </View>
+              {participantsError ? <Text style={{ color: '#ef4444', marginTop: 6 }}>{participantsError}</Text> : null}
 
               <View style={styles.summaryCard}>
                 <View style={styles.summaryHeader}>
@@ -758,12 +982,10 @@ export default function AddTourPackageScreen() {
                 <SummaryRow label="Destination" value={formData.location || '—'} />
                 <SummaryRow label="Category" value={activeSummary.category} />
                 <SummaryRow label="Meals" value={includedSummary.meals} />
-                <SummaryRow label="Accommodation" value={includedSummary.accommodation} />
                 <SummaryRow label="Guide" value={includedSummary.guide} />
-                <SummaryRow label="Transport" value={includedSummary.transport} />
                 <SummaryRow label="Duration" value={activeSummary.duration} />
                 <SummaryRow label="Price" value={activeSummary.price} />
-                <SummaryRow label="Group Size" value={formData.maxParticipants ? `${formData.maxParticipants} guests` : '—'} />
+                <SummaryRow label="Group Size" value={formData.minParticipants && formData.maxParticipants ? `${formData.minParticipants}-${formData.maxParticipants} guests` : '—'} />
               </View>
             </View>
           )}
@@ -1097,6 +1319,48 @@ const styles = StyleSheet.create({
     padding: 12,
     borderWidth: 1,
     borderColor: 'rgba(49,82,197,0.12)',
+  },
+  includedGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  includeItem: {
+    width: '30%',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(15,23,42,0.06)',
+    backgroundColor: '#ffffff',
+    marginBottom: 8,
+  },
+  includeItemActive: {
+    backgroundColor: ACCENT,
+    borderColor: ACCENT,
+  },
+  includeIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: '#eef4ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  includeIconWrapActive: {
+    backgroundColor: '#ffd966',
+  },
+  includeLabel: {
+    fontSize: 12,
+    color: '#0f172a',
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  includeLabelActive: {
+    color: '#0f172a',
   },
   checkboxGrid: {
     gap: 8,
@@ -1601,9 +1865,79 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#0f172a',
   },
+  formInput: {
+    backgroundColor: '#f8fbff',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: '#0f172a',
+    borderWidth: 1,
+    borderColor: 'rgba(15,23,42,0.06)',
+  },
   dayDeleteButton: {
     marginLeft: 8,
     padding: 6,
+  },
+  hotelSelectorWrap: {
+    marginTop: 12,
+    gap: 8,
+  },
+  hotelLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#64748b',
+    marginLeft: 4,
+  },
+  hotelListScroll: {
+    flexGrow: 0,
+  },
+  hotelChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#f0f4f8',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    marginRight: 8,
+  },
+  hotelChipSelected: {
+    backgroundColor: ACCENT,
+    borderColor: ACCENT,
+  },
+  hotelChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  hotelChipTextSelected: {
+    color: TEXT_DARK,
+  },
+  noHotelsText: {
+    fontSize: 12,
+    color: '#94a3b8',
+    fontStyle: 'italic',
+    marginLeft: 4,
+  },
+  placeRow: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  placeInput: {
+    backgroundColor: '#f8fbff',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontSize: 13,
+    color: '#0f172a',
+    borderWidth: 1,
+    borderColor: 'rgba(15,23,42,0.06)'
+  },
+  placeRemoveButton: {
+    marginLeft: 8,
+    padding: 8,
   },
   successPrimaryButton: {
     height: 52,
@@ -1629,5 +1963,12 @@ const styles = StyleSheet.create({
     color: TEXT_DARK,
     fontSize: 15,
     fontWeight: '800',
+  },
+  twoColRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  col: {
+    flex: 1,
   },
 });

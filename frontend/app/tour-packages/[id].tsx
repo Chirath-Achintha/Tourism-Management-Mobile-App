@@ -9,6 +9,7 @@ import {
   Image,
   ActivityIndicator,
   Alert,
+  Modal,
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,7 +23,17 @@ const COLORS = {
   secondary: '#64748b',
   white: '#FFFFFF',
   blue: '#3152c5',
+  // New colors for badges and cards
+  badgeBackground: '#EEF6FF',
+  hotelCardBackground: '#F8FAFF',
 };
+
+const INCLUDED_OPTIONS = [
+  { key: 'includeMeals', label: 'Meals', icon: 'restaurant-outline' },
+  { key: 'includeTransport', label: 'Transport', icon: 'car-outline' },
+  { key: 'includeHotels', label: 'Accommodation', icon: 'bed-outline' },
+  { key: 'includeActivities', label: 'Activities', icon: 'bicycle-outline' },
+];
 
 export default function TourPackageDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -30,6 +41,8 @@ export default function TourPackageDetailScreen() {
   const [pkg, setPkg] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [selectedDay, setSelectedDay] = useState<any>(null);
+  const [dayModalVisible, setDayModalVisible] = useState(false);
 
   useEffect(() => {
     if (id) fetchPackageDetail();
@@ -197,10 +210,14 @@ export default function TourPackageDetailScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>What's Included</Text>
           <View style={styles.includedGrid}>
-            <IncludedItem icon="restaurant-outline" label="Meals" value={normalizeValue(pkg.meals)} />
-            <IncludedItem icon="car-outline" label="Transport" value={normalizeValue(pkg.transport)} />
-            <IncludedItem icon="bed-outline" label="Accommodation" value={normalizeValue(pkg.accommodation)} />
-            <IncludedItem icon="person-outline" label="Guide" value={normalizeValue(pkg.guide)} />
+            {INCLUDED_OPTIONS.map((item: any) => (
+              <IncludedItem
+                key={item.key}
+                icon={item.icon}
+                label={item.label}
+                value={pkg[item.key] ? 'Included' : 'Not specified'}
+              />
+            ))}
           </View>
         </View>
 
@@ -220,7 +237,7 @@ export default function TourPackageDetailScreen() {
           <View style={styles.itineraryHeader}>
             <Text style={styles.sectionTitle}>Itinerary</Text>
             {pkg.timeline && pkg.timeline.length > 0 && (
-              <Pressable>
+              <Pressable onPress={() => router.push(`/tour-packages/${id}/itinerary` as any)}>
                 <Text style={styles.viewAllLink}>VIEW ALL</Text>
               </Pressable>
             )}
@@ -228,28 +245,98 @@ export default function TourPackageDetailScreen() {
 
           {pkg.timeline && pkg.timeline.length > 0 ? (
             pkg.timeline.slice(0, 3).map((day: any, idx: number) => (
-              <View key={idx} style={styles.dayCard}>
-                <View style={styles.dayNumber}>
-                  <Text style={styles.dayNumberText}>Day {idx + 1}</Text>
+              <Pressable
+                key={idx}
+                style={styles.previewCard}
+                onPress={() => { setSelectedDay({ ...day, index: idx }); setDayModalVisible(true); }}
+              >
+                <View style={styles.previewRow}>
+                  <View style={styles.previewBulletWrap}>
+                    <View style={styles.previewBulletOuter}>
+                      <View style={styles.previewBulletInner} />
+                    </View>
+                  </View>
+
+                  <View style={styles.previewBody}>
+                    <Text style={styles.previewLabel}>{`Day ${idx + 1}`}</Text>
+                    <Text style={styles.previewTitle}>{day.title || 'Untitled'}</Text>
+                    <Text style={styles.previewText} numberOfLines={2}>{day.notes || 'Experience the highlights of this day'}</Text>
+
+                    {day.places && day.places.length > 0 && (
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.previewThumbs}>
+                        {day.places.slice(0,2).map((p: any, i:number) => (
+                          <Image key={i} source={{ uri: p.imageUrl || '' }} style={styles.previewThumb} />
+                        ))}
+                      </ScrollView>
+                    )}
+                  </View>
                 </View>
-                <View style={styles.dayContent}>
-                  <Text style={styles.dayTitle}>{day.title || `Day ${idx + 1}`}</Text>
-                  <Text style={styles.dayNotes} numberOfLines={2}>
-                    {day.notes || 'Experience the highlights of this day'}
-                  </Text>
-                </View>
-              </View>
+              </Pressable>
             ))
           ) : (
             <Text style={styles.noDataText}>Itinerary not available</Text>
           )}
+
+          {/* Day Detail Modal */}
+          <Modal
+            visible={dayModalVisible}
+            animationType="slide"
+            transparent
+            onRequestClose={() => setDayModalVisible(false)}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalBox}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>{selectedDay?.title || `Day ${selectedDay ? selectedDay.index + 1 : ''}`}</Text>
+                  <Pressable onPress={() => setDayModalVisible(false)} style={styles.modalClose}>
+                    <Text style={{ fontSize: 16, color: '#64748b' }}>Close</Text>
+                  </Pressable>
+                </View>
+                <ScrollView style={styles.modalContent}>
+                  <View>
+                    <Text style={styles.modalTitle}>{`Day ${selectedDay ? selectedDay.index + 1 : ''}`}</Text>
+                    <Text style={styles.modalSubtitle}>{selectedDay?.title || ''}</Text>
+                  </View>
+                  <Text style={styles.modalSectionTitle}>Overview</Text>
+                  <Text style={styles.modalText}>{selectedDay?.notes || 'No details provided.'}</Text>
+
+                  {selectedDay?.hotelName ? (
+                    <View style={styles.hotelCard}>
+                      <Ionicons name="bed-outline" size={22} color={COLORS.blue} />
+                      <View style={{ marginLeft: 12, flex: 1 }}>
+                        <Text style={styles.hotelName}>{selectedDay.hotelName}</Text>
+                        {selectedDay.hotelLocation ? <Text style={styles.hotelLocation}>{selectedDay.hotelLocation}</Text> : null}
+                      </View>
+                    </View>
+                  ) : null}
+
+                  {selectedDay?.places && selectedDay.places.length > 0 ? (
+                    <>
+                      <Text style={styles.modalSectionTitle}>Places You'll Visit</Text>
+                      {selectedDay.places.map((p: any, i: number) => (
+                        <View key={i} style={styles.placeRowAlt}>
+                          <Ionicons name="location-outline" size={18} color={COLORS.accent} />
+                          <View style={{ marginLeft: 10, flex: 1 }}>
+                            <Text style={styles.placeName}>{p.name}</Text>
+                            {p.notes ? <Text style={styles.placeNotes}>{p.notes}</Text> : null}
+                          </View>
+                        </View>
+                      ))}
+                    </>
+                  ) : (
+                    <Text style={[styles.modalSubText, { marginTop: 8 }]}>No places listed for this day.</Text>
+                  )}
+                </ScrollView>
+              </View>
+            </View>
+          </Modal>
         </View>
 
         {/* Pricing Section */}
         <View style={styles.pricingSection}>
           <View>
             <Text style={styles.priceLabel}>Starting From</Text>
-            <Text style={styles.priceAmount}>${pkg.price || 'N/A'}</Text>
+            <Text style={styles.priceAmount}>LKR {pkg.price ? Number(pkg.price).toLocaleString() : 'N/A'}</Text>
             <Text style={styles.pricePerPerson}>per person</Text>
           </View>
           <Pressable
@@ -415,6 +502,93 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.secondary,
   },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalBox: {
+    width: '100%',
+    maxHeight: '80%',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eef2f7',
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  modalClose: {
+  /* preview card styles */
+  previewCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 14,
+    shadowColor: COLORS.secondary,
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  previewRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  previewBulletWrap: { width: 44, alignItems: 'center', justifyContent: 'flex-start' },
+  previewBulletOuter: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: COLORS.accent, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(169,55,0,0.06)' },
+  previewBulletInner: { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.accent },
+  previewBody: { flex: 1 },
+  previewLabel: { fontSize: 12, color: COLORS.muted, fontWeight: '600' },
+  previewTitle: { fontSize: 15, color: COLORS.text, fontWeight: '700', marginTop: 2 },
+  previewText: { fontSize: 13, color: COLORS.muted, marginTop: 6 },
+  previewThumbs: { marginTop: 8 },
+  previewThumb: { width: 84, height: 56, borderRadius: 8, marginRight: 10, backgroundColor: COLORS.surfaceDim },
+    padding: 6,
+  },
+  modalContent: {
+    padding: 16,
+  },
+  modalSectionTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    marginTop: 8,
+    marginBottom: 6,
+  },
+  modalText: {
+    fontSize: 14,
+    color: COLORS.text,
+    marginBottom: 8,
+  },
+  modalSubText: {
+    fontSize: 12,
+    color: COLORS.secondary,
+  },
+  placeRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    marginBottom: 8,
+  },
+  placeIndex: {
+    fontSize: 13,
+    fontWeight: '800',
+    width: 20,
+  },
+  placeName: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  placeNotes: {
+    fontSize: 13,
+    color: COLORS.secondary,
+  },
 
   // Stats Row
   statsRow: {
@@ -569,6 +743,66 @@ const styles = StyleSheet.create({
     color: COLORS.secondary,
     textAlign: 'center',
     paddingVertical: 20,
+  },
+  dayBadgeWrap: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    padding: 12,
+  },
+  dayBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: COLORS.badgeBackground,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+  },
+  dayBadgeText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: COLORS.blue,
+  },
+  dayInfo: {
+    flex: 1,
+  },
+  dayHotelRow: {
+    marginTop: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  dayHotelText: {
+    fontSize: 12,
+    color: COLORS.secondary,
+    fontWeight: '700',
+  },
+  hotelCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 10,
+    backgroundColor: COLORS.hotelCardBackground,
+    marginTop: 10,
+  },
+  hotelName: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: COLORS.text,
+  },
+  hotelLocation: {
+    fontSize: 13,
+    color: COLORS.secondary,
+    marginTop: 4,
+  },
+  placeRowAlt: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingVertical: 8,
   },
 
   // Pricing Section
