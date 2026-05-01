@@ -55,9 +55,12 @@ export const getPublishedPackages = async (req, res) => {
 
 export const getAllTourPackages = async (req, res) => {
   try {
+    console.log('GET /admin/tour-packages called');
     const packages = await TourPackage.find().sort({ createdAt: -1 });
+    console.log('Found packages:', packages.length);
     res.status(200).json(packages);
   } catch (error) {
+    console.error('getAllTourPackages error:', error);
     res.status(500).json({ message: 'Failed to fetch tour packages', error: error.message });
   }
 };
@@ -84,10 +87,16 @@ export const updateTourPackage = async (req, res) => {
 
 export const deleteTourPackage = async (req, res) => {
   try {
+    console.log('DELETE /admin/tour-packages/:id called with ID:', req.params.id);
     const pkg = await TourPackage.findByIdAndDelete(req.params.id);
-    if (!pkg) return res.status(404).json({ message: 'Tour package not found' });
+    if (!pkg) {
+      console.log('Package not found:', req.params.id);
+      return res.status(404).json({ message: 'Tour package not found' });
+    }
+    console.log('Package deleted:', req.params.id);
     res.status(200).json({ message: 'Tour package deleted' });
   } catch (error) {
+    console.error('deleteTourPackage error:', error);
     res.status(500).json({ message: 'Failed to delete package', error: error.message });
   }
 };
