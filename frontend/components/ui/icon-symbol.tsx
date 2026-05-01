@@ -22,6 +22,7 @@ const MAPPING = {
   'rectangle.portrait.and.arrow.right': 'logout',
   'person.crop.circle.fill': 'account-circle',
   'square.and.pencil': 'edit',
+  'plus.circle.fill': 'add-circle',
 } as IconMapping;
 
 /**

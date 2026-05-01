@@ -2,13 +2,21 @@ import express from "express";
 import cors from "cors";
 import authRoutes from "./routes/authRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+<<<<<<< HEAD
 import destinationRoutes from "./routes/destinationRoutes.js";
+=======
+import hotelRoutes from "./routes/hotelRoutes.js";
+import uploadRoutes from "./routes/uploadRoutes.js";
+import path from "path";
+import tourRoutes from "./routes/tourRoutes.js";
+>>>>>>> origin/main
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
+<<<<<<< HEAD
 // Request logger
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.originalUrl}`);
@@ -17,6 +25,10 @@ app.use((req, res, next) => {
   });
   next();
 });
+=======
+// Serve static files from uploads directory
+app.use("/uploads", express.static("uploads"));
+>>>>>>> origin/main
 
 app.get("/api/health", (_req, res) => {
 	res.status(200).json({ message: "Backend is running" });
@@ -24,6 +36,7 @@ app.get("/api/health", (_req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
+<<<<<<< HEAD
 app.use("/api/destinations", destinationRoutes);
 
 // Global Error Handler
@@ -38,5 +51,10 @@ app.use((err, req, res, next) => {
     } : {}
   });
 });
+=======
+app.use("/api/hotels", hotelRoutes);
+app.use("/api/upload", uploadRoutes);
+app.use("/api/tour-packages", tourRoutes);
+>>>>>>> origin/main
 
 export default app;

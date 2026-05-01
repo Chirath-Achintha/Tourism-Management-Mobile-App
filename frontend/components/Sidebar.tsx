@@ -150,6 +150,11 @@ export const Sidebar = ({ isVisible, onClose }: SidebarProps) => {
               onPress={() => handleNavigate('/(tabs)/explore')}
             />
             <SidebarItem
+              icon="airplane-outline"
+              label="Tour Packages"
+              onPress={() => handleNavigate('/tour-packages')}
+            />
+            <SidebarItem
               icon="bookmark-outline"
               label="My Bookings"
               onPress={() => {}}
@@ -174,9 +179,26 @@ export const Sidebar = ({ isVisible, onClose }: SidebarProps) => {
                   onPress={() => {}}
                 />
                 <SidebarItem
+<<<<<<< HEAD
                   icon="map-outline"
                   label="Destination Management"
                   onPress={() => handleNavigate('/admin/destinations')}
+=======
+                  icon="airplane-outline"
+                  label="Tour Packages"
+                  onPress={() => handleNavigate('/admin/tour-packages')}
+                />
+              </>
+            )}
+            {user?.role === 'hotel_manager' && (
+              <>
+                <View style={styles.divider} />
+                <Text style={styles.sectionLabel}>MANAGER TOOLS</Text>
+                <SidebarItem
+                  icon="business-outline"
+                  label="My Hotels"
+                  onPress={() => handleNavigate('/manager/my-hotels')}
+>>>>>>> origin/main
                 />
               </>
             )}
