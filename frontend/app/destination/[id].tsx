@@ -20,6 +20,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { API_BASE_URL } from '@/constants/api';
 import * as WebBrowser from 'expo-web-browser';
+import { Animated } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -31,6 +32,8 @@ export default function DestinationDetailScreen() {
   const [packages, setPackages] = useState<any[]>([]);
   const [isFavorite, setIsFavorite] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const scrollY = React.useRef(new Animated.Value(0)).current;
+  const HEADER_HEIGHT = height * 0.5;
 
   useEffect(() => {
     const fetchDestination = async () => {
@@ -86,6 +89,24 @@ export default function DestinationDetailScreen() {
     setActiveIndex(Math.round(index));
   };
 
+  const headerTranslate = scrollY.interpolate({
+    inputRange: [0, HEADER_HEIGHT],
+    outputRange: [0, -HEADER_HEIGHT / 3],
+    extrapolate: 'clamp',
+  });
+
+  const headerScale = scrollY.interpolate({
+    inputRange: [-HEADER_HEIGHT, 0],
+    outputRange: [2, 1],
+    extrapolate: 'clamp',
+  });
+
+  const headerOpacity = scrollY.interpolate({
+    inputRange: [0, HEADER_HEIGHT / 2, HEADER_HEIGHT],
+    outputRange: [1, 1, 0],
+    extrapolate: 'clamp',
+  });
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -109,9 +130,47 @@ export default function DestinationDetailScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
       
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* Header Image Section */}
-        <View style={styles.headerContainer}>
+      {/* Sticky Header Actions */}
+      <SafeAreaView style={styles.headerActions} pointerEvents="box-none">
+        <Pressable style={styles.iconCircle} onPress={() => router.back()}>
+          <Ionicons name="chevron-back" size={24} color="#1A3B2F" />
+        </Pressable>
+        <Pressable style={styles.iconCircle} onPress={() => setIsFavorite(!isFavorite)}>
+          <Ionicons 
+            name={isFavorite ? "heart" : "heart-outline"} 
+            size={24} 
+            color={isFavorite ? "#FF4D4D" : "#1A3B2F"} 
+          />
+        </Pressable>
+      </SafeAreaView>
+      
+      <Animated.ScrollView 
+        showsVerticalScrollIndicator={false} 
+        contentContainerStyle={styles.scrollContent}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
+        scrollEventThrottle={16}
+      >
+        {/* Parallax Header Carousel */}
+        <Animated.View style={[
+          styles.headerContainer, 
+          { 
+            height: HEADER_HEIGHT,
+            transform: [
+              { 
+                translateY: scrollY.interpolate({
+                  inputRange: [0, HEADER_HEIGHT],
+                  outputRange: [0, HEADER_HEIGHT * 0.6],
+                  extrapolate: 'clamp'
+                }) 
+              },
+              { scale: headerScale }
+            ],
+            opacity: headerOpacity
+          }
+        ]}>
           <FlatList
             data={destination.images}
             horizontal
@@ -120,56 +179,20 @@ export default function DestinationDetailScreen() {
             onScroll={handleScroll}
             scrollEventThrottle={16}
             keyExtractor={(item, index) => index.toString()}
+            nestedScrollEnabled={true}
             renderItem={({ item }) => (
               <Image 
                 source={{ uri: item.url }} 
-                style={styles.carouselImage}
+                style={[styles.carouselImage, { height: HEADER_HEIGHT }]}
                 contentFit="cover"
               />
             )}
           />
           <LinearGradient
-            colors={['rgba(0,0,0,0.4)', 'transparent', 'rgba(0,0,0,0.8)']}
+            colors={['rgba(0,0,0,0.3)', 'transparent', 'rgba(0,0,0,0.6)']}
             style={styles.headerGradient}
             pointerEvents="none"
           />
-          
-          <SafeAreaView style={styles.headerActions}>
-            <Pressable style={styles.iconCircle} onPress={() => router.back()}>
-              <Ionicons name="chevron-back" size={24} color="#1A3B2F" />
-            </Pressable>
-            <Pressable style={styles.iconCircle} onPress={() => setIsFavorite(!isFavorite)}>
-              <Ionicons 
-                name={isFavorite ? "heart" : "heart-outline"} 
-                size={24} 
-                color={isFavorite ? "#FF4D4D" : "#1A3B2F"} 
-              />
-            </Pressable>
-          </SafeAreaView>
-
-          <View style={styles.headerTitleContainer} pointerEvents="none">
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <Text 
-                style={[
-                  styles.destinationName, 
-                  destination.name.length > 20 && { fontSize: 24 }
-                ]}
-                numberOfLines={3}
-              >
-                {destination.name}
-              </Text>
-              {destination.isFeatured && (
-                <View style={styles.featuredBadge}>
-                  <Ionicons name="star" size={12} color="#1A3B2F" />
-                  <Text style={styles.featuredText}>Featured</Text>
-                </View>
-              )}
-            </View>
-            <View style={styles.locationTag}>
-              <Ionicons name="location" size={14} color="#FFD166" />
-              <Text style={styles.locationText}>{destination.location}</Text>
-            </View>
-          </View>
 
           {/* Pagination Dots */}
           <View style={styles.pagination}>
@@ -183,11 +206,37 @@ export default function DestinationDetailScreen() {
               />
             ))}
           </View>
-        </View>
+        </Animated.View>
 
-        {/* Details Section */}
-        <View style={styles.detailsContainer}>
-          <View style={styles.statsRow}>
+        {/* Floating Title Area (Consistently aligned to card top) */}
+        <View style={styles.parallaxHeaderContent}>
+          <View style={styles.floatingTitleContainer}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <Text 
+                style={[
+                  styles.parallaxName, 
+                  destination.name.length > 20 && { fontSize: 24 }
+                ]}
+                numberOfLines={3}
+              >
+                {destination.name}
+              </Text>
+              {destination.isFeatured && (
+                <View style={styles.featuredBadge}>
+                  <Ionicons name="star" size={12} color="#1A3B2F" />
+                  <Text style={styles.featuredText}>Featured</Text>
+                </View>
+              )}
+            </View>
+            <View style={styles.parallaxLocationRow}>
+              <Ionicons name="location" size={16} color="#FFD166" />
+              <Text style={styles.parallaxLocationText}>{destination.location}</Text>
+            </View>
+          </View>
+
+          {/* Details Section (White Card) */}
+          <View style={styles.detailsContainer}>
+            <View style={styles.statsRow}>
             <View style={styles.statItem}>
               <View style={[styles.statIcon, { backgroundColor: '#FFF9E6' }]}>
                 <Ionicons name="star" size={20} color="#FFD166" />
@@ -276,7 +325,8 @@ export default function DestinationDetailScreen() {
 
           <View style={{ height: 100 }} />
         </View>
-      </ScrollView>
+      </View>
+      </Animated.ScrollView>
       <BlurView intensity={90} tint="light" style={styles.footer}>
         <Pressable 
           style={styles.bookBtn} 
@@ -292,7 +342,7 @@ export default function DestinationDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: 'transparent',
   },
   loadingContainer: {
     flex: 1,
@@ -304,8 +354,8 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   headerContainer: {
-    height: height * 0.55,
     width: '100%',
+    overflow: 'hidden',
   },
   headerImage: {
     ...StyleSheet.absoluteFillObject,
@@ -361,16 +411,42 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
-  destinationName: {
+  parallaxHeaderContent: {
+    marginTop: -160, // Adjust this to control how much title space you want on the image
+    zIndex: 10,
+  },
+  floatingTitleContainer: {
+    paddingHorizontal: 24,
+    marginBottom: 24,
+    minHeight: 100,
+    justifyContent: 'flex-end',
+  },
+  parallaxName: {
     color: '#ffffff',
-    fontSize: 32,
+    fontSize: 30,
     fontWeight: '900',
     letterSpacing: -0.5,
-    lineHeight: 38,
+    lineHeight: 36,
+    textShadowColor: 'rgba(0, 0, 0, 0.4)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 12,
+  },
+  parallaxLocationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 4,
+  },
+  parallaxLocationText: {
+    fontSize: 16,
+    color: '#FFD166',
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   pagination: {
     position: 'absolute',
-    bottom: 50,
+    bottom: 80,
     right: 24,
     flexDirection: 'row',
     gap: 6,
@@ -391,7 +467,6 @@ const styles = StyleSheet.create({
   detailsContainer: {
     padding: 24,
     paddingTop: 36,
-    marginTop: -30,
     backgroundColor: '#ffffff',
     borderTopLeftRadius: 36,
     borderTopRightRadius: 36,
