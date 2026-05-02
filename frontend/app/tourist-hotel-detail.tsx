@@ -10,6 +10,7 @@ const COLORS = {
   accent: '#FFD166',
   text: '#1A2432',
   secondary: '#64748b',
+  primary: '#1e88e5',
 };
 
 export default function TouristHotelDetailScreen() {
@@ -159,6 +160,33 @@ export default function TouristHotelDetailScreen() {
             </View>
           </View>
         )}
+
+        {/* Reviews Section */}
+        <View style={styles.cardSection}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>Reviews & Ratings</Text>
+            <Pressable 
+              onPress={() => router.push({ pathname: '/reviews', params: { destinationId: id } })}
+              style={styles.viewAllButton}
+            >
+              <Text style={styles.viewAllText}>View All</Text>
+              <Ionicons name="chevron-forward" size={14} color={COLORS.primary} />
+            </Pressable>
+          </View>
+          <View style={styles.reviewSummary}>
+            <View style={styles.ratingBox}>
+              <Ionicons name="star" size={24} color={COLORS.accent} />
+              <Text style={styles.ratingValue}>4.8</Text>
+            </View>
+            <Text style={styles.reviewCount}>Based on 24 reviews</Text>
+          </View>
+          <Pressable 
+            style={styles.addReviewButton}
+            onPress={() => router.push({ pathname: '/reviews', params: { destinationId: id } })}
+          >
+            <Text style={styles.addReviewText}>Write a Review</Text>
+          </Pressable>
+        </View>
 
         {/* Contact Info */}
         <View style={[styles.cardSection, { marginBottom: 30 }]}>
@@ -372,5 +400,60 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.text,
     fontWeight: '700',
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  viewAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  viewAllText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  reviewSummary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginVertical: 4,
+  },
+  ratingBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255, 209, 102, 0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  ratingValue: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: COLORS.text,
+  },
+  reviewCount: {
+    fontSize: 13,
+    color: COLORS.secondary,
+    fontWeight: '600',
+  },
+  addReviewButton: {
+    marginTop: 12,
+    backgroundColor: 'rgba(30, 136, 229, 0.08)',
+    paddingVertical: 12,
+    borderRadius: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(30, 136, 229, 0.2)',
+  },
+  addReviewText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.primary,
   },
 });
