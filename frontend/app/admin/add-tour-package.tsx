@@ -37,7 +37,7 @@ const DURATION_PRESETS = [1, 3, 5, 7, 10, 14];
 const PRICE_PRESETS = [10000, 25000, 50000, 100000, 200000];
 const MEAL_OPTIONS = ['Breakfast', 'Lunch', 'Dinner', 'All Inclusive'];
 const GUIDE_OPTIONS = ['No guide', 'English-speaking guide', 'Multi-language guide'];
-
+const PARTICIPANT_PRESETS = [5, 8, 10, 12, 15, 20, 25];
 
 // Color palette (user-specified)
 const COLOR_BG = '#EBF5EA'; // soft mint green canvas
@@ -94,7 +94,6 @@ const INCLUDED_OPTIONS = [
   { key: 'activities', label: 'Activities', icon: 'sparkles-outline' },
   { key: 'insurance', label: 'Insurance', icon: 'shield-checkmark-outline' },
 ];
-
 type Step = 0 | 1 | 2;
 
 export default function AddTourPackageScreen() {
@@ -140,8 +139,6 @@ export default function AddTourPackageScreen() {
     };
     fetchHotels();
   }, []);
-
-
   useEffect(() => {
     Animated.timing(progressAnim, {
       toValue: progressValue,
@@ -219,7 +216,6 @@ export default function AddTourPackageScreen() {
         } else if (maxNum <= minNum) {
           setParticipantsError('Max participants must be greater than min participants.');
         } else {
-          setParticipantsError(null);
         }
       }
 
@@ -257,7 +253,6 @@ export default function AddTourPackageScreen() {
       return { ...prev, included: has ? prev.included.filter(i => i !== key) : [...prev.included, key] } as FormData;
     });
   };
-
   const selectPreset = (field: 'duration' | 'price' | 'maxParticipants', value: number) => {
     updateField(field, String(value));
   };
@@ -449,7 +444,6 @@ export default function AddTourPackageScreen() {
         guide: formData.guide || '',
         included: formData.included || [],
       };
-
       let response;
       // If a cover image is selected, upload as multipart/form-data so server can handle Cloudinary upload
       if (coverImageUri) {
@@ -697,7 +691,6 @@ export default function AddTourPackageScreen() {
                   />
                 </View>
               </Field>
-
               <Text style={[styles.sectionTitle, { marginTop: 8 }]}>What's Included</Text>
               <Text style={styles.sectionCopy}>Use quick selectors to define exactly what is included in this package.</Text>
 
@@ -837,7 +830,6 @@ export default function AddTourPackageScreen() {
                           multiline
                           numberOfLines={3}
                         />
-
                         <View style={styles.hotelSelectorWrap}>
                           <Text style={styles.hotelLabel}>Select Hotel</Text>
                           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.hotelListScroll}>
@@ -1086,7 +1078,6 @@ function SelectField({
     </Field>
   );
 }
-
 function MetaPill({ icon, text }: { icon: any; text: string }) {
   return (
     <View style={styles.metaPill}>
