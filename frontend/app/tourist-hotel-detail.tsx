@@ -19,6 +19,15 @@ const COLORS = {
   primary: '#1e88e5',
 };
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AddReviewModal } from '@/components/reviews/AddReviewModal';
+
+
+// Import Premium Components
+import { ReviewCard } from '@/components/reviews/ReviewCard';
+import { RatingSummary } from '@/components/reviews/RatingSummary';
+
+
 export default function TouristHotelDetailScreen() {
   const params = useLocalSearchParams();
   const id = params.id;
@@ -26,7 +35,34 @@ export default function TouristHotelDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [editingReview, setEditingReview] = useState<any | null>(null);
   const router = useRouter();
+
+  const fetchUserData = async () => {
+    try {
+      const userData = await AsyncStorage.getItem('auth:user');
+      if (userData) {
+        const user = JSON.parse(userData);
+        setUserId(user._id || user.id);
+      }
+    } catch (error) {
+      console.error("Failed to load user data", error);
+    }
+  };
+
+  const fetchReviews = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/reviews/hotel/${id}`);
+      const data = await res.json();
+      if (res.ok) setReviews(data);
+    } catch (err) {
+      console.error("Fetch reviews error:", err);
+    }
+  };
+
 
   const fetchHotelDetails = async () => {
     try {
@@ -49,8 +85,42 @@ export default function TouristHotelDetailScreen() {
   useEffect(() => {
     if (id) {
       fetchHotelDetails();
+      fetchReviews();
+      fetchUserData();
     }
   }, [id]);
+
+  const handleDeleteReview = async (reviewId: string) => {
+    Alert.alert(
+      "Delete Review",
+      "Are you sure you want to remove your review?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Delete", 
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const token = await AsyncStorage.getItem('auth:token');
+              const response = await fetch(`${API_BASE_URL}/reviews/${reviewId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
+              if (response.ok) fetchReviews();
+            } catch (error) {
+              Alert.alert("Error", "Network error occurred");
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleEditReview = (review: any) => {
+    setEditingReview(review);
+    setModalVisible(true);
+  };
+
 
   if (loading) {
     return (
@@ -244,28 +314,53 @@ export default function TouristHotelDetailScreen() {
           <View style={styles.sectionHeaderRow}>
             <Text style={styles.sectionTitle}>Reviews & Ratings</Text>
             <Pressable 
-              onPress={() => router.push({ pathname: '/reviews', params: { destinationId: id } })}
+              onPress={() => router.push({ pathname: '/reviews', params: { hotelId: id } })}
               style={styles.viewAllButton}
             >
               <Text style={styles.viewAllText}>View All</Text>
               <Ionicons name="chevron-forward" size={14} color={COLORS.primary} />
             </Pressable>
           </View>
-          <View style={styles.reviewSummary}>
-            <View style={styles.ratingBox}>
-              <Ionicons name="star" size={24} color={COLORS.accent} />
-              <Text style={styles.ratingValue}>4.8</Text>
-            </View>
-            <Text style={styles.reviewCount}>Based on 24 reviews</Text>
-          </View>
+          
+          <RatingSummary 
+            average={4.8} 
+            total={24} 
+            happyTravelers={22} 
+            satisfactionRate={92} 
+          />
+          
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 12, paddingBottom: 10 }}
+          >
+            {reviews.length > 0 ? (
+              reviews.map((item: any) => {
+                const isOwner = (item.userId?._id || item.userId) === userId;
+                return (
+                  <ReviewCard 
+                    key={item._id} 
+                    review={item} 
+                    onEdit={isOwner ? () => handleEditReview(item) : undefined}
+                    onDelete={isOwner ? () => handleDeleteReview(item._id) : undefined}
+                  />
+                );
+              })
+            ) : (
+              <View style={{ padding: 20 }}>
+                <Text style={{ color: COLORS.secondary }}>No reviews yet.</Text>
+              </View>
+            )}
+          </ScrollView>
+
+
           <Pressable 
             style={styles.addReviewButton}
-            onPress={() => router.push({ pathname: '/reviews', params: { destinationId: id } })}
+            onPress={() => setModalVisible(true)}
           >
             <Text style={styles.addReviewText}>Write a Review</Text>
           </Pressable>
-        </View>
-          </View>
+
         </View>
 
         {/* Contact info with interactive links */}
@@ -325,6 +420,20 @@ export default function TouristHotelDetailScreen() {
           </View>
         </Modal>
       )}
+
+      <AddReviewModal 
+        visible={modalVisible}
+        onClose={() => {
+          setModalVisible(false);
+          setEditingReview(null);
+        }}
+        onSuccess={fetchReviews}
+        targetId={id as string}
+        targetType="hotel"
+        targetName={hotel?.hotelName}
+        initialData={editingReview}
+      />
+
     </SafeAreaView>
   );
 }
@@ -722,7 +831,6 @@ const styles = StyleSheet.create({
     color: COLORS.secondary,
     fontWeight: '700',
   },
-<<<<<<< HEAD
   sectionHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -745,23 +853,12 @@ const styles = StyleSheet.create({
     gap: 12,
     marginVertical: 4,
   },
-  ratingBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(255, 209, 102, 0.15)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
   ratingValue: {
+
+
     fontSize: 18,
     fontWeight: '800',
     color: COLORS.text,
-  },
-    fontSize: 13,
-    color: COLORS.secondary,
-    fontWeight: '600',
   },
   addReviewButton: {
     marginTop: 12,

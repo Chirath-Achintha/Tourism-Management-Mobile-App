@@ -5,6 +5,8 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { Sidebar } from '@/components/Sidebar';
+import { API_BASE_URL } from '@/constants/api';
+
 
 const AUTH_USER_KEY = "auth:user";
 const AUTH_STATUS_KEY = "auth:isSignedIn";
@@ -14,7 +16,8 @@ const ONBOARDING_SEEN_KEY = "onboarding:seen";
 // --- Components ---
 
 //const TouristDashboardContent = ({ user, onLogout, onExplore, onOpenSidebar }: any) => (
-const TouristDashboardContent = ({ user, stats, onLogout, onExplore, onOpenReviews, onOpenSidebar }: any) => (
+const TouristDashboardContent = ({ user, stats, onLogout, onExplore, onOpenSidebar }: any) => (
+
   <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
     <View style={styles.header}>
       <View style={styles.headerLeft}>
@@ -61,9 +64,7 @@ const TouristDashboardContent = ({ user, stats, onLogout, onExplore, onOpenRevie
       <Pressable style={styles.actionButton} onPress={onExplore}>
         <Text style={styles.actionButtonText}>Explore Options</Text>
       </Pressable>
-     <Pressable style={styles.reviewButton} onPress={onOpenReviews}>
-  <Text style={styles.reviewButtonText}>Review & Ratings</Text>
-</Pressable>
+
     </View>
   </ScrollView>
 );
@@ -308,8 +309,8 @@ export default function DashboardScreen() {
   stats={stats}
   onLogout={handleLogout} 
   onExplore={() => router.push('/(tabs)/explore')} 
-  onOpenReviews={() => router.push('/reviews')} 
   onOpenSidebar={() => setSidebarVisible(true)}
+
 />
         )}
       </SafeAreaView>

@@ -1,17 +1,14 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   SafeAreaView,
   View,
   Text,
-  TextInput,
-  TouchableOpacity,
-  FlatList,
-  Alert,
   StyleSheet,
   ScrollView,
   ActivityIndicator,
-  Platform,
   Pressable,
+  Alert,
+  Dimensions,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -19,39 +16,46 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_BASE_URL } from "@/constants/api";
 import { StatusBar } from "expo-status-bar";
 
-const AUTH_USER_KEY = "auth:user";
+// Import Premium Components
+import { ReviewCard } from "@/components/reviews/ReviewCard";
+import { RatingSummary } from "@/components/reviews/RatingSummary";
+import { AddReviewModal } from "@/components/reviews/AddReviewModal";
+
+const { width } = Dimensions.get('window');
 
 const COLORS = {
-  bg: '#f4f6f8',
+  bg: '#F8FAFF',
+  white: '#FFFFFF',
+  text: '#1A3B2F',
+  secondary: 'rgba(26, 59, 47, 0.5)',
+  primary: '#1E88E5',
   accent: '#FFD166',
-  text: '#1A2432',
-  secondary: '#64748b',
-  white: '#ffffff',
-  primary: '#1e88e5',
-  success: '#43a047',
-  danger: '#e53935',
-  star: '#FFD166',
 };
 
 export default function ReviewsScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
   
-  const [userId, setUserId] = useState("");
-  const [destinationId, setDestinationId] = useState((params.destinationId as string) || "");
-  const [rating, setRating] = useState(0);
-  const [comment, setComment] = useState("");
+  // Identify the target (Hotel or Destination)
+  const hotelId = params.hotelId as string;
+  const destinationId = params.destinationId as string;
+  const targetId = hotelId || destinationId;
+  const targetType = hotelId ? 'hotel' : 'destination';
+
+  const [userId, setUserId] = useState<string | null>(null);
   const [reviews, setReviews] = useState<any[]>([]);
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [editingReview, setEditingReview] = useState<any | null>(null);
+
 
   const fetchUserData = async () => {
     try {
-      const userData = await AsyncStorage.getItem(AUTH_USER_KEY);
+      const userData = await AsyncStorage.getItem('auth:user');
+
       if (userData) {
         const user = JSON.parse(userData);
-        setUserId(user._id || user.id || "guest");
+        setUserId(user._id || user.id);
       }
     } catch (error) {
       console.error("Failed to load user data", error);
@@ -59,12 +63,10 @@ export default function ReviewsScreen() {
   };
 
   const getReviews = async () => {
+    if (!targetId) return;
     try {
       setLoading(true);
-      const url = destinationId 
-        ? `${API_BASE_URL}/reviews/destination/${destinationId}`
-        : `${API_BASE_URL}/reviews`;
-        
+      const url = `${API_BASE_URL}/reviews/${targetType}/${targetId}`;
       const response = await fetch(url);
       const data = await response.json();
       if (response.ok) {
@@ -73,7 +75,7 @@ export default function ReviewsScreen() {
         throw new Error(data.message || "Failed to fetch reviews");
       }
     } catch (error: any) {
-      Alert.alert("Error", error.message || "Failed to load reviews");
+      console.error("Fetch reviews error:", error);
     } finally {
       setLoading(false);
     }
@@ -82,68 +84,38 @@ export default function ReviewsScreen() {
   useEffect(() => {
     fetchUserData();
     getReviews();
-  }, [destinationId]);
+  }, [targetId]);
 
-  const handleSubmit = async () => {
-    if (!rating || !comment.trim()) {
-      Alert.alert("Validation Error", "Please provide a rating and a comment");
-      return;
-    }
+  // Calculate Statistics
+  const stats = useMemo(() => {
+    if (reviews.length === 0) return { average: 0, total: 0, happyTravelers: 0, satisfaction: 0 };
+    
+    const total = reviews.length;
+    const sum = reviews.reduce((acc, r) => acc + r.rating, 0);
+    const average = sum / total;
+    // Positive reviews = 3 stars or more
+    const positiveCount = reviews.filter(r => r.rating >= 3).length;
+    const satisfaction = Math.round((positiveCount / total) * 100);
 
-    setSubmitting(true);
-    const reviewData = {
-      userId,
-      destinationId,
-      rating,
-      comment: comment.trim(),
+    return { 
+      average, 
+      total, 
+      happyTravelers: total, 
+      satisfaction 
     };
+  }, [reviews]);
 
-    try {
-      const url = editingId ? `${API_BASE_URL}/reviews/${editingId}` : `${API_BASE_URL}/reviews`;
-      const method = editingId ? "PUT" : "POST";
 
-      const response = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(reviewData),
-      });
+  // Check if user has already reviewed
+  const hasReviewed = useMemo(() => {
+    if (!userId) return false;
+    return reviews.some(r => (r.userId?._id || r.userId) === userId);
+  }, [reviews, userId]);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        Alert.alert("Error", data.message || "Something went wrong");
-        return;
-      }
-
-      Alert.alert(
-        "Success",
-        editingId ? "Review updated successfully" : "Review added successfully"
-      );
-
-      setRating(0);
-      setComment("");
-      setEditingId(null);
-      getReviews();
-    } catch (error) {
-      Alert.alert("Error", "Failed to save review");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleEdit = (review: any) => {
-    setEditingId(review._id);
-    setRating(review.rating);
-    setComment(review.comment);
-    // Scroll to top or show modal if needed, for now just set states
-  };
-
-  const handleDelete = (id: string) => {
+  const handleDelete = async (reviewId: string) => {
     Alert.alert(
       "Delete Review",
-      "Are you sure you want to delete this review?",
+      "Are you sure you want to remove your review? This action cannot be undone.",
       [
         { text: "Cancel", style: "cancel" },
         { 
@@ -151,18 +123,20 @@ export default function ReviewsScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              const response = await fetch(`${API_BASE_URL}/reviews/${id}`, {
-                method: "DELETE",
+              const token = await AsyncStorage.getItem('auth:token');
+              const response = await fetch(`${API_BASE_URL}/reviews/${reviewId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
               });
               if (response.ok) {
-                Alert.alert("Success", "Review deleted successfully");
+                Alert.alert("Deleted", "Your review has been removed.");
                 getReviews();
               } else {
                 const data = await response.json();
-                Alert.alert("Error", data.message || "Delete failed");
+                Alert.alert("Error", data.message || "Failed to delete review");
               }
             } catch (error) {
-              Alert.alert("Error", "Failed to delete review");
+              Alert.alert("Error", "Network error occurred");
             }
           }
         }
@@ -170,375 +144,273 @@ export default function ReviewsScreen() {
     );
   };
 
-  const renderStarPicker = () => (
-    <View style={styles.starContainer}>
-      {[1, 2, 3, 4, 5].map((star) => (
-        <TouchableOpacity key={star} onPress={() => setRating(star)}>
-          <Ionicons
-            name={star <= rating ? "star" : "star-outline"}
-            size={32}
-            color={star <= rating ? COLORS.star : COLORS.secondary}
-            style={styles.starIcon}
-          />
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
+  const handleEdit = (review: any) => {
+    setEditingReview(review);
+    setModalVisible(true);
+  };
 
-  const renderReviewItem = ({ item }: { item: any }) => (
-    <View style={styles.reviewCard}>
-      <View style={styles.reviewHeader}>
-        <View style={styles.userInfo}>
-          <View style={styles.avatarPlaceholder}>
-            <Text style={styles.avatarText}>{item.userId?.substring(0, 2).toUpperCase()}</Text>
-          </View>
-          <View>
-            <Text style={styles.userName}>User {item.userId?.substring(0, 6)}</Text>
-            <Text style={styles.dateText}>{new Date(item.createdAt).toLocaleDateString()}</Text>
-          </View>
-        </View>
-        <View style={styles.ratingBadge}>
-          <Ionicons name="star" size={14} color={COLORS.star} />
-          <Text style={styles.ratingValue}>{item.rating}</Text>
-        </View>
-      </View>
-      
-      <Text style={styles.commentText}>{item.comment}</Text>
-
-      {item.userId === userId && (
-        <View style={styles.actionRow}>
-          <TouchableOpacity
-            style={styles.editButton}
-            onPress={() => handleEdit(item)}
-          >
-            <Ionicons name="pencil" size={16} color={COLORS.white} />
-            <Text style={styles.actionText}>Edit</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.deleteButton}
-            onPress={() => handleDelete(item._id)}
-          >
-            <Ionicons name="trash" size={16} color={COLORS.white} />
-            <Text style={styles.actionText}>Delete</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-    </View>
-  );
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="dark" />
+      
+      {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.text} />
+          <Ionicons name="chevron-back" size={24} color={COLORS.text} />
         </Pressable>
-        <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>Reviews & Ratings</Text>
-          {destinationId && (
-            <Text style={styles.headerSubtitle}>For Destination: {destinationId.substring(0, 8)}</Text>
-          )}
+        <View style={styles.titleContainer}>
+          <Text style={styles.title}>Guest Experience</Text>
+          <Text style={styles.subtitle}>Verified Reviews & Ratings</Text>
         </View>
       </View>
 
-      <ScrollView
-        style={styles.container}
+      <ScrollView 
+        style={styles.container} 
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.inputCard}>
-          <Text style={styles.inputTitle}>
-            {editingId ? "Update your experience" : "Share your experience"}
-          </Text>
-          
-          <Text style={styles.label}>Your Rating</Text>
-          {renderStarPicker()}
-
-          <Text style={styles.label}>Your Comment</Text>
-          <TextInput
-            style={[styles.input, styles.commentBox]}
-            value={comment}
-            onChangeText={setComment}
-            placeholder="What did you think of this place?"
-            placeholderTextColor={COLORS.secondary}
-            multiline
-          />
-
-          <TouchableOpacity 
-            style={[styles.submitButton, submitting && styles.disabledButton]} 
-            onPress={handleSubmit}
-            disabled={submitting}
-          >
-            {submitting ? (
-              <ActivityIndicator color={COLORS.white} />
-            ) : (
-              <Text style={styles.submitButtonText}>
-                {editingId ? "Update Review" : "Post Review"}
-              </Text>
-            )}
-          </TouchableOpacity>
-          
-          {editingId && (
-            <TouchableOpacity 
-              style={styles.cancelButton} 
-              onPress={() => {
-                setEditingId(null);
-                setRating(0);
-                setComment("");
-              }}
-            >
-              <Text style={styles.cancelButtonText}>Cancel Edit</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        <View style={styles.reviewsSection}>
-          <Text style={styles.sectionTitle}>Guest Reviews</Text>
-          
-          {loading ? (
-            <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 20 }} />
-          ) : reviews.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Ionicons name="chatbubbles-outline" size={48} color={COLORS.secondary} />
-              <Text style={styles.emptyText}>No reviews yet. Be the first!</Text>
-            </View>
-          ) : (
-            <FlatList
-              data={reviews}
-              keyExtractor={(item) => item._id}
-              scrollEnabled={false}
-              renderItem={renderReviewItem}
-              contentContainerStyle={styles.reviewsList}
+        {loading ? (
+          <View style={styles.center}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+          </View>
+        ) : (
+          <>
+            {/* Rating Summary Dashboard */}
+            <RatingSummary 
+              average={stats.average}
+              total={stats.total}
+              happyTravelers={stats.happyTravelers}
+              satisfactionRate={stats.satisfaction}
             />
-          )}
-        </View>
+
+            {/* Write a Review Button (Conditional) */}
+            {!hasReviewed && userId && (
+              <Pressable 
+                style={styles.addReviewBtn} 
+                onPress={() => setModalVisible(true)}
+              >
+                <LinearGradient
+                  colors={['#1E88E5', '#1565C0']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.gradientBtn}
+                >
+                  <Ionicons name="create-outline" size={20} color="#FFF" />
+                  <Text style={styles.addReviewText}>Write a Review</Text>
+                </LinearGradient>
+              </Pressable>
+            )}
+
+            {/* Reviews List */}
+            <View style={styles.listHeader}>
+              <Text style={styles.listTitle}>Recent Feedback</Text>
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{reviews.length} Total</Text>
+              </View>
+            </View>
+
+            {reviews.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Ionicons name="chatbubbles-outline" size={64} color="rgba(30, 136, 229, 0.1)" />
+                <Text style={styles.emptyTitle}>No reviews yet</Text>
+                <Text style={styles.emptySubtitle}>Be the first to share your experience!</Text>
+              </View>
+            ) : (
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false} 
+                snapToInterval={width * 0.85 + 16}
+                decelerationRate="fast"
+                contentContainerStyle={styles.horizontalList}
+              >
+                {reviews.map((item) => {
+                  const isOwner = (item.userId?._id || item.userId) === userId;
+                  return (
+                    <ReviewCard 
+                      key={item._id} 
+                      review={item} 
+                      onEdit={isOwner ? () => handleEdit(item) : undefined}
+                      onDelete={isOwner ? () => handleDelete(item._id) : undefined}
+                    />
+                  );
+                })}
+
+              </ScrollView>
+            )}
+
+            {/* Detailed Vertical List for SEO/Accessibility */}
+            {reviews.length > 0 && (
+              <View style={styles.verticalSection}>
+                <Text style={styles.verticalTitle}>All Reviews</Text>
+                {reviews.map((item) => {
+                  const isOwner = (item.userId?._id || item.userId) === userId;
+                  return (
+                    <View key={`v-${item._id}`} style={styles.verticalItem}>
+                      <ReviewCard 
+                        review={item} 
+                        onEdit={isOwner ? () => handleEdit(item) : undefined}
+                        onDelete={isOwner ? () => handleDelete(item._id) : undefined}
+                      />
+                    </View>
+                  );
+                })}
+
+              </View>
+            )}
+          </>
+        )}
       </ScrollView>
+
+      {/* Submission Modal */}
+      <AddReviewModal 
+        visible={modalVisible}
+        onClose={() => {
+          setModalVisible(false);
+          setEditingReview(null);
+        }}
+        onSuccess={getReviews}
+        targetId={targetId}
+        targetType={targetType}
+        initialData={editingReview}
+      />
+
     </SafeAreaView>
   );
 }
 
+// Minimalistic Gradient shim since expo-linear-gradient is preferred
+import { LinearGradient } from 'expo-linear-gradient';
+
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.bg,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     backgroundColor: COLORS.white,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.03)',
   },
   backButton: {
-    padding: 8,
-    marginRight: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F8FAFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
   },
-  headerTitleContainer: {
+  titleContainer: {
     flex: 1,
   },
-  headerTitle: {
+  title: {
     fontSize: 20,
-    fontWeight: "800",
+    fontWeight: '900',
     color: COLORS.text,
+    letterSpacing: -0.5,
   },
-  headerSubtitle: {
+  subtitle: {
     fontSize: 12,
     color: COLORS.secondary,
-    fontWeight: "600",
+    fontWeight: '600',
   },
   container: {
     flex: 1,
-    backgroundColor: COLORS.bg,
   },
   scrollContent: {
-    padding: 16,
+    padding: 20,
     paddingBottom: 40,
   },
-  inputCard: {
-    backgroundColor: COLORS.white,
-    padding: 20,
-    borderRadius: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
-    marginBottom: 24,
-  },
-  inputTitle: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: COLORS.text,
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: COLORS.text,
-    marginBottom: 8,
-    marginTop: 8,
-  },
-  starContainer: {
-    flexDirection: "row",
-    marginBottom: 16,
-  },
-  starIcon: {
-    marginRight: 8,
-  },
-  input: {
-    backgroundColor: COLORS.bg,
-    borderRadius: 12,
-    padding: 12,
-    fontSize: 15,
-    color: COLORS.text,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
-  },
-  commentBox: {
-    height: 100,
-    textAlignVertical: "top",
-    marginBottom: 20,
-  },
-  submitButton: {
-    backgroundColor: COLORS.primary,
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  disabledButton: {
-    opacity: 0.7,
-  },
-  submitButtonText: {
-    color: COLORS.white,
-    fontWeight: "800",
-    fontSize: 16,
-  },
-  cancelButton: {
-    marginTop: 12,
-    alignItems: "center",
-  },
-  cancelButtonText: {
-    color: COLORS.danger,
-    fontWeight: "600",
-  },
-  reviewsSection: {
+  center: {
     flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 100,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: COLORS.text,
-    marginBottom: 16,
+  addReviewBtn: {
+    marginBottom: 32,
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#1E88E5',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 15,
+    elevation: 10,
   },
-  reviewsList: {
-    gap: 16,
-  },
-  reviewCard: {
-    backgroundColor: COLORS.white,
-    padding: 16,
-    borderRadius: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 5,
-    elevation: 1,
-  },
-  reviewHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 12,
-  },
-  userInfo: {
-    flexDirection: "row",
-    alignItems: "center",
+  gradientBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 18,
     gap: 10,
   },
-  avatarPlaceholder: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: COLORS.primary,
-    alignItems: "center",
-    justifyContent: "center",
+  addReviewText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
-  avatarText: {
-    color: COLORS.white,
-    fontSize: 14,
-    fontWeight: "700",
+  listHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
   },
-  userName: {
-    fontSize: 14,
-    fontWeight: "700",
+  listTitle: {
+    fontSize: 18,
+    fontWeight: '800',
     color: COLORS.text,
   },
-  dateText: {
-    fontSize: 11,
-    color: COLORS.secondary,
-  },
-  ratingBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: 'rgba(255, 209, 102, 0.2)',
-    paddingHorizontal: 8,
+  badge: {
+    backgroundColor: 'rgba(30, 136, 229, 0.1)',
+    paddingHorizontal: 12,
     paddingVertical: 4,
-    borderRadius: 8,
-    gap: 4,
+    borderRadius: 10,
   },
-  ratingValue: {
+  badgeText: {
     fontSize: 12,
-    fontWeight: "800",
-    color: '#d4a017',
+    fontWeight: '700',
+    color: COLORS.primary,
   },
-  commentText: {
-    fontSize: 14,
+  horizontalList: {
+    paddingBottom: 24,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    backgroundColor: COLORS.white,
+    borderRadius: 32,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.03)',
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '800',
     color: COLORS.text,
-    lineHeight: 20,
-    marginBottom: 12,
+    marginTop: 16,
   },
-  actionRow: {
-    flexDirection: "row",
-    gap: 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.05)',
-    paddingTop: 12,
-  },
-  editButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: COLORS.success,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  deleteButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: COLORS.danger,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  actionText: {
-    color: COLORS.white,
-    fontWeight: "700",
-    fontSize: 12,
-  },
-  emptyState: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 40,
-    gap: 12,
-  },
-  emptyText: {
-    fontSize: 15,
-    fontWeight: "600",
+  emptySubtitle: {
+    fontSize: 14,
     color: COLORS.secondary,
+    marginTop: 4,
   },
-});
+  verticalSection: {
+    marginTop: 32,
+  },
+  verticalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: COLORS.text,
+    marginBottom: 20,
+  },
+  verticalItem: {
+    marginBottom: 16,
+    width: '100%',
+  }
+});
