@@ -378,10 +378,7 @@ export default function DestinationDetailScreen() {
               <Text style={styles.locationBadgeText}>VIEW ON MAP</Text>
             </Pressable>
           </View>
-          <Text style={styles.description}>{destination.description}</Text>
-
           <View style={styles.categoryInfo}>
-            <Text style={styles.categoryLabel}>{"Categories"}</Text>
             <View style={styles.categoryRowList}>
               {(destination.categories || []).map((cat: string, index: number) => (
                 <View key={index} style={styles.categoryBadge}>
@@ -390,6 +387,7 @@ export default function DestinationDetailScreen() {
               ))}
             </View>
           </View>
+          <Text style={styles.description}>{destination.description}</Text>
 
 
           <View style={styles.mapContainer}>
@@ -630,9 +628,10 @@ const styles = StyleSheet.create({
   description: {
     fontSize: 15,
     color: 'rgba(26, 59, 47, 0.7)',
-    lineHeight: 24,
+    lineHeight: 22,
     fontWeight: '600',
-    marginBottom: 32,
+    marginBottom: 16,
+    textAlign: 'justify',
   },
   packageSection: {
     marginBottom: 8,
@@ -667,7 +666,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   categoryInfo: {
-    marginTop: 24,
+    marginTop: 8,
+    marginBottom: 20,
   },
   categoryRowList: {
     flexDirection: 'row',
