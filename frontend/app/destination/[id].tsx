@@ -359,25 +359,26 @@ export default function DestinationDetailScreen() {
             </View>
           </View>
 
-          <Text style={styles.sectionTitle}>About this place</Text>
-          <Text style={styles.description}>{destination.description}</Text>
-
-          <View style={styles.packageSection}>
-            <Text style={styles.sectionTitle}>Tour Packages</Text>
-            {relatedPackages.length > 0 ? (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.packageScroll}>
-                {relatedPackages.map((item) => (
-                  <Pressable key={item._id} style={styles.packageCard} onPress={() => router.push(`/tour-packages/${item._id}` as any)}>
-                    <Text style={styles.packageCardTitle} numberOfLines={2}>{item.name}</Text>
-                    <Text style={styles.packageCardMeta} numberOfLines={1}>LKR {item.price ? Number(item.price).toLocaleString() : 'N/A'}</Text>
-                    <Text style={styles.packageCardMeta} numberOfLines={1}>{item.duration ? `${item.duration} days` : 'Duration TBA'}</Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-            ) : (
-              <Text style={styles.packageEmptyText}>No packages are linked to this destination yet.</Text>
-            )}
+          <View style={styles.aboutHeader}>
+            <Text style={styles.sectionTitle}>About this place</Text>
+            <Pressable 
+              style={styles.locationBadge}
+              onPress={async () => {
+                const query = encodeURIComponent(`${destination.name}, ${destination.location}`);
+                const url = `https://www.google.com/maps/search/?api=1&query=${query}`;
+                try {
+                  await WebBrowser.openBrowserAsync(url);
+                } catch (error) {
+                  console.error("Error opening map:", error);
+                  Linking.openURL(url);
+                }
+              }}
+            >
+              <Ionicons name="location" size={14} color="#FFD166" />
+              <Text style={styles.locationBadgeText}>VIEW ON MAP</Text>
+            </Pressable>
           </View>
+          <Text style={styles.description}>{destination.description}</Text>
 
           <View style={styles.categoryInfo}>
             <Text style={styles.categoryLabel}>{"Categories"}</Text>
@@ -390,38 +391,18 @@ export default function DestinationDetailScreen() {
             </View>
           </View>
 
-          {/* Map Section - Simplified */}
-          <View style={styles.mapContainer}>
-            <Text style={styles.sectionTitle}>Location</Text>
-            <Pressable 
-              style={styles.simpleMapBtn} 
-              onPress={async () => {
-                const query = encodeURIComponent(`${destination.name}, ${destination.location}`);
-                const url = `https://www.google.com/maps/search/?api=1&query=${query}`;
-                try {
-                  await WebBrowser.openBrowserAsync(url);
-                } catch (error) {
-                  console.error("Error opening map:", error);
-                  Linking.openURL(url);
-                }
-              }}
-            >
-              <Ionicons name="map-outline" size={24} color="#1A3B2F" />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.mapBtnTitle}>View on Maps</Text>
-                <Text style={styles.mapBtnSub}>{destination.location}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#1A3B2F" />
-            </Pressable>
-          </View>
 
-          <View style={styles.nearbyHotelsContainer}>
+          <View style={styles.mapContainer}>
             <Pressable 
-              style={styles.nearbyHotelsBtn}
+              style={styles.simpleMapBtn}
               onPress={() => router.push(`/tourist-hotels?district=${encodeURIComponent(destination.location)}` as any)}
             >
-              <Ionicons name="bed-outline" size={24} color="#ffffff" />
-              <Text style={styles.nearbyHotelsText}>View Nearby Hotels</Text>
+              <Ionicons name="bed-outline" size={24} color="#1A3B2F" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.mapBtnTitle}>Nearby Hotels</Text>
+                <Text style={styles.mapBtnSub}>Explore stays in {destination.location}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#1A3B2F" />
             </Pressable>
           </View>
 
@@ -446,12 +427,8 @@ export default function DestinationDetailScreen() {
       <BlurView intensity={90} tint="light" style={styles.footer}>
         <View style={styles.footerContent}>
 
-          <View>
-            <Text style={styles.priceLabel}>Starting from</Text>
-            <Text style={styles.priceValue}>${destination.startingPrice || "150"}<Text style={styles.perPerson}>/person</Text></Text>
-          </View>
           <Pressable style={styles.bookBtn} onPress={() => router.push('/tour-packages' as any)}>
-            <Text style={styles.bookBtnText}>Packages</Text>
+            <Text style={styles.bookBtnText}>Explore Tour Packages</Text>
           </Pressable>
         </View>
 
@@ -621,11 +598,34 @@ const styles = StyleSheet.create({
     color: 'rgba(26, 59, 47, 0.4)',
     fontWeight: '700',
   },
+  aboutHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  locationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 209, 102, 0.1)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 209, 102, 0.3)',
+  },
+  locationBadgeText: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#1A3B2F',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '900',
     color: '#1A3B2F',
-    marginBottom: 12,
   },
   description: {
     fontSize: 15,
@@ -705,7 +705,7 @@ const styles = StyleSheet.create({
   },
   footerContent: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
   },
   priceLabel: {
@@ -725,14 +725,16 @@ const styles = StyleSheet.create({
   },
   bookBtn: {
     backgroundColor: '#1A3B2F',
-    paddingHorizontal: 28,
-    paddingVertical: 16,
-    borderRadius: 20,
+    paddingHorizontal: 40,
+    paddingVertical: 18,
+    borderRadius: 24,
     shadowColor: '#1A3B2F',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+    width: '100%',
+    alignItems: 'center',
   },
   bookBtnText: {
     color: '#ffffff',
@@ -819,28 +821,6 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#1A3B2F',
     textTransform: 'uppercase',
-  },
-  nearbyHotelsContainer: {
-    marginTop: 20,
-  },
-  nearbyHotelsBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#1A3B2F',
-    padding: 16,
-    borderRadius: 20,
-    gap: 12,
-    shadowColor: '#1A3B2F',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
-  },
-  nearbyHotelsText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '800',
   },
 });
 

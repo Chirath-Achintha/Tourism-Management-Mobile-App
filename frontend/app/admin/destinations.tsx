@@ -261,8 +261,8 @@ export default function DestinationsManagementScreen() {
       <Image source={{ uri: item.images[0]?.url }} style={styles.cardImage} />
       <View style={styles.cardContent}>
         <View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Text style={styles.cardName}>{item.name}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, width: '100%' }}>
+            <Text style={[styles.cardName, { flex: 1 }]} numberOfLines={2}>{item.name}</Text>
             {item.isFeatured && (
               <View style={styles.featuredBadge}>
                 <Ionicons name="star" size={10} color="#1A3B2F" />
@@ -312,19 +312,27 @@ export default function DestinationsManagementScreen() {
           </Pressable>
         </View>
 
-        <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color="rgba(26, 59, 47, 0.4)" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search by name or location..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {searchQuery.length > 0 && (
-            <Pressable onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={18} color="rgba(26, 59, 47, 0.4)" />
-            </Pressable>
-          )}
+        <View style={styles.searchSection}>
+          <View style={styles.searchContainer}>
+            <Ionicons name="search" size={20} color="#1A3B2F" style={styles.searchIcon} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search by name or location..."
+              placeholderTextColor="rgba(26, 59, 47, 0.4)"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {searchQuery.length > 0 && (
+              <Pressable onPress={() => setSearchQuery('')} style={styles.clearBtn}>
+                <Ionicons name="close-circle" size={20} color="rgba(26, 59, 47, 0.3)" />
+              </Pressable>
+            )}
+          </View>
+          <View style={styles.resultsInfo}>
+            <Text style={styles.resultsText}>
+              Showing <Text style={styles.resultsCount}>{filteredDestinations.length}</Text> destinations
+            </Text>
+          </View>
         </View>
 
         {loading ? (
@@ -677,23 +685,53 @@ const styles = StyleSheet.create({
     color: '#1A3B2F',
     textTransform: 'uppercase',
   },
+  searchSection: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+  },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    marginBottom: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 16,
-    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 20,
+    gap: 12,
+    shadowColor: '#1A3B2F',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 15,
+    elevation: 2,
     borderWidth: 1,
-    borderColor: 'rgba(26, 59, 47, 0.1)',
+    borderColor: 'rgba(26, 59, 47, 0.05)',
+  },
+  searchIcon: {
+    opacity: 0.8,
   },
   searchInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 15,
+    fontWeight: '600',
     color: '#1A3B2F',
+    height: 24,
+    padding: 0,
+  },
+  clearBtn: {
+    padding: 4,
+  },
+  resultsInfo: {
+    paddingHorizontal: 8,
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  resultsText: {
+    fontSize: 13,
+    color: 'rgba(26, 59, 47, 0.5)',
+    fontWeight: '600',
+  },
+  resultsCount: {
+    color: '#1A3B2F',
+    fontWeight: '900',
   },
   actionRow: {
     flexDirection: 'row',
