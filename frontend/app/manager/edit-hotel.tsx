@@ -113,6 +113,8 @@ export default function SearchPlacesScreen() {
     longitudeDelta: 3.5,
   });
 
+  const [fetchedRating, setFetchedRating] = useState<string | null>(null);
+
   const [touched, setTouched] = useState({
     hotelName: false,
     location: false,
@@ -354,6 +356,17 @@ export default function SearchPlacesScreen() {
       longitudeDelta: 0.05,
     });
     setAddressSuggestions([]);
+
+    if (hotelName) {
+      fetch(`${API_BASE_URL}/hotels/google/rating?name=${encodeURIComponent(hotelName)}&address=${encodeURIComponent(displayName)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.googleRating) {
+            setFetchedRating(`${data.googleRating} ★ (${data.googleTotalReviews} reviews)`);
+          }
+        })
+        .catch(err => console.error("Error fetching google rating:", err));
+    }
   };
   const removeRoomConfig = (index: number) => {
     setRoomConfigs(prev => prev.filter((_, i) => i !== index));
@@ -584,6 +597,12 @@ export default function SearchPlacesScreen() {
               </View>
               {touched.address && errors.address && (
                 <Text style={styles.errorText}>{errors.address}</Text>
+              )}
+              {fetchedRating && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6, backgroundColor: '#EBF5EA', padding: 8, borderRadius: 8 }}>
+                  <Ionicons name="star" size={14} color="#FFD166" />
+                  <Text style={{ fontSize: 13, color: '#1A3B2F', fontWeight: '700' }}>Google Rating: {fetchedRating}</Text>
+                </View>
               )}
             </View>
 
