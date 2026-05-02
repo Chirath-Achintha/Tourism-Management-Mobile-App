@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, ActivityIndicator, Image } from 'react-native';
 import { useLocalSearchParams, Stack } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { API_BASE_URL } from '@/constants/api';
 
 const COLORS = {
@@ -11,6 +12,7 @@ const COLORS = {
   surface: '#ffffff',
   surfaceDim: '#f6f3f2',
   muted: '#7a6a62',
+  locationColor: '#FFD166',
 };
 
 export default function ItineraryScreen() {
@@ -60,12 +62,44 @@ export default function ItineraryScreen() {
                   <Text style={styles.dayTitle}>{day.title || 'Untitled'}</Text>
                   <Text style={styles.dayText}>{day.notes || 'No description provided.'}</Text>
 
+                  {/* Display Hotel if available */}
+                  {day.hotelName && (
+                    <View style={styles.hotelSection}>
+                      <View style={styles.hotelRow}>
+                        <Ionicons name="bed-outline" size={16} color={COLORS.accent} />
+                        <View style={{ marginLeft: 10, flex: 1 }}>
+                          <Text style={styles.hotelLabel}>Accommodation</Text>
+                          <Text style={styles.hotelName}>{day.hotelName}</Text>
+                          {day.hotelLocation && <Text style={styles.hotelLocation}>{day.hotelLocation}</Text>}
+                        </View>
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Display Places */}
                   {day.places && day.places.length > 0 && (
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.thumbRow}>
-                      {day.places.map((p:any, i:number) => (
-                        <Image key={i} source={{ uri: p.imageUrl || '' }} style={styles.thumb} />
+                    <View style={styles.placesSection}>
+                      <Text style={styles.placesTitle}>Places to Visit</Text>
+                      {day.places.map((place: any, pidx: number) => (
+                        <View key={pidx} style={styles.placeItem}>
+                          <View style={styles.placeIndex}>
+                            <Text style={styles.placeIndexText}>{pidx + 1}</Text>
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <View style={styles.placeNameRow}>
+                              <Ionicons name="location-outline" size={14} color={COLORS.locationColor} />
+                              <Text style={styles.placeName}>{place.name || 'Unknown Place'}</Text>
+                            </View>
+                            {place.location && (
+                              <Text style={styles.placeLocation}>{place.location}</Text>
+                            )}
+                            {place.notes && (
+                              <Text style={styles.placeNotes}>{place.notes}</Text>
+                            )}
+                          </View>
+                        </View>
                       ))}
-                    </ScrollView>
+                    </View>
                   )}
                 </View>
               </View>
@@ -108,6 +142,96 @@ const styles = StyleSheet.create({
   dayLabel: { fontSize: 13, color: COLORS.muted, fontWeight: '600' },
   dayTitle: { fontSize: 16, color: COLORS.text, fontWeight: '700', marginTop: 4 },
   dayText: { fontSize: 14, color: COLORS.muted, marginTop: 8, lineHeight: 20 },
+
+  // Hotel Section
+  hotelSection: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.surfaceDim,
+  },
+  hotelRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  hotelLabel: {
+    fontSize: 12,
+    color: COLORS.muted,
+    fontWeight: '600',
+  },
+  hotelName: {
+    fontSize: 14,
+    color: COLORS.text,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  hotelLocation: {
+    fontSize: 12,
+    color: COLORS.muted,
+    marginTop: 2,
+  },
+
+  // Places Section
+  placesSection: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.surfaceDim,
+  },
+  placesTitle: {
+    fontSize: 14,
+    color: COLORS.secondary,
+    fontWeight: '700',
+    marginBottom: 10,
+  },
+  placeItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.surfaceDim,
+  },
+  placeIndex: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: COLORS.locationColor,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+    marginTop: 2,
+  },
+  placeIndexText: {
+    fontSize: 12,
+    color: COLORS.text,
+    fontWeight: '700',
+  },
+  placeNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  placeName: {
+    fontSize: 13,
+    color: COLORS.text,
+    fontWeight: '600',
+    marginLeft: 6,
+    flex: 1,
+  },
+  placeLocation: {
+    fontSize: 12,
+    color: COLORS.muted,
+    marginTop: 4,
+    marginLeft: 20,
+  },
+  placeNotes: {
+    fontSize: 12,
+    color: COLORS.muted,
+    marginTop: 4,
+    marginLeft: 20,
+    fontStyle: 'italic',
+    lineHeight: 16,
+  },
 
   thumbRow: { marginTop: 10 },
   thumb: { width: 100, height: 68, borderRadius: 10, marginRight: 12, backgroundColor: COLORS.surfaceDim },
