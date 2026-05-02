@@ -196,7 +196,6 @@ export default function TourPackagesScreen() {
               <Ionicons name="close-circle" size={20} color={COLORS.secondary} />
             </Pressable>
           </View>
-
           {/* Package Cards */}
           {filteredPackages.length === 0 ? (
             <View style={styles.emptyContainer}>

@@ -69,7 +69,6 @@ export default function MyHotelsScreen() {
       ]
     );
   };
-
   const renderHotelItem = ({ item }: { item: any }) => (
     <View style={styles.card}>
       {item.mainImage ? (
