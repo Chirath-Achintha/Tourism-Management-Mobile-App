@@ -113,6 +113,8 @@ export default function SearchPlacesScreen() {
     longitudeDelta: 3.5,
   });
 
+  const [fetchedRating, setFetchedRating] = useState<string | null>(null);
+
   const [touched, setTouched] = useState({
     hotelName: false,
     location: false,
@@ -251,7 +253,6 @@ export default function SearchPlacesScreen() {
         setLoading(false);
       }
     };
-
     checkRole();
     fetchHotelData();
   }, [id]);
@@ -278,7 +279,6 @@ export default function SearchPlacesScreen() {
       Alert.alert("Validation", "Please enter a price for the room.");
       return;
     }
-
     const cleanPrice = tempPrice.replace(/,/g, '');
     const priceVal = parseFloat(cleanPrice);
     if (isNaN(priceVal) || priceVal <= 0) {
@@ -299,18 +299,20 @@ export default function SearchPlacesScreen() {
         Alert.alert("Validation", "Discount must be between 0% and 100%.");
         return;
       }
+      const priceVal = parseFloat(cleanPrice);
       if (!isNaN(priceVal) && !isNaN(discountPercentage)) {
         const finalPrice = priceVal - (priceVal * (discountPercentage / 100));
-        calculatedDiscountPrice = finalPrice.toFixed(2);
+        calculatedDiscountPrice = finalPrice.toFixed(2); // Store the calculated LKR price
       }
     }
 
     setRoomConfigs(prev => [...prev, {
       type: tempType,
-      price: cleanPrice,
+      price: cleanPrice, // save clean numeric string
       discountPrice: calculatedDiscountPrice || ''
     }]);
     
+    // Reset temp inputs
     setTempPrice('');
     setTempDiscount('');
   };
@@ -354,8 +356,18 @@ export default function SearchPlacesScreen() {
       longitudeDelta: 0.05,
     });
     setAddressSuggestions([]);
-  };
 
+    if (hotelName) {
+      fetch(`${API_BASE_URL}/hotels/google/rating?name=${encodeURIComponent(hotelName)}&address=${encodeURIComponent(displayName)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.googleRating) {
+            setFetchedRating(`${data.googleRating} ★ (${data.googleTotalReviews} reviews)`);
+          }
+        })
+        .catch(err => console.error("Error fetching google rating:", err));
+    }
+  };
   const removeRoomConfig = (index: number) => {
     setRoomConfigs(prev => prev.filter((_, i) => i !== index));
   };
@@ -381,7 +393,6 @@ export default function SearchPlacesScreen() {
       Alert.alert("Validation Error", "Please correct all highlighted errors.");
       return;
     }
-
     if (!hotelName || !location || !address || !description || !contactEmail || !contactPhone || !mainImage) {
       Alert.alert("Validation", "Please fill in all essential details.");
       return;
@@ -571,8 +582,8 @@ export default function SearchPlacesScreen() {
                       return (
                         <Pressable 
                            key={item.id || index} 
-                           style={styles.suggestionItem}
-                           onPress={() => handleSelectAddress(item)}
+                          style={styles.suggestionItem}
+                          onPress={() => handleSelectAddress(item)}
                         >
                           <Ionicons name="location-outline" size={16} color="#1A3B2F" />
                           <Text style={styles.suggestionText} numberOfLines={2}>
@@ -587,6 +598,12 @@ export default function SearchPlacesScreen() {
               {touched.address && errors.address && (
                 <Text style={styles.errorText}>{errors.address}</Text>
               )}
+              {fetchedRating && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6, backgroundColor: '#EBF5EA', padding: 8, borderRadius: 8 }}>
+                  <Ionicons name="star" size={14} color="#FFD166" />
+                  <Text style={{ fontSize: 13, color: '#1A3B2F', fontWeight: '700' }}>Google Rating: {fetchedRating}</Text>
+                </View>
+              )}
             </View>
 
             <View style={styles.inputGroup}>
@@ -597,14 +614,14 @@ export default function SearchPlacesScreen() {
                     provider={PROVIDER_GOOGLE}
                     style={styles.map}
                     region={mapRegion}
-                    onRegionChangeComplete={(region: any) => setMapRegion(region)}
-                    onPress={(e: any) => setSelectedLocation(e.nativeEvent.coordinate)}
+                      onRegionChangeComplete={(region: any) => setMapRegion(region)}
+                      onPress={(e: any) => setSelectedLocation(e.nativeEvent.coordinate)}
                   >
                     {selectedLocation && (
                       <Marker 
                         draggable
                         coordinate={selectedLocation} 
-                        onDragEnd={(e: any) => setSelectedLocation(e.nativeEvent.coordinate)}
+                            onDragEnd={(e: any) => setSelectedLocation(e.nativeEvent.coordinate)}
                       />
                     )}
                   </MapView>
@@ -854,6 +871,11 @@ export default function SearchPlacesScreen() {
       </SafeAreaView>
     );
   }
+
+
+
+
+
 
   return (
     <SafeAreaView style={styles.container}>
