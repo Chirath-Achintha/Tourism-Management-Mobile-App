@@ -427,6 +427,7 @@ export default function DestinationDetailScreen() {
 
           <View style={{ height: 100 }} />
         </View>
+      </View>
       </Animated.ScrollView>
 
       {/* Submission Modal */}
