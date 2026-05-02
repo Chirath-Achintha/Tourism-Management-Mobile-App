@@ -240,14 +240,14 @@ export default function TourPackageDetailScreen() {
           <View style={styles.itineraryHeader}>
             <Text style={styles.sectionTitle}>Itinerary</Text>
             {pkg.timeline && pkg.timeline.length > 0 && (
-              <Pressable onPress={() => router.push(`/tour-packages/${id}/itinerary` as any)}>
-                <Text style={styles.viewAllLink}>VIEW ALL</Text>
-              </Pressable>
-            )}
+                <Pressable style={styles.viewAllButton} onPress={() => router.push(`/tour-packages/${id}/itinerary` as any)}>
+                  <Text style={styles.viewAllText}>VIEW ALL</Text>
+                </Pressable>
+              )}
           </View>
 
           {pkg.timeline && pkg.timeline.length > 0 ? (
-            pkg.timeline.slice(0, 3).map((day: any, idx: number) => (
+            pkg.timeline.slice(0, 1).map((day: any, idx: number) => (
               <Pressable
                 key={idx}
                 style={styles.previewCard}
@@ -262,8 +262,8 @@ export default function TourPackageDetailScreen() {
 
                   <View style={styles.previewBody}>
                     <Text style={styles.previewLabel}>{`Day ${idx + 1}`}</Text>
-                    <Text style={styles.previewTitle}>{day.title || 'Untitled'}</Text>
-                    <Text style={styles.previewText} numberOfLines={2}>{day.notes || 'Experience the highlights of this day'}</Text>
+                    <Text style={styles.previewTitle} numberOfLines={1}>{day.title || 'Untitled'}</Text>
+                    <Text style={styles.previewText} numberOfLines={3}>{day.notes || 'Experience the highlights of this day'}</Text>
 
                     {day.places && day.places.length > 0 && (
                       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.previewThumbs}>
@@ -290,15 +290,14 @@ export default function TourPackageDetailScreen() {
             <View style={styles.modalOverlay}>
               <View style={styles.modalBox}>
                 <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>{selectedDay?.title || `Day ${selectedDay ? selectedDay.index + 1 : ''}`}</Text>
+                  <Text style={styles.modalTitle}>{selectedDay ? `Day ${selectedDay.index + 1} — ${selectedDay.title || ''}` : ''}</Text>
                   <Pressable onPress={() => setDayModalVisible(false)} style={styles.modalClose}>
                     <Text style={{ fontSize: 16, color: '#64748b' }}>Close</Text>
                   </Pressable>
                 </View>
                 <ScrollView style={styles.modalContent}>
                   <View>
-                    <Text style={styles.modalTitle}>{`Day ${selectedDay ? selectedDay.index + 1 : ''}`}</Text>
-                    <Text style={styles.modalSubtitle}>{selectedDay?.title || ''}</Text>
+                    {selectedDay?.title ? <Text style={styles.modalSubtitle}>{selectedDay.title}</Text> : null}
                   </View>
                   <Text style={styles.modalSectionTitle}>Overview</Text>
                   <Text style={styles.modalText}>{selectedDay?.notes || 'No details provided.'}</Text>
@@ -535,17 +534,21 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(0,0,0,0.45)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
   modalBox: {
     width: '100%',
-    maxHeight: '80%',
+    maxHeight: '82%',
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 6,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -553,36 +556,46 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#eef2f7',
+    borderBottomColor: '#f1f5f9',
   },
   modalTitle: {
-    fontSize: 16,
-    fontWeight: '800',
+    fontSize: 17,
+    fontWeight: '900',
+    color: COLORS.text,
+  },
+  modalSubtitle: {
+    fontSize: 15,
+    color: COLORS.muted,
+    marginTop: 6,
+    fontWeight: '600',
   },
   modalClose: {
+    padding: 8,
+  },
+
   /* preview card styles */
   previewCard: {
     backgroundColor: COLORS.surface,
-    borderRadius: 14,
-    padding: 12,
+    borderRadius: 16,
+    padding: 14,
     marginBottom: 14,
     shadowColor: COLORS.secondary,
     shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowRadius: 10,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(15,23,42,0.03)',
   },
   previewRow: { flexDirection: 'row', alignItems: 'flex-start' },
-  previewBulletWrap: { width: 44, alignItems: 'center', justifyContent: 'flex-start' },
-  previewBulletOuter: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: COLORS.accent, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(169,55,0,0.06)' },
-  previewBulletInner: { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.accent },
+  previewBulletWrap: { width: 52, alignItems: 'center', justifyContent: 'flex-start' },
+  previewBulletOuter: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: COLORS.accent, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(169,55,0,0.06)' },
+  previewBulletInner: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: COLORS.accent },
   previewBody: { flex: 1 },
-  previewLabel: { fontSize: 12, color: COLORS.muted, fontWeight: '600' },
-  previewTitle: { fontSize: 15, color: COLORS.text, fontWeight: '700', marginTop: 2 },
-  previewText: { fontSize: 13, color: COLORS.muted, marginTop: 6 },
-  previewThumbs: { marginTop: 8 },
-  previewThumb: { width: 84, height: 56, borderRadius: 8, marginRight: 10, backgroundColor: COLORS.surfaceDim },
-    padding: 6,
-  },
+  previewLabel: { fontSize: 12, color: COLORS.muted, fontWeight: '700' },
+  previewTitle: { fontSize: 16, color: COLORS.text, fontWeight: '800', marginTop: 4 },
+  previewText: { fontSize: 14, color: COLORS.muted, marginTop: 8, lineHeight: 20 },
+  previewThumbs: { marginTop: 10 },
+  previewThumb: { width: 100, height: 66, borderRadius: 10, marginRight: 12, backgroundColor: COLORS.surfaceDim },
   modalContent: {
     padding: 16,
   },
@@ -732,6 +745,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: COLORS.blue,
+  },
+  viewAllButton: {
+    backgroundColor: COLORS.blue,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+  },
+  viewAllText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '800',
   },
   dayCard: {
     flexDirection: 'row',
