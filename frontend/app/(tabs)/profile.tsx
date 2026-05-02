@@ -63,11 +63,9 @@ export default function ProfileScreen() {
                 AUTH_TOKEN_KEY,
                 ONBOARDING_SEEN_KEY,
               ]);
-              router.dismissAll();
               router.replace('/');
             } catch (error) {
               console.warn('Logout cleanup failed:', error);
-              router.dismissAll();
               router.replace('/');
             }
           }

@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from 'react';
+<<<<<<< HEAD
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, SafeAreaView, Pressable, Image, Alert } from 'react-native';
+=======
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, SafeAreaView, Pressable, Image } from 'react-native';
+>>>>>>> Destination-Management
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '@/constants/api';
 import { Ionicons } from '@expo/vector-icons';
@@ -35,6 +39,7 @@ export default function MyHotelsScreen() {
     }
   };
 
+<<<<<<< HEAD
   const handleDelete = (id: string, name: string) => {
     Alert.alert(
       "Delete Hotel",
@@ -70,6 +75,8 @@ export default function MyHotelsScreen() {
     );
   };
 
+=======
+>>>>>>> Destination-Management
   const renderHotelItem = ({ item }: { item: any }) => (
     <View style={styles.card}>
       {item.mainImage ? (
@@ -92,11 +99,19 @@ export default function MyHotelsScreen() {
         <Text style={styles.contact} numberOfLines={1}>{item.contactEmail} | {item.contactPhone}</Text>
         
         <View style={styles.actions}>
+<<<<<<< HEAD
           <Pressable style={styles.actionBtn} onPress={() => router.push({ pathname: '/manager/edit-hotel', params: { id: item._id } })}>
             <Ionicons name="pencil" size={16} color="#1A3B2F" />
             <Text style={styles.actionBtnText}>Edit</Text>
           </Pressable>
           <Pressable style={[styles.actionBtn, styles.deleteBtn]} onPress={() => handleDelete(item._id, item.hotelName)}>
+=======
+          <Pressable style={styles.actionBtn}>
+            <Ionicons name="pencil" size={16} color="#1A3B2F" />
+            <Text style={styles.actionBtnText}>Edit</Text>
+          </Pressable>
+          <Pressable style={[styles.actionBtn, styles.deleteBtn]}>
+>>>>>>> Destination-Management
             <Ionicons name="trash" size={16} color="#ff4444" />
             <Text style={[styles.actionBtnText, { color: '#ff4444' }]}>Delete</Text>
           </Pressable>

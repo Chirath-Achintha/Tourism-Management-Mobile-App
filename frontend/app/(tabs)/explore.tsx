@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   SafeAreaView,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -11,66 +10,38 @@ import {
   Alert,
   Image,
   Platform,
+  Dimensions,
+  FlatList,
+  ScrollView,
 } from 'react-native';
 import { MapView, Marker, PROVIDER_GOOGLE } from '@/components/MapViewComponent';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import * as ImagePicker from 'expo-image-picker';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '@/constants/api';
 import { Colors } from '@/constants/theme';
+const AUTH_USER_KEY = "auth:user";
 
 const AUTH_USER_KEY = "auth:user";
 
-type TouristPlace = {
-  name: string;
-  district: string;
-  category: string;
-  description: string;
-};
+const { width } = Dimensions.get('window');
+const CARD_WIDTH = (width - 48 - 16) / 2;
 
-const TOURIST_PLACES: TouristPlace[] = [
-  {
-    name: 'Sigiriya Rock Fortress',
-    district: 'Matale',
-    category: 'Historical',
-    description: 'Ancient palace fortress with panoramic summit views.',
-  },
-  {
-    name: 'Ella Nine Arch Bridge',
-    district: 'Badulla',
-    category: 'Scenic',
-    description: 'Iconic stone bridge surrounded by tea country.',
-  },
-  {
-    name: 'Yala National Park',
-    district: 'Hambantota',
-    category: 'Wildlife',
-    description: 'Leopard safaris and rich biodiversity in dry-zone forests.',
-  },
-  {
-    name: 'Galle Fort',
-    district: 'Galle',
-    category: 'Cultural',
-    description: 'UNESCO colonial fort with museums, cafes, and sea walls.',
-  },
-  {
-    name: 'Nuwara Eliya Tea Estates',
-    district: 'Nuwara Eliya',
-    category: 'Nature',
-    description: 'Cool-climate highlands with tea factories and viewpoints.',
-  },
-  {
-    name: 'Mirissa Beach',
-    district: 'Matara',
-    category: 'Beach',
-    description: 'Golden coastline known for whale watching and sunsets.',
-  },
-];
+const CATEGORIES = ['All', 'Beach', 'Mountain', 'City', 'Cultural'];
 
 export default function SearchPlacesScreen() {
   const [query, setQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [places, setPlaces] = useState<any[]>([]);
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const router = useRouter();
+
+  // Shared State
   const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -192,34 +163,53 @@ export default function SearchPlacesScreen() {
   };
 
   useEffect(() => {
-    const checkRole = async () => {
+    const initialize = async () => {
       try {
+        setLoading(true);
         const userData = await AsyncStorage.getItem(AUTH_USER_KEY);
         if (userData) {
           const user = JSON.parse(userData);
           setRole(user.role);
         }
+        const response = await fetch(`${API_BASE_URL}/destinations`);
+        const data = await response.json();
+        if (response.ok) {
+          setPlaces(data);
+        }
       } catch (error) {
-        console.error("Error checking role:", error);
+        console.error("Initialization failed:", error);
       } finally {
         setLoading(false);
       }
     };
-    checkRole();
+    initialize();
   }, []);
+
+  const toggleFavorite = (id: string) => {
+    setFavorites(prev => 
+      prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]
+    );
+  };
 
   const filteredPlaces = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    if (!normalizedQuery) return TOURIST_PLACES;
-
-    return TOURIST_PLACES.filter((place) => {
-      return (
+    
+    return places.filter((place) => {
+      const matchesQuery = !normalizedQuery || (
         place.name.toLowerCase().includes(normalizedQuery) ||
-        place.district.toLowerCase().includes(normalizedQuery) ||
+        place.location.toLowerCase().includes(normalizedQuery) ||
         place.category.toLowerCase().includes(normalizedQuery)
       );
+
+      const matchesCategory = selectedCategory === 'All' || (place.categories && place.categories.includes(selectedCategory));
+
+      return matchesQuery && matchesCategory;
     });
-  }, [query]);
+  }, [query, places, selectedCategory]);
+  
+  const featuredPlaces = useMemo(() => {
+    return places.filter(place => place.isFeatured);
+  }, [places]);
 
   const toggleFacility = (key: keyof typeof facilities) => {
     setFacilities(prev => ({ ...prev, [key]: !prev[key] }));
@@ -230,7 +220,6 @@ export default function SearchPlacesScreen() {
       Alert.alert("Validation", "Please enter a price for the room.");
       return;
     }
-
     const cleanPrice = tempPrice.replace(/,/g, '');
     const priceVal = parseFloat(cleanPrice);
     if (isNaN(priceVal) || priceVal <= 0) {
@@ -781,55 +770,180 @@ export default function SearchPlacesScreen() {
     );
   }
 
-
-
-
-
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.headerRow}>
-          <Text style={styles.title}>Search Tourist Places</Text>
-          <IconSymbol name="magnifyingglass" size={22} color="#0b3a53" />
+  const renderHeader = () => (
+    <View style={styles.fixedHeader}>
+      <View style={styles.headerRow}>
+        <View>
+          <Text style={styles.title}>Explore</Text>
+          <Text style={styles.subtitle}>Discover the beauty of Sri Lanka</Text>
         </View>
-        <Text style={styles.subtitle}>
-          Find destinations by place name, district, or category.
-        </Text>
+        <Pressable style={styles.notificationBtn}>
+          <Ionicons name="notifications-outline" size={22} color="#1A3B2F" />
+        </Pressable>
+      </View>
 
+      <BlurView intensity={80} tint="light" style={styles.searchBlur}>
         <View style={styles.searchWrapper}>
-          <IconSymbol name="magnifyingglass" size={18} color="#64748b" />
+          <Ionicons name="search-outline" size={20} color="rgba(26, 59, 47, 0.4)" />
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Search places like Sigiriya, Galle, Wildlife"
-            placeholderTextColor="#94a3b8"
+            placeholder="Search destinations..."
+            placeholderTextColor="rgba(26, 59, 47, 0.3)"
             style={styles.searchInput}
           />
+          {query !== '' && (
+            <Pressable onPress={() => setQuery('')}>
+              <Ionicons name="close-circle" size={18} color="rgba(26, 59, 47, 0.2)" />
+            </Pressable>
+          )}
         </View>
+      </BlurView>
 
-        <View style={styles.resultsHeader}>
-          <Text style={styles.resultsText}>{filteredPlaces.length} places found</Text>
-        </View>
-
-        {filteredPlaces.length === 0 ? (
-          <View style={styles.emptyState}>
-            <IconSymbol name="magnifyingglass" size={36} color="#9ca3af" />
-            <Text style={styles.emptyStateText}>No places found. Try another keyword.</Text>
+      {featuredPlaces.length > 0 && (
+        <View style={styles.featuredSection}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.featuredSectionTitle}>Featured Destinations</Text>
+            <View style={styles.featuredDot} />
           </View>
-        ) : (
-          filteredPlaces.map((place) => (
-            <View key={place.name} style={styles.card}>
-              <View style={styles.cardTopRow}>
-                <Text style={styles.placeName}>{place.name}</Text>
-                <Text style={styles.badge}>{place.category}</Text>
-              </View>
-              <Text style={styles.district}>{place.district}</Text>
-              <Text style={styles.description}>{place.description}</Text>
-            </View>
-          ))
+          <FlatList
+            horizontal
+            data={featuredPlaces}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.featuredList}
+            keyExtractor={(item) => `featured-${item._id}`}
+            renderItem={({ item: place }) => (
+              <Pressable 
+                style={styles.featuredCard}
+                onPress={() => router.push(`/destination/${place._id}` as any)}
+              >
+                <Image source={{ uri: place.images[0]?.url }} style={styles.featuredCardImage} />
+                <LinearGradient
+                  colors={['transparent', 'rgba(0,0,0,0.9)']}
+                  style={styles.featuredGradient}
+                />
+                <View style={styles.featuredInfo}>
+                  <View style={styles.featuredTag}>
+                    <Ionicons name="sparkles" size={12} color="#1A3B2F" />
+                    <Text style={styles.featuredTagText}>Must Visit</Text>
+                  </View>
+                  <Text style={styles.featuredName}>{place.name}</Text>
+                  <View style={styles.featuredLocationRow}>
+                    <Ionicons name="location" size={14} color="#FFD166" />
+                    <Text style={styles.featuredLocationText}>{place.location}</Text>
+                  </View>
+                </View>
+              </Pressable>
+            )}
+          />
+        </View>
+      )}
+
+      <BlurView intensity={60} tint="light" style={styles.categoryBlur}>
+        <FlatList 
+          horizontal 
+          data={CATEGORIES}
+          showsHorizontalScrollIndicator={false} 
+          contentContainerStyle={styles.categoryScroll}
+          keyExtractor={(item) => item}
+          renderItem={({ item: cat }) => (
+            <Pressable
+              onPress={() => setSelectedCategory(cat)}
+              style={[
+                styles.categoryPill,
+                selectedCategory === cat && styles.categoryPillActive
+              ]}
+            >
+              <Text style={[
+                styles.categoryText,
+                selectedCategory === cat && styles.categoryTextActive
+              ]}>
+                {cat}
+              </Text>
+            </Pressable>
+          )}
+        />
+      </BlurView>
+    </View>
+  );
+
+  const renderDestinationCard = ({ item: place }: { item: any }) => (
+    <Pressable 
+      style={styles.card}
+      onPress={() => router.push(`/destination/${place._id}` as any)}
+    >
+      <View style={styles.cardImageWrapper}>
+        <Image source={{ uri: place.images[0]?.url }} style={styles.cardImage} />
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.8)']}
+          style={styles.gradient}
+        />
+        
+        {place.isFeatured && (
+          <View style={styles.featuredBadge}>
+            <Ionicons name="star" size={12} color="#1A3B2F" />
+            <Text style={styles.featuredBadgeText}>Featured</Text>
+          </View>
         )}
-      </ScrollView>
+        
+        <Pressable 
+          style={styles.heartIcon} 
+          onPress={() => toggleFavorite(place._id)}
+        >
+          <Ionicons 
+            name={favorites.includes(place._id) ? "heart" : "heart-outline"} 
+            size={20} 
+            color={favorites.includes(place._id) ? "#FF4D4D" : "#ffffff"} 
+          />
+        </Pressable>
+
+        <View style={styles.cardOverlayContent}>
+          <View style={styles.locationTag}>
+            <Ionicons name="location" size={10} color="#FFD166" />
+            <Text style={styles.locationText}>{place.location}</Text>
+          </View>
+          <Text style={styles.placeName} numberOfLines={1}>{place.name}</Text>
+          
+          <View style={styles.ratingRow}>
+            <Ionicons name="star" size={12} color="#FFD166" />
+            <Text style={styles.ratingText}>{"4.8"}</Text>
+            <Text style={styles.reviewsText}>{" (1.2k)"}</Text>
+          </View>
+        </View>
+      </View>
+    </Pressable>
+  );
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <FlatList
+        ListHeaderComponent={renderHeader()}
+        data={filteredPlaces}
+        keyExtractor={(item) => item._id}
+        renderItem={renderDestinationCard}
+        numColumns={2}
+        columnWrapperStyle={styles.row}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          loading ? (
+            <View style={styles.loadingState}>
+              <ActivityIndicator size="large" color="#FFD166" />
+              <Text style={styles.loadingText}>Loading gorgeous places...</Text>
+            </View>
+          ) : (
+            <View style={styles.emptyState}>
+              <View style={styles.emptyIconCircle}>
+                <Ionicons name="map-outline" size={40} color="rgba(26, 59, 47, 0.2)" />
+              </View>
+              <Text style={styles.emptyStateTitle}>No results found</Text>
+              <Text style={styles.emptyStateSubtitle}>
+                Try adjusting your search or category filters.
+              </Text>
+            </View>
+          )
+        }
+      />
     </SafeAreaView>
   );
 }
@@ -837,108 +951,574 @@ export default function SearchPlacesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f4f8fb',
+    backgroundColor: '#F0FAF5',
   },
-  content: {
-    padding: 20,
-    gap: 12,
+  fixedHeader: {
+    paddingTop: 12,
   },
   headerRow: {
-    marginTop: 8,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 24,
+    marginBottom: 20,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#0b3a53',
+    fontSize: 32,
+    fontWeight: '900',
+    color: '#1A3B2F',
+    letterSpacing: -1,
   },
   subtitle: {
-    color: '#475569',
     fontSize: 14,
-    lineHeight: 20,
+    color: 'rgba(26, 59, 47, 0.4)',
+    fontWeight: '700',
+  },
+  notificationBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 15,
+    backgroundColor: '#ffffff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  searchBlur: {
+    marginHorizontal: 24,
+    borderRadius: 22,
+    overflow: 'hidden',
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
   },
   searchWrapper: {
-    marginTop: 8,
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#d9e3ea',
-    paddingHorizontal: 12,
-    minHeight: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    paddingHorizontal: 16,
+    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 12,
   },
   searchInput: {
     flex: 1,
-    color: '#0f172a',
-    fontSize: 15,
+    fontSize: 16,
+    color: '#1A3B2F',
+    fontWeight: '700',
   },
-  resultsHeader: {
-    marginTop: 6,
+  categoryBlur: {
+    marginBottom: 8,
   },
-  resultsText: {
+  categoryScroll: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    gap: 12,
+  },
+  categoryPill: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.8)',
+  },
+  categoryPillActive: {
+    backgroundColor: '#1A3B2F',
+    borderColor: '#1A3B2F',
+  },
+  categoryText: {
     fontSize: 13,
-    color: '#64748b',
-    fontWeight: '600',
+    fontWeight: '800',
+    color: 'rgba(26, 59, 47, 0.5)',
+  },
+  categoryTextActive: {
+    color: '#ffffff',
+  },
+  content: {
+    paddingHorizontal: 24,
+    paddingBottom: 24,
+  },
+  row: {
+    justifyContent: 'space-between',
   },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    padding: 14,
-    gap: 6,
+    width: CARD_WIDTH,
+    height: CARD_WIDTH * 1.4,
+    marginBottom: 16,
+    borderRadius: 24,
+    overflow: 'hidden',
+    backgroundColor: '#ffffff',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
   },
-  cardTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  cardImageWrapper: {
+    flex: 1,
+  },
+  cardImage: {
+    width: '100%',
+    height: '100%',
+  },
+  gradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: '60%',
+  },
+  heartIcon: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 10,
+  },
+  cardOverlayContent: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 14,
+  },
+  locationTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 4,
+  },
+  locationText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#FFD166',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   placeName: {
-    flex: 1,
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#ffffff',
+    marginBottom: 4,
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  ratingText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#ffffff',
+    marginLeft: 4,
+  },
+  reviewsText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.7)',
+  },
+  loadingState: {
+    width: width - 48,
+    paddingVertical: 100,
+    alignItems: 'center',
+    gap: 16,
+  },
+  loadingText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: 'rgba(26, 59, 47, 0.3)',
+  },
+  emptyState: {
+    width: width - 48,
+    paddingVertical: 100,
+    alignItems: 'center',
+  },
+  emptyIconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(26, 59, 47, 0.03)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  emptyStateTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#1A3B2F',
+    marginBottom: 4,
+  },
+  emptyStateSubtitle: {
+    fontSize: 14,
+    color: 'rgba(26, 59, 47, 0.4)',
+    fontWeight: '600',
+    textAlign: 'center',
+    paddingHorizontal: 40,
+  },
+  formContainer: {
+    marginTop: 20,
+    gap: 20,
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(26, 59, 47, 0.08)',
+  },
+  inputGroup: {
+    gap: 8,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1A3B2F',
+    marginLeft: 4,
+  },
+  formInput: {
+    backgroundColor: '#F0FAF5',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 15,
+    color: '#1A3B2F',
+    borderWidth: 1,
+    borderColor: 'rgba(26, 59, 47, 0.05)',
+  },
+  textArea: {
+    height: 120,
+    textAlignVertical: 'top',
+  },
+  submitButton: {
+    backgroundColor: '#FFD166',
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  submitButtonText: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#0f172a',
+    color: '#1A3B2F',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
-  badge: {
-    backgroundColor: '#e2f3ff',
-    color: '#075985',
-    fontSize: 11,
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 24,
+    marginBottom: 8,
+    marginLeft: 4,
+    gap: 8,
+  },
+  sectionTitleText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#1A3B2F',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  chipContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 4,
+  },
+  chip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F0FAF5',
+    borderWidth: 1,
+    borderColor: 'rgba(26, 59, 47, 0.1)',
+  },
+  chipActive: {
+    backgroundColor: '#FFD166',
+    borderColor: '#FFD166',
+  },
+  chipText: {
+    fontSize: 13,
     fontWeight: '700',
+    color: 'rgba(26, 59, 47, 0.6)',
+  },
+  chipTextActive: {
+    color: '#1A3B2F',
+  },
+  facilitiesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '45%',
+    marginBottom: 8,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#FFD166',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+  },
+  checkboxChecked: {
+    backgroundColor: '#FFD166',
+  },
+  checkboxLabel: {
+    fontSize: 14,
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  featuredBadge: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFD166',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    gap: 4,
+    zIndex: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  featuredBadgeText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#1A3B2F',
+    textTransform: 'uppercase',
+  },
+  imagePickerMain: {
+    height: 180,
+    backgroundColor: '#F0FAF5',
+    borderRadius: 16,
+    marginTop: 8,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: 'rgba(26, 59, 47, 0.2)',
+    overflow: 'hidden',
+  },
+  previewMain: {
+    width: '100%',
+    height: '100%',
+  },
+  pickerPlaceholder: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  pickerText: {
+    fontSize: 14,
+    color: 'rgba(26, 59, 47, 0.4)',
+    fontWeight: '600',
+  },
+  galleryContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginTop: 8,
+  },
+  galleryItem: {
+    width: '30%',
+    aspectRatio: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  previewGallery: {
+    width: '100%',
+    height: '100%',
+  },
+  removeImage: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+  },
+  imagePickerGallery: {
+    width: '30%',
+    aspectRatio: 1,
+    backgroundColor: '#F0FAF5',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: 'rgba(26, 59, 47, 0.2)',
+  },
+  addRoomButton: {
+    backgroundColor: '#FFD166',
+    width: 50,
+    height: 50,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 22,
+    marginLeft: 10,
+  },
+  roomList: {
+    marginTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(26, 59, 47, 0.05)',
+    paddingTop: 10,
+  },
+  roomListItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0FAF5',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  roomListType: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1A3B2F',
+  },
+  roomListPrice: {
+    fontSize: 12,
+    color: 'rgba(26, 59, 47, 0.6)',
+    fontWeight: '600',
+  },
+  featuredBadge: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFD166',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    gap: 4,
+    zIndex: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  featuredBadgeText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#1A3B2F',
+    textTransform: 'uppercase',
+  },
+  featuredSection: {
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    marginBottom: 12,
+    gap: 8,
+  },
+  featuredSectionTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#1A3B2F',
+  },
+  featuredDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#FFD166',
+  },
+  featuredList: {
+    paddingLeft: 24,
+    paddingRight: 12,
+  },
+  featuredCard: {
+    width: width * 0.75,
+    height: 200,
+    marginRight: 16,
+    borderRadius: 28,
+    overflow: 'hidden',
+    backgroundColor: '#ffffff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
+    elevation: 8,
+  },
+  featuredCardImage: {
+    width: '100%',
+    height: '100%',
+  },
+  featuredGradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: '60%',
+  },
+  featuredInfo: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 20,
+  },
+  featuredTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFD166',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 999,
+    alignSelf: 'flex-start',
+    marginBottom: 8,
+    gap: 4,
+  },
+  featuredTagText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#1A3B2F',
     textTransform: 'uppercase',
   },
-  district: {
-    color: '#334155',
-    fontWeight: '700',
-    fontSize: 13,
+  featuredName: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#ffffff',
+    marginBottom: 4,
   },
-  description: {
-    color: '#475569',
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  emptyState: {
-    marginTop: 30,
-    padding: 28,
+  featuredLocationRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
+    gap: 4,
   },
-  emptyStateText: {
-    color: '#64748b',
+  featuredLocationText: {
     fontSize: 14,
+    color: 'rgba(255,255,255,0.8)',
     fontWeight: '600',
-    textAlign: 'center',
   },
   formContainer: {
     marginTop: 20,
@@ -1240,3 +1820,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+

@@ -9,7 +9,10 @@ import {
   ActivityIndicator,
   SafeAreaView,
   ScrollView,
+<<<<<<< HEAD
   TextInput,
+=======
+>>>>>>> Destination-Management
 } from 'react-native';
 import { API_BASE_URL } from '@/constants/api';
 import { useRouter } from 'expo-router';
@@ -36,7 +39,10 @@ export default function TourPackagesScreen() {
   const [packages, setPackages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('all');
+<<<<<<< HEAD
   const [locationQuery, setLocationQuery] = useState('');
+=======
+>>>>>>> Destination-Management
   const router = useRouter();
 
   useEffect(() => {
@@ -57,6 +63,7 @@ export default function TourPackagesScreen() {
   };
 
   const filteredPackages = useMemo(() => {
+<<<<<<< HEAD
     let list = packages;
     if (selectedCategory !== 'all') {
       list = list.filter((p) => p.category === selectedCategory);
@@ -67,6 +74,11 @@ export default function TourPackagesScreen() {
     }
     return list;
   }, [packages, selectedCategory, locationQuery]);
+=======
+    if (selectedCategory === 'all') return packages;
+    return packages.filter((p) => p.category === selectedCategory);
+  }, [packages, selectedCategory]);
+>>>>>>> Destination-Management
 
   const renderCategoryPill = ({ item }: any) => {
     const isSelected = selectedCategory === item.key;
@@ -112,7 +124,11 @@ export default function TourPackagesScreen() {
 
           <View style={styles.cardMeta}>
             <View style={styles.priceTag}>
+<<<<<<< HEAD
               <Text style={styles.priceText}>LKR {item.price ? Number(item.price).toLocaleString() : 'N/A'}</Text>
+=======
+              <Text style={styles.priceText}>${item.price || 'N/A'}</Text>
+>>>>>>> Destination-Management
             </View>
 
             <View style={styles.metaInfo}>
@@ -180,6 +196,7 @@ export default function TourPackagesScreen() {
             contentContainerStyle={styles.categoryList}
           />
 
+<<<<<<< HEAD
           {/* Location Search */}
           <View style={styles.searchRow}>
             <View style={styles.searchInputWrap}>
@@ -197,6 +214,8 @@ export default function TourPackagesScreen() {
             </Pressable>
           </View>
 
+=======
+>>>>>>> Destination-Management
           {/* Package Cards */}
           {filteredPackages.length === 0 ? (
             <View style={styles.emptyContainer}>
@@ -265,6 +284,7 @@ const styles = StyleSheet.create({
   },
   categoryList: {
     gap: 8,
+<<<<<<< HEAD
     marginBottom: 12,
   },
   searchRow: {
@@ -290,6 +310,9 @@ const styles = StyleSheet.create({
   },
   clearButton: {
     padding: 8,
+=======
+    marginBottom: 20,
+>>>>>>> Destination-Management
   },
   categoryPill: {
     paddingHorizontal: 14,

@@ -1,12 +1,17 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
+<<<<<<< HEAD
 import { View, Text, StyleSheet, FlatList, SafeAreaView, Pressable, ActivityIndicator, Alert, ScrollView, TextInput } from 'react-native';
+=======
+import { View, Text, StyleSheet, FlatList, SafeAreaView, Pressable, ActivityIndicator, Alert, Platform } from 'react-native';
+>>>>>>> Destination-Management
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { API_BASE_URL } from '@/constants/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+<<<<<<< HEAD
 const DASHBOARD_PRIMARY = '#1A3B2F';
 const DASHBOARD_SECONDARY = '#2D5C4D';
 
@@ -83,6 +88,13 @@ export default function TourPackagesScreen() {
     });
   }, [publishedPackages, searchQuery, selectedCategory, selectedPriceFilter, selectedDurationFilter]);
 
+=======
+export default function TourPackagesScreen() {
+  const [packages, setPackages] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+
+>>>>>>> Destination-Management
   const fetchTourPackages = async () => {
     try {
       setLoading(true);
@@ -102,6 +114,7 @@ export default function TourPackagesScreen() {
         }
       });
 
+<<<<<<< HEAD
       console.log('Fetch response status:', response.status);
       console.log('API URL:', `${API_BASE_URL}/admin/tour-packages`);
       
@@ -118,6 +131,18 @@ export default function TourPackagesScreen() {
     } catch (error: any) {
       console.error("Fetch tour packages failed:", error.message);
       Alert.alert("Error", error.message || "Could not connect to the database.");
+=======
+      const data = await response.json();
+      
+      if (response.ok) {
+        setPackages(data);
+      } else {
+        throw new Error(data.message || "Failed to fetch tour packages.");
+      }
+    } catch (error: any) {
+      console.error("Fetch tour packages failed:", error);
+      Alert.alert("API Error", error.message || "Could not connect to the database.");
+>>>>>>> Destination-Management
     } finally {
       setLoading(false);
     }
@@ -142,10 +167,13 @@ export default function TourPackagesScreen() {
     router.push(`/admin/edit-tour-package/${packageId}`);
   };
 
+<<<<<<< HEAD
   const handleViewPackage = (packageId: string) => {
     router.push(`/tour-packages/${packageId}`);
   };
 
+=======
+>>>>>>> Destination-Management
   const handleDeletePackage = async (packageId: string) => {
     Alert.alert(
       "Confirm Delete",
@@ -166,6 +194,7 @@ export default function TourPackagesScreen() {
                 }
               });
 
+<<<<<<< HEAD
               console.log('Delete response status:', response.status);
 
               if (!response.ok) {
@@ -179,6 +208,16 @@ export default function TourPackagesScreen() {
               fetchTourPackages();
             } catch (error: any) {
               console.error("Delete error:", error.message);
+=======
+              if (response.ok) {
+                Alert.alert("Success", "Tour package deleted successfully");
+                fetchTourPackages();
+              } else {
+                const data = await response.json();
+                Alert.alert("Error", data.message || "Failed to delete tour package");
+              }
+            } catch (error: any) {
+>>>>>>> Destination-Management
               Alert.alert("Error", error.message || "An error occurred while deleting");
             }
           }
@@ -189,7 +228,11 @@ export default function TourPackagesScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+<<<<<<< HEAD
       <StatusBar style="dark" backgroundColor="#FFFFFF" />
+=======
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+>>>>>>> Destination-Management
       
       {/* Header */}
       <View style={styles.header}>
@@ -212,6 +255,7 @@ export default function TourPackagesScreen() {
         <Text style={styles.addButtonText}>Add Tour Package</Text>
       </Pressable>
 
+<<<<<<< HEAD
       <View style={styles.filtersPanel}>
         <View style={styles.searchInputWrap}>
           <Ionicons name="search" size={18} color="#6B7280" />
@@ -259,12 +303,15 @@ export default function TourPackagesScreen() {
         </ScrollView>
       </View>
 
+=======
+>>>>>>> Destination-Management
       {/* Content */}
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#1A3B2F" />
           <Text style={styles.loadingText}>Loading tour packages...</Text>
         </View>
+<<<<<<< HEAD
       ) : publishedPackages.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="briefcase-outline" size={64} color="#C0C0C0" />
@@ -283,6 +330,20 @@ export default function TourPackagesScreen() {
           renderItem={({ item }) => (
             <View style={styles.packageCard}>
               <Pressable style={styles.packageInfo} onPress={() => handleViewPackage(item._id)}>
+=======
+      ) : packages.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="briefcase-outline" size={64} color="#C0C0C0" />
+          <Text style={styles.emptyText}>No tour packages found</Text>
+          <Text style={styles.emptySubtext}>Create one by clicking the button above</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={packages}
+          renderItem={({ item }) => (
+            <View style={styles.packageCard}>
+              <View style={styles.packageInfo}>
+>>>>>>> Destination-Management
                 <Text style={styles.packageName}>{item.name || 'Unnamed Package'}</Text>
                 <Text style={styles.packageDescription} numberOfLines={2}>
                   {item.description || 'No description'}
@@ -290,7 +351,11 @@ export default function TourPackagesScreen() {
                 <View style={styles.packageDetails}>
                   <View style={styles.detailBadge}>
                     <Text style={styles.badgeText}>
+<<<<<<< HEAD
                       LKR {item.price ? Number(item.price).toLocaleString() : 'N/A'}
+=======
+                      ${item.price || 'N/A'}
+>>>>>>> Destination-Management
                     </Text>
                   </View>
                   <View style={styles.detailBadge}>
@@ -299,7 +364,11 @@ export default function TourPackagesScreen() {
                     </Text>
                   </View>
                 </View>
+<<<<<<< HEAD
               </Pressable>
+=======
+              </View>
+>>>>>>> Destination-Management
               <View style={styles.packageActions}>
                 <Pressable 
                   style={({ pressed }) => [
@@ -333,6 +402,7 @@ export default function TourPackagesScreen() {
   );
 }
 
+<<<<<<< HEAD
 function FilterChip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
   return (
     <Pressable
@@ -348,6 +418,8 @@ function FilterChip({ label, selected, onPress }: { label: string; selected: boo
   );
 }
 
+=======
+>>>>>>> Destination-Management
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -369,7 +441,11 @@ const styles = StyleSheet.create({
   },
   addButton: {
     flexDirection: 'row',
+<<<<<<< HEAD
     backgroundColor: DASHBOARD_PRIMARY,
+=======
+    backgroundColor: '#1A8E5F',
+>>>>>>> Destination-Management
     marginHorizontal: 20,
     marginVertical: 16,
     paddingHorizontal: 16,
@@ -387,6 +463,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 16,
   },
+<<<<<<< HEAD
   filtersPanel: {
     marginHorizontal: 20,
     marginBottom: 8,
@@ -443,6 +520,8 @@ const styles = StyleSheet.create({
   filterChipTextSelected: {
     color: '#FFFFFF',
   },
+=======
+>>>>>>> Destination-Management
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -529,9 +608,16 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   editButton: {
+<<<<<<< HEAD
     backgroundColor: DASHBOARD_PRIMARY,
   },
   deleteButton: {
     backgroundColor: DASHBOARD_SECONDARY,
+=======
+    backgroundColor: '#4A90E2',
+  },
+  deleteButton: {
+    backgroundColor: '#E74C3C',
+>>>>>>> Destination-Management
   },
 });
