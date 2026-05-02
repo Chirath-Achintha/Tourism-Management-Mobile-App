@@ -188,6 +188,11 @@ export const Sidebar = ({ isVisible, onClose }: SidebarProps) => {
                   onPress={() => handleNavigate('/admin/users')}
                 />
                 <SidebarItem
+                  icon="map-outline"
+                  label="Destination Management"
+                  onPress={() => handleNavigate('/admin/destinations')}
+                />
+                <SidebarItem
                   icon="airplane-outline"
                   label="Tour Packages"
                   onPress={() => handleNavigate('/admin/tour-packages')}

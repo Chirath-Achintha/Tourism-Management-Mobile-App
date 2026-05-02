@@ -150,7 +150,15 @@ const HotelManagerDashboardContent = ({ user, onLogout, onOpenSidebar }: any) =>
   </ScrollView>
 );
 
-const AdminDashboardContent = ({ user, onLogout, onOpenSidebar }: any) => (
+const AdminDashboardContent = ({ 
+  user, 
+  onLogout, 
+  onOpenSidebar,
+  onManageDestinations,
+  onManagePackages,
+  onManageHotels,
+  onManageUsers
+}: any) => (
   <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
     <View style={styles.header}>
       <View style={styles.headerLeft}>
@@ -185,6 +193,28 @@ const AdminDashboardContent = ({ user, onLogout, onOpenSidebar }: any) => (
         <Text style={styles.statNumber}>312</Text>
         <Text style={styles.statLabel}>Active</Text>
       </View>
+    </View>
+
+    <Text style={styles.sectionTitle}>Quick Management</Text>
+    <View style={styles.quickActionsGrid}>
+      <Pressable style={styles.quickActionItem} onPress={onManageDestinations}>
+        <View style={[styles.actionIcon, { backgroundColor: 'rgba(255, 209, 102, 0.2)' }]}>
+          <Ionicons name="map-outline" size={24} color="#FFD166" />
+        </View>
+        <Text style={styles.actionLabel}>Destinations</Text>
+      </Pressable>
+      <Pressable style={styles.quickActionItem} onPress={onManagePackages}>
+        <View style={[styles.actionIcon, { backgroundColor: 'rgba(129, 199, 132, 0.2)' }]}>
+          <Ionicons name="airplane-outline" size={24} color="#81C784" />
+        </View>
+        <Text style={styles.actionLabel}>Packages</Text>
+      </Pressable>
+      <Pressable style={styles.quickActionItem} onPress={onManageHotels}>
+        <View style={[styles.actionIcon, { backgroundColor: 'rgba(100, 181, 246, 0.2)' }]}>
+          <Ionicons name="business-outline" size={24} color="#64B5F6" />
+        </View>
+        <Text style={styles.actionLabel}>Hotels</Text>
+      </Pressable>
     </View>
 
     <View style={styles.managerCard}>
@@ -282,6 +312,10 @@ export default function DashboardScreen() {
             user={user} 
             onLogout={handleLogout} 
             onOpenSidebar={() => setSidebarVisible(true)}
+            onManageDestinations={() => router.push('/admin/destinations')}
+            onManagePackages={() => router.push('/admin/tour-packages')}
+            onManageHotels={() => router.push('/admin/hotels')}
+            onManageUsers={() => router.push('/admin/users')}
           />
         ) : user?.role === 'hotel_manager' ? (
           <HotelManagerDashboardContent 
