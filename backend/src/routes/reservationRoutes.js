@@ -7,6 +7,7 @@ import {
   cancelReservation,
   updateReservation,
   getReservationById,
+  getReservationStats,
 } from '../controller/reservationController.js';
 import { protect, adminOnly } from '../middleware/authMiddleware.js';
 import { uploadDoc } from '../middleware/uploadMiddleware.js';
@@ -16,6 +17,7 @@ const router = express.Router();
 // User & Admin routes
 router.post('/', protect, uploadDoc.single('document'), createReservation);
 router.get('/my', protect, getMyReservations);
+router.get('/stats', protect, getReservationStats);
 router.get('/:id', protect, getReservationById);
 router.put('/:id', protect, uploadDoc.single('document'), updateReservation);
 

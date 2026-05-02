@@ -64,6 +64,20 @@ export default function ReservationFormScreen() {
       return;
     }
 
+    if (parseInt(numberOfPeople) <= 0) {
+      Alert.alert('Invalid Input', 'Number of people must be at least 1.');
+      return;
+    }
+
+    const selectedDate = new Date(travelDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (isNaN(selectedDate.getTime()) || selectedDate < today) {
+      Alert.alert('Invalid Date', 'Please enter a valid future travel date (YYYY-MM-DD).');
+      return;
+    }
+
     try {
       setLoading(true);
       const token = await AsyncStorage.getItem('auth:token');
