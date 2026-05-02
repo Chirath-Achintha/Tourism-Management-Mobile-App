@@ -10,7 +10,11 @@ import {
   Alert,
   ActivityIndicator,
   Platform,
+  Dimensions,
 } from 'react-native';
+
+const { width } = Dimensions.get('window');
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -227,7 +231,44 @@ export default function ProfileScreen() {
             )}
           </View>
           
+          {user?.role === 'admin' && (
+
+            <View style={styles.infoCard}>
+              <Text style={[styles.sectionTitle, { marginBottom: 20 }]}>Admin Control Panel</Text>
+              <View style={styles.adminGrid}>
+                <Pressable style={styles.adminTool} onPress={() => router.push('/admin/users')}>
+                  <View style={[styles.toolIcon, { backgroundColor: '#E3F2FD' }]}>
+                    <Ionicons name="people" size={24} color="#1E88E5" />
+                  </View>
+                  <Text style={styles.toolLabel}>Users</Text>
+                </Pressable>
+                
+                <Pressable style={styles.adminTool} onPress={() => router.push('/admin/hotels')}>
+                  <View style={[styles.toolIcon, { backgroundColor: '#F3E5F5' }]}>
+                    <Ionicons name="business" size={24} color="#8E24AA" />
+                  </View>
+                  <Text style={styles.toolLabel}>Hotels</Text>
+                </Pressable>
+
+                <Pressable style={styles.adminTool} onPress={() => router.push('/admin/reviews')}>
+                  <View style={[styles.toolIcon, { backgroundColor: '#FFF3E0' }]}>
+                    <Ionicons name="star" size={24} color="#FB8C00" />
+                  </View>
+                  <Text style={styles.toolLabel}>Reviews</Text>
+                </Pressable>
+
+                <Pressable style={styles.adminTool} onPress={() => router.push('/admin/destinations')}>
+                  <View style={[styles.toolIcon, { backgroundColor: '#E8F5E9' }]}>
+                    <Ionicons name="map" size={24} color="#43A047" />
+                  </View>
+                  <Text style={styles.toolLabel}>Places</Text>
+                </Pressable>
+              </View>
+            </View>
+          )}
+
           <Pressable style={styles.supportCard}>
+
             <View style={styles.supportIcon}>
               <Ionicons name="help-circle" size={24} color="#1A3B2F" />
             </View>
@@ -442,7 +483,30 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(26, 59, 47, 0.05)',
   },
+  adminGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 15,
+  },
+  adminTool: {
+    width: (width - 48 - 48 - 30) / 3, // Adjust based on padding
+    alignItems: 'center',
+    gap: 8,
+  },
+  toolIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toolLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1A3B2F',
+  },
   supportIcon: {
+
     width: 48,
     height: 48,
     borderRadius: 14,

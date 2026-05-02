@@ -30,7 +30,21 @@ const AUTH_USER_KEY = "auth:user";
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48 - 16) / 2;
 
-const CATEGORIES = ['All', 'Beach', 'Mountain', 'City', 'Cultural'];
+const CATEGORIES = ['All', 'Beach', 'Mountain', 'City', 'Cultural', 'Nature', 'Landmark', 'Adventure', 'Wildlife', 'Religious', 'Historical'];
+
+const CATEGORY_ICONS: any = {
+  'All': 'grid-outline',
+  'Beach': 'sunny-outline',
+  'Mountain': 'trail-sign-outline',
+  'City': 'business-outline',
+  'Cultural': 'color-palette-outline',
+  'Nature': 'leaf-outline',
+  'Landmark': 'map-outline',
+  'Adventure': 'bicycle-outline',
+  'Wildlife': 'paw-outline',
+  'Religious': 'partly-sunny-outline',
+  'Historical': 'library-outline'
+};
 
 export default function SearchPlacesScreen() {
   const [query, setQuery] = useState('');
@@ -824,6 +838,9 @@ export default function SearchPlacesScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.featuredList}
             keyExtractor={(item) => `featured-${item._id}`}
+            snapToInterval={width * 0.75 + 16}
+            decelerationRate="fast"
+            snapToAlignment="start"
             renderItem={({ item: place }) => (
               <Pressable 
                 style={styles.featuredCard}
@@ -858,22 +875,30 @@ export default function SearchPlacesScreen() {
           showsHorizontalScrollIndicator={false} 
           contentContainerStyle={styles.categoryScroll}
           keyExtractor={(item) => item}
-          renderItem={({ item: cat }) => (
-            <Pressable
-              onPress={() => setSelectedCategory(cat)}
-              style={[
-                styles.categoryPill,
-                selectedCategory === cat && styles.categoryPillActive
-              ]}
-            >
-              <Text style={[
-                styles.categoryText,
-                selectedCategory === cat && styles.categoryTextActive
-              ]}>
-                {cat}
-              </Text>
-            </Pressable>
-          )}
+          renderItem={({ item: cat }) => {
+            const isActive = selectedCategory === cat;
+            return (
+              <Pressable
+                onPress={() => setSelectedCategory(cat)}
+                style={[
+                  styles.categoryPill,
+                  isActive && styles.categoryPillActive
+                ]}
+              >
+                <Ionicons 
+                  name={CATEGORY_ICONS[cat] || 'pin-outline'} 
+                  size={18} 
+                  color={isActive ? '#ffffff' : 'rgba(26, 59, 47, 0.4)'} 
+                />
+                <Text style={[
+                  styles.categoryText,
+                  isActive && styles.categoryTextActive
+                ]}>
+                  {cat}
+                </Text>
+              </Pressable>
+            );
+          }}
         />
       </BlurView>
     </View>
@@ -976,10 +1001,10 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '900',
     color: '#1A3B2F',
-    letterSpacing: -1,
+    letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 14,
@@ -1001,16 +1026,21 @@ const styles = StyleSheet.create({
   },
   searchBlur: {
     marginHorizontal: 24,
-    borderRadius: 22,
+    borderRadius: 20,
     overflow: 'hidden',
-    marginBottom: 16,
+    marginBottom: 24,
+    backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
+    borderColor: 'rgba(26, 59, 47, 0.05)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 3,
   },
   searchWrapper: {
-    backgroundColor: 'rgba(255, 255, 255, 0.4)',
-    paddingHorizontal: 16,
-    height: 56,
+    paddingHorizontal: 18,
+    height: 52,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
@@ -1030,12 +1060,20 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   categoryPill: {
-    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+    borderRadius: 18,
+    backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.8)',
+    borderColor: 'rgba(26, 59, 47, 0.05)',
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.02,
+    shadowRadius: 8,
+    elevation: 1,
   },
   categoryPillActive: {
     backgroundColor: '#1A3B2F',
@@ -1455,6 +1493,7 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
     backgroundColor: '#FFD166',
+    marginLeft: -2,
   },
   featuredList: {
     paddingLeft: 24,
@@ -1489,7 +1528,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 20,
+    padding: 16,
   },
   featuredTag: {
     flexDirection: 'row',

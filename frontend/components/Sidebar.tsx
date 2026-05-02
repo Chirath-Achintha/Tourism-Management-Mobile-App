@@ -193,6 +193,11 @@ export const Sidebar = ({ isVisible, onClose }: SidebarProps) => {
                   onPress={() => handleNavigate('/admin/users')}
                 />
                 <SidebarItem
+                  icon="map-outline"
+                  label="Destination Management"
+                  onPress={() => handleNavigate('/admin/destinations')}
+                />
+                <SidebarItem
                   icon="airplane-outline"
                   label="Tour Packages"
                   onPress={() => handleNavigate('/admin/tour-packages')}
@@ -212,6 +217,12 @@ export const Sidebar = ({ isVisible, onClose }: SidebarProps) => {
                   label="Reservation Management"
                   onPress={() => handleNavigate('/admin/reservations')}
                 />
+                <SidebarItem
+                  icon="star-outline"
+                  label="Review Management"
+                  onPress={() => handleNavigate('/admin/reviews')}
+                />
+
               </>
             )}
             {user?.role === 'hotel_manager' && (

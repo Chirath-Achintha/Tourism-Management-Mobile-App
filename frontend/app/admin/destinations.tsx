@@ -25,8 +25,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 
-type Category = 'Beach' | 'Mountain' | 'City' | 'Cultural';
-const CATEGORIES: Category[] = ['Beach', 'Mountain', 'City', 'Cultural'];
+type Category = 'Beach' | 'Mountain' | 'City' | 'Cultural' | 'Nature' | 'Landmark' | 'Adventure' | 'Wildlife' | 'Religious' | 'Historical';
+const CATEGORIES: Category[] = ['Beach', 'Mountain', 'City', 'Cultural', 'Nature', 'Landmark', 'Adventure', 'Wildlife', 'Religious', 'Historical'];
 
 export default function DestinationsManagementScreen() {
   const [destinations, setDestinations] = useState<any[]>([]);
@@ -41,7 +41,6 @@ export default function DestinationsManagementScreen() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [description, setDescription] = useState('');
   const [images, setImages] = useState<string[]>([]);
-  const [startingPrice, setStartingPrice] = useState('');
   const [averageTemp, setAverageTemp] = useState('25°C');
   const [bestTimeToVisit, setBestTimeToVisit] = useState('Year-round');
   const [isFeatured, setIsFeatured] = useState(false);
@@ -95,7 +94,6 @@ export default function DestinationsManagementScreen() {
     setSelectedCategories([]);
     setDescription('');
     setImages([]);
-    setStartingPrice('');
     setAverageTemp('25°C');
     setBestTimeToVisit('Year-round');
     setIsFeatured(false);
@@ -124,7 +122,6 @@ export default function DestinationsManagementScreen() {
       formData.append('location', location);
       formData.append('categories', JSON.stringify(selectedCategories));
       formData.append('description', description);
-      formData.append('startingPrice', startingPrice);
       formData.append('averageTemp', averageTemp);
       formData.append('bestTimeToVisit', bestTimeToVisit);
       formData.append('isFeatured', String(isFeatured));
@@ -194,7 +191,6 @@ export default function DestinationsManagementScreen() {
     setLocation(item.location);
     setSelectedCategories(item.categories || []);
     setDescription(item.description);
-    setStartingPrice(item.startingPrice?.toString() || '');
     setAverageTemp(item.averageTemp || '25°C');
     setBestTimeToVisit(item.bestTimeToVisit || 'Year-round');
     setIsFeatured(item.isFeatured || false);
@@ -398,16 +394,6 @@ export default function DestinationsManagementScreen() {
                 />
 
                 <View style={{ flexDirection: 'row', gap: 12 }}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.inputLabel}>Starting Price ($)</Text>
-                    <TextInput
-                      style={styles.input}
-                      value={startingPrice}
-                      onChangeText={setStartingPrice}
-                      placeholder="e.g. 150"
-                      keyboardType="numeric"
-                    />
-                  </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.inputLabel}>Temp</Text>
                     <TextInput

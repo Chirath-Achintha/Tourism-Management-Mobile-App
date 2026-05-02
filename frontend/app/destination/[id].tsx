@@ -12,7 +12,10 @@ import {
   FlatList,
   Linking,
   Platform,
+  Alert,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -21,35 +24,128 @@ import { BlurView } from 'expo-blur';
 import { API_BASE_URL } from '@/constants/api';
 import * as WebBrowser from 'expo-web-browser';
 
+// Import Premium Components
+import { ReviewCard } from '@/components/reviews/ReviewCard';
+import { RatingSummary } from '@/components/reviews/RatingSummary';
+import { AddReviewModal } from '@/components/reviews/AddReviewModal';
+
+
 const { width, height } = Dimensions.get('window');
 
 export default function DestinationDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const [destination, setDestination] = useState<any>(null);
+  const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [packages, setPackages] = useState<any[]>([]);
   const [isFavorite, setIsFavorite] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [editingReview, setEditingReview] = useState<any | null>(null);
+
+  const fetchUserData = async () => {
+    try {
+      const userData = await AsyncStorage.getItem('auth:user');
+      if (userData) {
+        const user = JSON.parse(userData);
+        setUserId(user._id || user.id);
+      }
+    } catch (error) {
+      console.error("Failed to load user data", error);
+    }
+  };
+
+
+
+
+  const fetchDestination = async (silent = false) => {
+    try {
+      if (!silent) setLoading(true);
+      const [destRes, reviewsRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/destinations/${id}`),
+        fetch(`${API_BASE_URL}/reviews/destination/${id}`)
+      ]);
+      
+      const destData = await destRes.json();
+      const reviewsData = await reviewsRes.json();
+
+      if (destRes.ok) setDestination(destData);
+      if (reviewsRes.ok) setReviews(reviewsData);
+    } catch (error) {
+      console.error("Fetch destination details failed:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   useEffect(() => {
-    const fetchDestination = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch(`${API_BASE_URL}/destinations/${id}`);
-        const data = await response.json();
-        if (response.ok) {
-          setDestination(data);
-        }
-      } catch (error) {
-        console.error("Fetch destination failed:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (id) fetchDestination();
+    if (id) {
+      fetchDestination();
+      fetchUserData();
+    }
   }, [id]);
+
+  const handleDeleteReview = async (reviewId: string) => {
+    Alert.alert(
+      "Delete Review",
+      "Are you sure you want to remove your review?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Delete", 
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const token = await AsyncStorage.getItem('auth:token');
+              const response = await fetch(`${API_BASE_URL}/reviews/${reviewId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
+              if (response.ok) {
+                fetchDestination(true);
+              } else {
+                const data = await response.json();
+                Alert.alert("Error", data.message || "Failed to delete review");
+              }
+            } catch (error) {
+              Alert.alert("Error", "Network error occurred");
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleEditReview = (review: any) => {
+    setEditingReview(review);
+    setModalVisible(true);
+  };
+
+
+
+  // Calculate Stats
+  const reviewStats = React.useMemo(() => {
+    if (reviews.length === 0) return { average: 0, total: 0, happyTravelers: 0, satisfaction: 0 };
+    const total = reviews.length;
+    const sum = reviews.reduce((acc, r) => acc + r.rating, 0);
+    const average = sum / total;
+    // Happy travelers = anyone who left a positive review (3+ stars)
+    const happy = reviews.filter(r => r.rating >= 3).length;
+    // Satisfaction rate = percentage of 3+ star reviews
+    const satisfaction = Math.round((happy / total) * 100);
+    
+    return { 
+      average, 
+      total, 
+      happyTravelers: total, // Show total reviewers as travelers
+      satisfaction 
+    };
+  }, [reviews]);
+
+
 
   useEffect(() => {
     const fetchPackages = async () => {
@@ -149,7 +245,15 @@ export default function DestinationDetailScreen() {
 
           <View style={styles.headerTitleContainer} pointerEvents="none">
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <Text style={styles.destinationName}>{destination.name}</Text>
+              <Text 
+                style={[
+                  styles.destinationName, 
+                  destination.name.length > 20 && { fontSize: 24 }
+                ]}
+                numberOfLines={3}
+              >
+                {destination.name}
+              </Text>
               {destination.isFeatured && (
                 <View style={styles.featuredBadge}>
                   <Ionicons name="star" size={12} color="#1A3B2F" />
@@ -179,34 +283,20 @@ export default function DestinationDetailScreen() {
 
         {/* Details Section */}
         <View style={styles.detailsContainer}>
-          <View style={styles.titleSection}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <Text style={styles.name}>{destination.name}</Text>
-              {destination.isFeatured && (
-                <View style={styles.featuredBadge}>
-                  <Ionicons name="star" size={12} color="#1A3B2F" />
-                  <Text style={styles.featuredText}>Featured</Text>
-                </View>
-              )}
-            </View>
-            <View style={styles.locationRowMain}>
-              <Ionicons name="location" size={16} color="#FFD166" />
-              <Text style={styles.location}>{destination.location}</Text>
-            </View>
-          </View>
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
-              <View style={[styles.statIcon, { backgroundColor: '#F0FAF5' }]}>
+              <View style={[styles.statIcon, { backgroundColor: '#FFF9E6' }]}>
                 <Ionicons name="star" size={20} color="#FFD166" />
               </View>
               <View>
-                <Text style={styles.statValue}>{destination.averageRating || "4.8"}</Text>
+                <Text style={styles.statValue}>{reviewStats.total > 0 ? reviewStats.average.toFixed(1) : "4.8"}</Text>
                 <Text style={styles.statLabel}>Rating</Text>
               </View>
+
             </View>
             <View style={styles.statItem}>
-              <View style={[styles.statIcon, { backgroundColor: '#F0FAF5' }]}>
-                <Ionicons name="calendar-outline" size={20} color="#1A3B2F" />
+              <View style={[styles.statIcon, { backgroundColor: '#F0F7FF' }]}>
+                <Ionicons name="calendar-outline" size={20} color="#1565C0" />
               </View>
               <View>
                 <Text style={styles.statValue}>{destination.bestTimeToVisit || "Year-round"}</Text>
@@ -214,8 +304,8 @@ export default function DestinationDetailScreen() {
               </View>
             </View>
             <View style={styles.statItem}>
-              <View style={[styles.statIcon, { backgroundColor: '#F0FAF5' }]}>
-                <Ionicons name="thermometer-outline" size={20} color="#1A3B2F" />
+              <View style={[styles.statIcon, { backgroundColor: '#FFF0F0' }]}>
+                <Ionicons name="thermometer-outline" size={20} color="#FF4D4D" />
               </View>
               <View>
                 <Text style={styles.statValue}>{destination.averageTemp || "24°C"}</Text>
@@ -267,7 +357,6 @@ export default function DestinationDetailScreen() {
                   await WebBrowser.openBrowserAsync(url);
                 } catch (error) {
                   console.error("Error opening map:", error);
-                  // Final fallback to Linking if WebBrowser fails
                   Linking.openURL(url);
                 }
               }}
@@ -294,20 +383,38 @@ export default function DestinationDetailScreen() {
           <View style={{ height: 100 }} />
         </View>
       </ScrollView>
+      {/* Submission Modal */}
+      <AddReviewModal 
+        visible={modalVisible}
+        onClose={() => {
+          setModalVisible(false);
+          setEditingReview(null);
+        }}
+        onSuccess={() => fetchDestination(true)}
+        targetId={id as string}
+        targetType="destination"
+        targetName={destination?.name}
+        initialData={editingReview}
+      />
+
       <BlurView intensity={90} tint="light" style={styles.footer}>
         <View style={styles.footerContent}>
+
           <View>
             <Text style={styles.priceLabel}>Starting from</Text>
             <Text style={styles.priceValue}>${destination.startingPrice || "150"}<Text style={styles.perPerson}>/person</Text></Text>
           </View>
-          <Pressable style={styles.bookBtn} onPress={() => router.push(`/tour-packages?destinationId=${encodeURIComponent(String(id || ''))}` as any)}>
+          <Pressable style={styles.bookBtn} onPress={() => router.push('/tour-packages')}>
             <Text style={styles.bookBtnText}>Packages</Text>
           </Pressable>
         </View>
+
       </BlurView>
     </View>
   );
 }
+
+
 
 const styles = StyleSheet.create({
   container: {
@@ -383,9 +490,10 @@ const styles = StyleSheet.create({
   },
   destinationName: {
     color: '#ffffff',
-    fontSize: 36,
+    fontSize: 32,
     fontWeight: '900',
-    letterSpacing: -1,
+    letterSpacing: -0.5,
+    lineHeight: 38,
   },
   pagination: {
     position: 'absolute',
@@ -409,10 +517,11 @@ const styles = StyleSheet.create({
   },
   detailsContainer: {
     padding: 24,
-    marginTop: -20,
+    paddingTop: 36,
+    marginTop: -30,
     backgroundColor: '#ffffff',
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
+    borderTopLeftRadius: 36,
+    borderTopRightRadius: 36,
   },
   statsRow: {
     flexDirection: 'row',
@@ -449,10 +558,10 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: 15,
-    color: 'rgba(26, 59, 47, 0.6)',
+    color: 'rgba(26, 59, 47, 0.7)',
     lineHeight: 24,
-    fontWeight: '500',
-    marginBottom: 24,
+    fontWeight: '600',
+    marginBottom: 32,
   },
   packageSection: {
     marginBottom: 8,
@@ -512,7 +621,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     color: '#1A3B2F',
-    textTransform: 'uppercase',
+    textTransform: 'capitalize',
   },
   footer: {
     position: 'absolute',
@@ -663,3 +772,5 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
 });
+
+

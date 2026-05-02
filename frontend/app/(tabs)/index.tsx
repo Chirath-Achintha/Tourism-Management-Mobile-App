@@ -7,6 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Sidebar } from '@/components/Sidebar';
 import { API_BASE_URL } from '@/constants/api';
 
+
 const AUTH_USER_KEY = "auth:user";
 const AUTH_STATUS_KEY = "auth:isSignedIn";
 const AUTH_TOKEN_KEY = "auth:token";
@@ -15,7 +16,8 @@ const ONBOARDING_SEEN_KEY = "onboarding:seen";
 // --- Components ---
 
 //const TouristDashboardContent = ({ user, onLogout, onExplore, onOpenSidebar }: any) => (
-const TouristDashboardContent = ({ user, stats, onLogout, onExplore, onOpenReviews, onOpenSidebar }: any) => (
+const TouristDashboardContent = ({ user, stats, onLogout, onExplore, onOpenSidebar }: any) => (
+
   <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
     <View style={styles.header}>
       <View style={styles.headerLeft}>
@@ -62,9 +64,7 @@ const TouristDashboardContent = ({ user, stats, onLogout, onExplore, onOpenRevie
       <Pressable style={styles.actionButton} onPress={onExplore}>
         <Text style={styles.actionButtonText}>Explore Options</Text>
       </Pressable>
-     <Pressable style={styles.reviewButton} onPress={onOpenReviews}>
-  <Text style={styles.reviewButtonText}>Review & Ratings</Text>
-</Pressable>
+
     </View>
   </ScrollView>
 );
@@ -124,7 +124,16 @@ const HotelManagerDashboardContent = ({ user, stats, onLogout, onAddHotel, onMyH
   </ScrollView>
 );
 
-const AdminDashboardContent = ({ user, stats, onLogout, onOpenSidebar }: any) => (
+const AdminDashboardContent = ({ 
+  user, 
+  stats,
+  onLogout, 
+  onOpenSidebar,
+  onManageDestinations,
+  onManagePackages,
+  onManageHotels,
+  onManageUsers
+}: any) => (
   <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
     <View style={styles.header}>
       <View style={styles.headerLeft}>
@@ -159,6 +168,28 @@ const AdminDashboardContent = ({ user, stats, onLogout, onOpenSidebar }: any) =>
         <Text style={styles.statNumber}>{stats.approved}</Text>
         <Text style={styles.statLabel}>Approved</Text>
       </View>
+    </View>
+
+    <Text style={styles.sectionTitle}>Quick Management</Text>
+    <View style={styles.quickActionsGrid}>
+      <Pressable style={styles.quickActionItem} onPress={onManageDestinations}>
+        <View style={[styles.actionIcon, { backgroundColor: 'rgba(255, 209, 102, 0.2)' }]}>
+          <Ionicons name="map-outline" size={24} color="#FFD166" />
+        </View>
+        <Text style={styles.actionLabel}>Destinations</Text>
+      </Pressable>
+      <Pressable style={styles.quickActionItem} onPress={onManagePackages}>
+        <View style={[styles.actionIcon, { backgroundColor: 'rgba(129, 199, 132, 0.2)' }]}>
+          <Ionicons name="airplane-outline" size={24} color="#81C784" />
+        </View>
+        <Text style={styles.actionLabel}>Packages</Text>
+      </Pressable>
+      <Pressable style={styles.quickActionItem} onPress={onManageHotels}>
+        <View style={[styles.actionIcon, { backgroundColor: 'rgba(100, 181, 246, 0.2)' }]}>
+          <Ionicons name="business-outline" size={24} color="#64B5F6" />
+        </View>
+        <Text style={styles.actionLabel}>Hotels</Text>
+      </Pressable>
     </View>
 
     <View style={styles.managerCard}>
@@ -283,6 +314,10 @@ export default function DashboardScreen() {
             stats={stats}
             onLogout={handleLogout} 
             onOpenSidebar={() => setSidebarVisible(true)}
+            onManageDestinations={() => router.push('/admin/destinations')}
+            onManagePackages={() => router.push('/admin/tour-packages')}
+            onManageHotels={() => router.push('/admin/hotels')}
+            onManageUsers={() => router.push('/admin/users')}
           />
         ) : user?.role === 'hotel_manager' ? (
           <HotelManagerDashboardContent 
@@ -299,8 +334,8 @@ export default function DashboardScreen() {
   stats={stats}
   onLogout={handleLogout} 
   onExplore={() => router.push('/(tabs)/explore')} 
-  onOpenReviews={() => router.push('/reviews')} 
   onOpenSidebar={() => setSidebarVisible(true)}
+
 />
         )}
       </SafeAreaView>
