@@ -1,7 +1,7 @@
 import express from "express";
 import { getAllUsers, toggleUserStatus } from "../controller/adminController.js";
 import { createTourPackage, getAllTourPackages, getTourPackageById, updateTourPackage, deleteTourPackage } from "../controller/tourPackageController.js";
-import { adminGetAllHotels, adminDeleteHotel } from "../controller/hotelController.js";
+import { adminGetAllHotels, adminDeleteHotel, adminVerifyHotel, adminDeclineHotel } from "../controller/hotelController.js";
 import { protect, adminOnly } from "../middleware/authMiddleware.js";
 import multer from 'multer';
 
@@ -22,5 +22,7 @@ router.delete('/tour-packages/:id', protect, adminOnly, deleteTourPackage);
 // Admin: hotel management routes
 router.get('/hotels', protect, adminOnly, adminGetAllHotels);
 router.delete('/hotels/:id', protect, adminOnly, adminDeleteHotel);
+router.put('/hotels/:id/verify', protect, adminOnly, adminVerifyHotel);
+router.put('/hotels/:id/decline', protect, adminOnly, adminDeclineHotel);
 
 export default router;

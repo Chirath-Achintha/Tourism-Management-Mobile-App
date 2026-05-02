@@ -213,16 +213,6 @@ export const Sidebar = ({ isVisible, onClose }: SidebarProps) => {
                   label="My Hotels"
                   onPress={() => handleNavigate('/manager/my-hotels')}
                 />
-                <SidebarItem
-                  icon="map-outline"
-                  label="Destination Management"
-                  onPress={() => handleNavigate('/admin/destinations')}
-                />
-                <SidebarItem
-                  icon="airplane-outline"
-                  label="Tour Packages"
-                  onPress={() => handleNavigate('/admin/tour-packages')}
-                />
               </>
             )}
             <View style={styles.divider} />

@@ -29,14 +29,38 @@ export default function LoginScreen() {
   const { height: windowHeight } = useWindowDimensions();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
+  const [identifierError, setIdentifierError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleIdentifierChange = (text: string) => {
+    setIdentifier(text);
+    if (!text.trim()) {
+      setIdentifierError("Email or username is required.");
+    } else if (text.trim().length < 3) {
+      setIdentifierError("Must be at least 3 characters.");
+    } else {
+      setIdentifierError("");
+    }
+  };
+
+  const handlePasswordChange = (text: string) => {
+    setPassword(text);
+    if (!text) {
+      setPasswordError("Password is required.");
+    } else if (text.length < 6) {
+      setPasswordError("Password must be at least 6 characters.");
+    } else {
+      setPasswordError("");
+    }
+  };
 
   const handleLogin = async () => {
     const normalizedIdentifier = identifier.trim();
 
-    if (!normalizedIdentifier || !password) {
-      Alert.alert("Validation", "Email/username and password are required.");
+    if (!normalizedIdentifier || !password || identifierError || passwordError) {
+      Alert.alert("Validation", "Please correct the errors before logging in.");
       return;
     }
 
@@ -115,9 +139,10 @@ export default function LoginScreen() {
                     placeholder="Enter your email"
                     placeholderTextColor="rgba(26, 59, 47, 0.4)"
                     value={identifier}
-                    onChangeText={setIdentifier}
+                    onChangeText={handleIdentifierChange}
                     autoCapitalize="none"
                   />
+                  {identifierError ? <Text style={styles.errorText}>{identifierError}</Text> : null}
                 </View>
 
                 <View style={styles.inputContainer}>
@@ -129,7 +154,7 @@ export default function LoginScreen() {
                       placeholderTextColor="rgba(26, 59, 47, 0.4)"
                       secureTextEntry={!showPassword}
                       value={password}
-                      onChangeText={setPassword}
+                      onChangeText={handlePasswordChange}
                     />
                     <Pressable
                       style={styles.eyeButton}
@@ -142,6 +167,7 @@ export default function LoginScreen() {
                       />
                     </Pressable>
                   </View>
+                  {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
                 </View>
 
                 <Pressable
@@ -300,5 +326,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "800",
     textDecorationLine: "underline",
+  },
+  errorText: {
+    color: "#D32F2F",
+    fontSize: 12,
+    fontWeight: "600",
+    marginLeft: 4,
+    marginTop: 2,
   },
 });
