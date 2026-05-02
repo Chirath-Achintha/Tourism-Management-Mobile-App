@@ -13,6 +13,8 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { API_BASE_URL } from '@/constants/api';
 
 const SERVER_URL = API_BASE_URL.replace('/api', '');
@@ -30,6 +32,7 @@ const COLORS = {
 };
 
 export default function MyBookingsScreen() {
+  const router = useRouter();
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -61,6 +64,12 @@ export default function MyBookingsScreen() {
     setRefreshing(true);
     fetchBookings();
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchBookings();
+    }, [])
+  );
 
   async function handleCancel(id: string) {
     Alert.alert('Cancel', 'Cancel this booking?', [
@@ -121,9 +130,25 @@ export default function MyBookingsScreen() {
             </Pressable>
           ) : null}
           {item.status === 'Pending' && (
-            <Pressable style={[styles.btn, styles.btnRed]} onPress={() => handleCancel(item._id)}>
-              <Text style={styles.btnTextRed}>Cancel</Text>
-            </Pressable>
+            <View style={{ flex: 1, flexDirection: 'row', gap: 10 }}>
+              <Pressable 
+                style={[styles.btn, { backgroundColor: COLORS.pending }]} 
+                onPress={() => router.push({ pathname: '/edit-reservation', params: { id: item._id } } as any)}
+              >
+                <Ionicons name="pencil-outline" size={16} color="white" />
+                <Text style={styles.btnText}>Edit</Text>
+              </Pressable>
+              
+              <Pressable style={[styles.btn, styles.btnRed]} onPress={() => handleCancel(item._id)}>
+                <Text style={styles.btnTextRed}>Cancel</Text>
+              </Pressable>
+            </View>
+          )}
+          {item.status !== 'Pending' && (
+            <View style={styles.lockedContainer}>
+              <Ionicons name="lock-closed-outline" size={14} color={COLORS.secondary} />
+              <Text style={styles.lockedText}>Booking Locked</Text>
+            </View>
           )}
         </View>
       </View>
@@ -177,4 +202,15 @@ const styles = StyleSheet.create({
   btnRed: { borderWidth: 1, borderColor: '#EF4444' },
   btnText: { color: 'white', fontSize: 13, fontWeight: '700' },
   btnTextRed: { color: '#EF4444', fontSize: 13, fontWeight: '700' },
+  lockedContainer: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 4, 
+    marginTop: 4 
+  },
+  lockedText: { 
+    fontSize: 12, 
+    color: COLORS.secondary, 
+    fontStyle: 'italic' 
+  },
 });

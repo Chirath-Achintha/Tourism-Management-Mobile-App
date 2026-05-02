@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { Sidebar } from '@/components/Sidebar';
+import { API_BASE_URL } from '@/constants/api';
 
 const AUTH_USER_KEY = "auth:user";
 const AUTH_STATUS_KEY = "auth:isSignedIn";
@@ -14,7 +15,7 @@ const ONBOARDING_SEEN_KEY = "onboarding:seen";
 // --- Components ---
 
 //const TouristDashboardContent = ({ user, onLogout, onExplore, onOpenSidebar }: any) => (
-const TouristDashboardContent = ({ user, onLogout, onExplore, onOpenReviews, onOpenSidebar }: any) => (
+const TouristDashboardContent = ({ user, stats, onLogout, onExplore, onOpenReviews, onOpenSidebar }: any) => (
   <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
     <View style={styles.header}>
       <View style={styles.headerLeft}>
@@ -38,16 +39,16 @@ const TouristDashboardContent = ({ user, onLogout, onExplore, onOpenReviews, onO
 
     <View style={styles.statsContainer}>
       <View style={styles.statCard}>
-        <Text style={styles.statNumber}>12</Text>
+        <Text style={styles.statNumber}>{stats.total}</Text>
         <Text style={styles.statLabel}>Trips</Text>
       </View>
       <View style={styles.statCard}>
-        <Text style={styles.statNumber}>05</Text>
-        <Text style={styles.statLabel}>Places</Text>
+        <Text style={styles.statNumber}>{stats.pending}</Text>
+        <Text style={styles.statLabel}>Pending</Text>
       </View>
       <View style={styles.statCard}>
-        <Text style={styles.statNumber}>08</Text>
-        <Text style={styles.statLabel}>Reviews</Text>
+        <Text style={styles.statNumber}>{stats.approved}</Text>
+        <Text style={styles.statLabel}>Approved</Text>
       </View>
     </View>
 
@@ -68,7 +69,7 @@ const TouristDashboardContent = ({ user, onLogout, onExplore, onOpenReviews, onO
   </ScrollView>
 );
 
-const HotelManagerDashboardContent = ({ user, onLogout, onOpenSidebar }: any) => (
+const HotelManagerDashboardContent = ({ user, stats, onLogout, onOpenSidebar }: any) => (
   <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
     <View style={styles.header}>
       <View style={styles.headerLeft}>
@@ -92,16 +93,16 @@ const HotelManagerDashboardContent = ({ user, onLogout, onOpenSidebar }: any) =>
 
     <View style={styles.statsContainer}>
       <View style={styles.statCard}>
-        <Text style={styles.statNumber}>24</Text>
+        <Text style={styles.statNumber}>{stats.total}</Text>
         <Text style={styles.statLabel}>Bookings</Text>
       </View>
       <View style={styles.statCard}>
-        <Text style={styles.statNumber}>08</Text>
+        <Text style={styles.statNumber}>{stats.pending}</Text>
         <Text style={styles.statLabel}>Pending</Text>
       </View>
       <View style={styles.statCard}>
-        <Text style={styles.statNumber}>45k</Text>
-        <Text style={styles.statLabel}>Revenue</Text>
+        <Text style={styles.statNumber}>{stats.approved}</Text>
+        <Text style={styles.statLabel}>Approved</Text>
       </View>
     </View>
 
@@ -150,7 +151,7 @@ const HotelManagerDashboardContent = ({ user, onLogout, onOpenSidebar }: any) =>
   </ScrollView>
 );
 
-const AdminDashboardContent = ({ user, onLogout, onOpenSidebar }: any) => (
+const AdminDashboardContent = ({ user, stats, onLogout, onOpenSidebar }: any) => (
   <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
     <View style={styles.header}>
       <View style={styles.headerLeft}>
@@ -174,16 +175,16 @@ const AdminDashboardContent = ({ user, onLogout, onOpenSidebar }: any) => (
 
     <View style={styles.statsContainer}>
       <View style={styles.statCard}>
-        <Text style={styles.statNumber}>1.2k</Text>
-        <Text style={styles.statLabel}>Users</Text>
+        <Text style={styles.statNumber}>{stats.total}</Text>
+        <Text style={styles.statLabel}>Reservations</Text>
       </View>
       <View style={styles.statCard}>
-        <Text style={styles.statNumber}>85</Text>
-        <Text style={styles.statLabel}>Hotels</Text>
+        <Text style={styles.statNumber}>{stats.pending}</Text>
+        <Text style={styles.statLabel}>Pending</Text>
       </View>
       <View style={styles.statCard}>
-        <Text style={styles.statNumber}>312</Text>
-        <Text style={styles.statLabel}>Active</Text>
+        <Text style={styles.statNumber}>{stats.approved}</Text>
+        <Text style={styles.statLabel}>Approved</Text>
       </View>
     </View>
 
@@ -214,24 +215,35 @@ const AdminDashboardContent = ({ user, onLogout, onOpenSidebar }: any) => (
 
 export default function DashboardScreen() {
   const [user, setUser] = useState<any>(null);
+  const [stats, setStats] = useState({ total: 0, pending: 0, approved: 0 });
   const [loading, setLoading] = useState(true);
   const [isSidebarVisible, setSidebarVisible] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchData = async () => {
       try {
         const userData = await AsyncStorage.getItem(AUTH_USER_KEY);
+        const token = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
+        
         if (userData) {
           setUser(JSON.parse(userData));
         }
+
+        if (token) {
+          const res = await fetch(`${API_BASE_URL}/reservations/stats`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const data = await res.json();
+          if (res.ok) setStats(data);
+        }
       } catch (error) {
-        console.error("Fetch user failed:", error);
+        console.error("Fetch dashboard data failed:", error);
       } finally {
         setLoading(false);
       }
     };
-    fetchUser();
+    fetchData();
   }, []);
 
   const handleLogout = async () => {
@@ -280,18 +292,21 @@ export default function DashboardScreen() {
         {user?.role === 'admin' ? (
           <AdminDashboardContent 
             user={user} 
+            stats={stats}
             onLogout={handleLogout} 
             onOpenSidebar={() => setSidebarVisible(true)}
           />
         ) : user?.role === 'hotel_manager' ? (
           <HotelManagerDashboardContent 
             user={user} 
+            stats={stats}
             onLogout={handleLogout} 
             onOpenSidebar={() => setSidebarVisible(true)}
           />
         ) : (
          <TouristDashboardContent 
   user={user} 
+  stats={stats}
   onLogout={handleLogout} 
   onExplore={() => router.push('/(tabs)/explore')} 
   onOpenReviews={() => router.push('/reviews')} 

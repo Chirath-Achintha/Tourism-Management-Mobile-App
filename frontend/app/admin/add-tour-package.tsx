@@ -37,7 +37,7 @@ const DURATION_PRESETS = [1, 3, 5, 7, 10, 14];
 const PRICE_PRESETS = [10000, 25000, 50000, 100000, 200000];
 const MEAL_OPTIONS = ['Breakfast', 'Lunch', 'Dinner', 'All Inclusive'];
 const GUIDE_OPTIONS = ['No guide', 'English-speaking guide', 'Multi-language guide'];
-
+const PARTICIPANT_PRESETS = [5, 8, 10, 12, 15, 20, 25];
 
 // Color palette (user-specified)
 const COLOR_BG = '#EBF5EA'; // soft mint green canvas
@@ -94,7 +94,6 @@ const INCLUDED_OPTIONS = [
   { key: 'activities', label: 'Activities', icon: 'sparkles-outline' },
   { key: 'insurance', label: 'Insurance', icon: 'shield-checkmark-outline' },
 ];
-
 type Step = 0 | 1 | 2;
 
 export default function AddTourPackageScreen() {
@@ -140,8 +139,6 @@ export default function AddTourPackageScreen() {
     };
     fetchHotels();
   }, []);
-
-
   useEffect(() => {
     Animated.timing(progressAnim, {
       toValue: progressValue,
@@ -257,7 +254,6 @@ export default function AddTourPackageScreen() {
       return { ...prev, included: has ? prev.included.filter(i => i !== key) : [...prev.included, key] } as FormData;
     });
   };
-
   const selectPreset = (field: 'duration' | 'price' | 'maxParticipants', value: number) => {
     updateField(field, String(value));
   };
@@ -437,6 +433,7 @@ export default function AddTourPackageScreen() {
         name: formData.name,
         description: `A curated ${formData.category} experience in ${formData.location}.`,
         category: formData.category,
+
         destination: formData.location,
         duration: Number(formData.duration),
         startDate: formData.startDate,
@@ -449,7 +446,6 @@ export default function AddTourPackageScreen() {
         guide: formData.guide || '',
         included: formData.included || [],
       };
-
       let response;
       // If a cover image is selected, upload as multipart/form-data so server can handle Cloudinary upload
       if (coverImageUri) {
@@ -685,19 +681,21 @@ export default function AddTourPackageScreen() {
                 </View>
               </Field>
 
-              <Field label="Location" required>
+              <Field label="Destination" required>
+                <Text style={styles.destinationHint}>Enter the location/place name. If it matches a destination in the system, the package will automatically appear under that destination.</Text>
                 <View style={styles.iconInputWrap}>
                   <Ionicons name="location-outline" size={18} color="#64748b" />
                   <TextInput
                     style={styles.iconInput}
-                    placeholder="e.g., Bali, Indonesia"
+                    placeholder="Enter destination location"
                     placeholderTextColor="#94a3b8"
                     value={formData.location}
-                    onChangeText={(value) => updateField('location', value)}
+                    onChangeText={(value) => {
+                      updateField('location', value);
+                    }}
                   />
                 </View>
               </Field>
-
               <Text style={[styles.sectionTitle, { marginTop: 8 }]}>What's Included</Text>
               <Text style={styles.sectionCopy}>Use quick selectors to define exactly what is included in this package.</Text>
 
@@ -837,7 +835,6 @@ export default function AddTourPackageScreen() {
                           multiline
                           numberOfLines={3}
                         />
-
                         <View style={styles.hotelSelectorWrap}>
                           <Text style={styles.hotelLabel}>Select Hotel</Text>
                           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.hotelListScroll}>
@@ -1086,7 +1083,6 @@ function SelectField({
     </Field>
   );
 }
-
 function MetaPill({ icon, text }: { icon: any; text: string }) {
   return (
     <View style={styles.metaPill}>
@@ -1466,6 +1462,65 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     fontSize: 15,
     color: '#0f172a',
+  },
+  destinationHint: {
+    fontSize: 12,
+    color: '#64748b',
+    marginBottom: 10,
+    lineHeight: 18,
+  },
+  destinationScroll: {
+    marginBottom: 0,
+  },
+  destinationScrollContent: {
+    gap: 10,
+    paddingRight: 4,
+  },
+  destinationLoadingPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 16,
+    backgroundColor: '#f8fbff',
+    borderWidth: 1,
+    borderColor: 'rgba(15, 23, 42, 0.06)',
+  },
+  destinationLoadingText: {
+    color: '#64748b',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  destinationChip: {
+    width: 170,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: '#f8fbff',
+    borderWidth: 1,
+    borderColor: 'rgba(15, 23, 42, 0.06)',
+  },
+  destinationChipSelected: {
+    backgroundColor: '#fff7df',
+    borderColor: ACCENT,
+  },
+  destinationChipTitle: {
+    color: '#0f172a',
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  destinationChipTitleSelected: {
+    color: TEXT_DARK,
+  },
+  destinationChipSubtitle: {
+    color: '#64748b',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  destinationChipSubtitleSelected: {
+    color: '#7c5b00',
   },
   categoryGrid: {
     flexDirection: 'row',

@@ -31,6 +31,7 @@ export default function TourPackagesScreen() {
   const router = useRouter();
 
   const publishedPackages = useMemo(() => {
+    // Treat missing `published` as published for backward compatibility with existing records.
     return packages.filter((item) => item?.published !== false);
   }, [packages]);
 
@@ -81,7 +82,6 @@ export default function TourPackagesScreen() {
       return true;
     });
   }, [publishedPackages, searchQuery, selectedCategory, selectedPriceFilter, selectedDurationFilter]);
-
   const fetchTourPackages = async () => {
     try {
       setLoading(true);
@@ -126,6 +126,7 @@ export default function TourPackagesScreen() {
     fetchTourPackages();
   }, []);
 
+  // Also refresh when screen comes into focus (handles navigation back from add/edit)
   useFocusEffect(
     useCallback(() => {
       fetchTourPackages();
@@ -143,7 +144,6 @@ export default function TourPackagesScreen() {
   const handleViewPackage = (packageId: string) => {
     router.push(`/tour-packages/${packageId}`);
   };
-
   const handleDeletePackage = async (packageId: string) => {
     Alert.alert(
       "Confirm Delete",
@@ -256,7 +256,7 @@ export default function TourPackagesScreen() {
           <FilterChip label="8+ days" selected={selectedDurationFilter === '8plus'} onPress={() => setSelectedDurationFilter('8plus')} />
         </ScrollView>
       </View>
-
+      {/* Content */}
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#1A3B2F" />
@@ -344,7 +344,6 @@ function FilterChip({ label, selected, onPress }: { label: string; selected: boo
     </Pressable>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

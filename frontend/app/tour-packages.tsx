@@ -12,7 +12,7 @@ import {
   TextInput,
 } from 'react-native';
 import { API_BASE_URL } from '@/constants/api';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -33,6 +33,7 @@ const CATEGORIES = [
 ];
 
 export default function TourPackagesScreen() {
+  const { destinationId, destinationName } = useLocalSearchParams<{ destinationId?: string; destinationName?: string }>();
   const [packages, setPackages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -58,6 +59,19 @@ export default function TourPackagesScreen() {
 
   const filteredPackages = useMemo(() => {
     let list = packages;
+
+    const selectedDestinationId = String(destinationId || '').trim();
+    const selectedDestinationName = String(destinationName || '').trim().toLowerCase();
+    if (selectedDestinationId || selectedDestinationName) {
+      list = list.filter((item) => {
+        const itemDestinationId = String(item?.destinationId?._id || item?.destinationId || '').trim();
+        const itemDestinationName = String(item?.destination || '').trim().toLowerCase();
+        if (selectedDestinationId && itemDestinationId === selectedDestinationId) return true;
+        if (selectedDestinationName && itemDestinationName === selectedDestinationName) return true;
+        return false;
+      });
+    }
+
     if (selectedCategory !== 'all') {
       list = list.filter((p) => p.category === selectedCategory);
     }
@@ -66,7 +80,7 @@ export default function TourPackagesScreen() {
       list = list.filter((p) => (p.destination || '').toLowerCase().includes(q));
     }
     return list;
-  }, [packages, selectedCategory, locationQuery]);
+  }, [packages, selectedCategory, locationQuery, destinationId, destinationName]);
 
   const renderCategoryPill = ({ item }: any) => {
     const isSelected = selectedCategory === item.key;
@@ -156,7 +170,9 @@ export default function TourPackagesScreen() {
         </Pressable>
         <View style={{ flex: 1 }}>
           <Text style={styles.eyebrow}>Explore</Text>
-          <Text style={styles.headerTitle}>Discover Your Next Adventure</Text>
+          <Text style={styles.headerTitle} numberOfLines={2}>
+            {destinationId || destinationName ? 'Destination Packages' : 'Discover Your Next Adventure'}
+          </Text>
         </View>
       </View>
 
@@ -196,7 +212,6 @@ export default function TourPackagesScreen() {
               <Ionicons name="close-circle" size={20} color={COLORS.secondary} />
             </Pressable>
           </View>
-
           {/* Package Cards */}
           {filteredPackages.length === 0 ? (
             <View style={styles.emptyContainer}>

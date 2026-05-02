@@ -23,6 +23,7 @@ const tourPackageSchema = new mongoose.Schema(
     name: { type: String, required: true, trim: true },
     description: { type: String, default: '' },
     category: { type: String, default: '' },
+    destinationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Destination', default: null },
     destination: { type: String, default: '' },
     duration: { type: Number, default: 0 },
     startDate: { type: String, default: '' },
