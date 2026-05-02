@@ -281,6 +281,16 @@ export default function DestinationDetailScreen() {
             </Pressable>
           </View>
 
+          <View style={styles.nearbyHotelsContainer}>
+            <Pressable 
+              style={styles.nearbyHotelsBtn}
+              onPress={() => router.push(`/tourist-hotels?district=${encodeURIComponent(destination.location)}` as any)}
+            >
+              <Ionicons name="bed-outline" size={24} color="#ffffff" />
+              <Text style={styles.nearbyHotelsText}>View Nearby Hotels</Text>
+            </Pressable>
+          </View>
+
           <View style={{ height: 100 }} />
         </View>
       </ScrollView>
@@ -629,5 +639,27 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#1A3B2F',
     textTransform: 'uppercase',
+  },
+  nearbyHotelsContainer: {
+    marginTop: 20,
+  },
+  nearbyHotelsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#1A3B2F',
+    padding: 16,
+    borderRadius: 20,
+    gap: 12,
+    shadowColor: '#1A3B2F',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  nearbyHotelsText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '800',
   },
 });

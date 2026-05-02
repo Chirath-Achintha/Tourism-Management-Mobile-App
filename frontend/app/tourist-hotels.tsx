@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, SafeAreaView, Pressable, ActivityIndicator, Alert, Image, TextInput, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { API_BASE_URL } from '@/constants/api';
@@ -25,10 +25,11 @@ const DISTRICTS = [
 ];
 
 export default function TouristHotelsScreen() {
+  const { district } = useLocalSearchParams();
   const [hotels, setHotels] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedDistrict, setSelectedDistrict] = useState('All');
+  const [selectedDistrict, setSelectedDistrict] = useState(district ? String(district) : 'All');
   const [showDistrictDropdown, setShowDistrictDropdown] = useState(false);
   const [selectedRating, setSelectedRating] = useState('All');
   const [showRatingDropdown, setShowRatingDropdown] = useState(false);
@@ -56,6 +57,12 @@ export default function TouristHotelsScreen() {
   useEffect(() => {
     fetchHotels();
   }, []);
+
+  useEffect(() => {
+    if (district) {
+      setSelectedDistrict(String(district));
+    }
+  }, [district]);
 
   const filteredHotels = useMemo(() => {
     let list = hotels;
