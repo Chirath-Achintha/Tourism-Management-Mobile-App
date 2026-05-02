@@ -1,8 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-<<<<<<< HEAD
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
-=======
->>>>>>> Destination-Management
 import {
   SafeAreaView,
   ScrollView,
@@ -14,14 +11,10 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-<<<<<<< HEAD
   Platform,
 } from 'react-native';
 import { MapView, Marker, PROVIDER_GOOGLE } from '@/components/MapViewComponent';
 import * as Location from 'expo-location';
-=======
-} from 'react-native';
->>>>>>> Destination-Management
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -78,11 +71,8 @@ const TOURIST_PLACES: TouristPlace[] = [
 ];
 
 export default function SearchPlacesScreen() {
-<<<<<<< HEAD
   const { id } = useLocalSearchParams();
   const router = useRouter();
-=======
->>>>>>> Destination-Management
   const [query, setQuery] = useState('');
   const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -113,7 +103,6 @@ export default function SearchPlacesScreen() {
   const [mainImage, setMainImage] = useState<string | null>(null);
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-<<<<<<< HEAD
   const [addressSuggestions, setAddressSuggestions] = useState<any[]>([]);
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<{latitude: number, longitude: number} | null>(null);
@@ -147,8 +136,6 @@ export default function SearchPlacesScreen() {
   const markTouched = (field: keyof typeof touched) => {
     setTouched(prev => ({ ...prev, [field]: true }));
   };
-=======
->>>>>>> Destination-Management
 
   const pickMainImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -218,7 +205,6 @@ export default function SearchPlacesScreen() {
         }
       } catch (error) {
         console.error("Error checking role:", error);
-<<<<<<< HEAD
       }
     };
     
@@ -261,21 +247,14 @@ export default function SearchPlacesScreen() {
         }
       } catch (err) {
         console.error("Failed to fetch hotel", err);
-=======
->>>>>>> Destination-Management
       } finally {
         setLoading(false);
       }
     };
-<<<<<<< HEAD
 
     checkRole();
     fetchHotelData();
   }, [id]);
-=======
-    checkRole();
-  }, []);
->>>>>>> Destination-Management
 
   const filteredPlaces = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -299,7 +278,6 @@ export default function SearchPlacesScreen() {
       Alert.alert("Validation", "Please enter a price for the room.");
       return;
     }
-<<<<<<< HEAD
 
     const cleanPrice = tempPrice.replace(/,/g, '');
     const priceVal = parseFloat(cleanPrice);
@@ -307,8 +285,6 @@ export default function SearchPlacesScreen() {
       Alert.alert("Validation", "Price must be a positive number.");
       return;
     }
-=======
->>>>>>> Destination-Management
     
     // Check if type already exists
     if (roomConfigs.some(r => r.type === tempType)) {
@@ -317,37 +293,28 @@ export default function SearchPlacesScreen() {
     }
 
     let calculatedDiscountPrice = '';
-<<<<<<< HEAD
     if (tempDiscount) {
       const discountPercentage = parseFloat(tempDiscount);
       if (isNaN(discountPercentage) || discountPercentage < 0 || discountPercentage > 100) {
         Alert.alert("Validation", "Discount must be between 0% and 100%.");
         return;
       }
-=======
-    const cleanPrice = tempPrice.replace(/,/g, '');
-    if (tempDiscount) {
-      const priceVal = parseFloat(cleanPrice);
-      const discountPercentage = parseFloat(tempDiscount);
->>>>>>> Destination-Management
       if (!isNaN(priceVal) && !isNaN(discountPercentage)) {
         const finalPrice = priceVal - (priceVal * (discountPercentage / 100));
-        calculatedDiscountPrice = finalPrice.toFixed(2); // Store the calculated LKR price
+        calculatedDiscountPrice = finalPrice.toFixed(2);
       }
     }
 
     setRoomConfigs(prev => [...prev, {
       type: tempType,
-      price: cleanPrice, // save clean numeric string
+      price: cleanPrice,
       discountPrice: calculatedDiscountPrice || ''
     }]);
     
-    // Reset temp inputs
     setTempPrice('');
     setTempDiscount('');
   };
 
-<<<<<<< HEAD
   const handleAddressSearch = async (text: string) => {
     setAddress(text);
     if (text.length > 2) {
@@ -389,8 +356,6 @@ export default function SearchPlacesScreen() {
     setAddressSuggestions([]);
   };
 
-=======
->>>>>>> Destination-Management
   const removeRoomConfig = (index: number) => {
     setRoomConfigs(prev => prev.filter((_, i) => i !== index));
   };
@@ -402,7 +367,6 @@ export default function SearchPlacesScreen() {
   };
 
   const handleAddHotel = async () => {
-<<<<<<< HEAD
     setTouched({
       hotelName: true,
       location: true,
@@ -418,8 +382,6 @@ export default function SearchPlacesScreen() {
       return;
     }
 
-=======
->>>>>>> Destination-Management
     if (!hotelName || !location || !address || !description || !contactEmail || !contactPhone || !mainImage) {
       Alert.alert("Validation", "Please fill in all essential details.");
       return;
@@ -433,7 +395,6 @@ export default function SearchPlacesScreen() {
     setIsSubmitting(true);
     try {
       // 1. Upload Main Image
-<<<<<<< HEAD
       let uploadedMainImagePath = mainImage;
       if (mainImage && !mainImage.startsWith('http')) {
         uploadedMainImagePath = await uploadFile(mainImage);
@@ -449,18 +410,6 @@ export default function SearchPlacesScreen() {
       if (imagesToUpload.length > 0) {
         const formData = new FormData();
         for (const uri of imagesToUpload) {
-=======
-      const uploadedMainImagePath = await uploadFile(mainImage);
-
-      // 2. Upload Gallery Images
-      let uploadedGalleryPaths: string[] = [];
-      if (galleryImages.length > 0) {
-        // Since our backend has a /multiple endpoint, we can use it, 
-        // but it's simpler to upload them one by one or all at once.
-        // Let's use the multiple endpoint logic.
-        const formData = new FormData();
-        for (const uri of galleryImages) {
->>>>>>> Destination-Management
           const filename = uri.split('/').pop() || 'image.jpg';
           const match = /\.(\w+)$/.exec(filename);
           const type = match ? `image/${match[1]}` : `image`;
@@ -479,7 +428,6 @@ export default function SearchPlacesScreen() {
         const galleryData = await galleryRes.json();
         if (galleryRes.ok) uploadedGalleryPaths = galleryData.filePaths;
       }
-<<<<<<< HEAD
       uploadedGalleryPaths = [...existingImages, ...uploadedGalleryPaths];
 
       // 3. Save Hotel
@@ -489,13 +437,6 @@ export default function SearchPlacesScreen() {
       
       const response = await fetch(url, {
         method,
-=======
-
-      // 3. Save Hotel
-      const token = await AsyncStorage.getItem("auth:token");
-      const response = await fetch(`${API_BASE_URL}/hotels/add`, {
-        method: "POST",
->>>>>>> Destination-Management
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
@@ -516,18 +457,14 @@ export default function SearchPlacesScreen() {
           facilities,
           mainImage: uploadedMainImagePath,
           galleryImages: uploadedGalleryPaths,
-<<<<<<< HEAD
           latitude: selectedLocation?.latitude,
           longitude: selectedLocation?.longitude,
-=======
->>>>>>> Destination-Management
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-<<<<<<< HEAD
         throw new Error(data.message || (id ? "Failed to update hotel" : "Failed to add hotel"));
       }
 
@@ -536,12 +473,6 @@ export default function SearchPlacesScreen() {
          router.back();
          return;
       }
-=======
-        throw new Error(data.message || "Failed to add hotel");
-      }
-
-      Alert.alert("Success", "Hotel registered successfully!");
->>>>>>> Destination-Management
       
       // Reset form
       setHotelName('');
@@ -574,16 +505,10 @@ export default function SearchPlacesScreen() {
   if (role === 'hotel_manager') {
     return (
       <SafeAreaView style={styles.container}>
-<<<<<<< HEAD
         <Stack.Screen options={{ headerShown: false }} />
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.headerRow}>
             <Text style={styles.title}>{id ? "Edit Hotel" : "Register Hotel"}</Text>
-=======
-        <ScrollView contentContainerStyle={styles.content}>
-          <View style={styles.headerRow}>
-            <Text style={styles.title}>Register Hotel</Text>
->>>>>>> Destination-Management
             <IconSymbol name="plus.circle.fill" size={30} color="#1A3B2F" />
           </View>
           <Text style={styles.subtitle}>
@@ -601,7 +526,6 @@ export default function SearchPlacesScreen() {
               <Text style={styles.label}>Hotel Name *</Text>
               <TextInput
                 value={hotelName}
-<<<<<<< HEAD
                 onChangeText={(t) => { setHotelName(t); markTouched('hotelName'); }}
                 onBlur={() => markTouched('hotelName')}
                 placeholder="e.g. Grand Heritage Resort"
@@ -610,19 +534,12 @@ export default function SearchPlacesScreen() {
               {touched.hotelName && errors.hotelName && (
                 <Text style={styles.errorText}>{errors.hotelName}</Text>
               )}
-=======
-                onChangeText={setHotelName}
-                placeholder="e.g. Grand Heritage Resort"
-                style={styles.formInput}
-              />
->>>>>>> Destination-Management
             </View>
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Location (City / Area) *</Text>
               <TextInput
                 value={location}
-<<<<<<< HEAD
                 onChangeText={(t) => { setLocation(t); markTouched('location'); }}
                 onBlur={() => markTouched('location')}
                 placeholder="e.g. Galle Fort"
@@ -653,9 +570,9 @@ export default function SearchPlacesScreen() {
                       const displayName = [props.name, props.city || props.state, props.country].filter(Boolean).join(', ');
                       return (
                         <Pressable 
-                          key={item.id || index} 
-                          style={styles.suggestionItem}
-                          onPress={() => handleSelectAddress(item)}
+                           key={item.id || index} 
+                           style={styles.suggestionItem}
+                           onPress={() => handleSelectAddress(item)}
                         >
                           <Ionicons name="location-outline" size={16} color="#1A3B2F" />
                           <Text style={styles.suggestionText} numberOfLines={2}>
@@ -680,14 +597,14 @@ export default function SearchPlacesScreen() {
                     provider={PROVIDER_GOOGLE}
                     style={styles.map}
                     region={mapRegion}
-                      onRegionChangeComplete={(region: any) => setMapRegion(region)}
-                      onPress={(e: any) => setSelectedLocation(e.nativeEvent.coordinate)}
+                    onRegionChangeComplete={(region: any) => setMapRegion(region)}
+                    onPress={(e: any) => setSelectedLocation(e.nativeEvent.coordinate)}
                   >
                     {selectedLocation && (
                       <Marker 
                         draggable
                         coordinate={selectedLocation} 
-                            onDragEnd={(e: any) => setSelectedLocation(e.nativeEvent.coordinate)}
+                        onDragEnd={(e: any) => setSelectedLocation(e.nativeEvent.coordinate)}
                       />
                     )}
                   </MapView>
@@ -708,29 +625,12 @@ export default function SearchPlacesScreen() {
                   Pinned: {selectedLocation.latitude.toFixed(4)}, {selectedLocation.longitude.toFixed(4)}
                 </Text>
               )}
-=======
-                onChangeText={setLocation}
-                placeholder="e.g. Galle Fort"
-                style={styles.formInput}
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Full Address *</Text>
-              <TextInput
-                value={address}
-                onChangeText={setAddress}
-                placeholder="Street address, City"
-                style={styles.formInput}
-              />
->>>>>>> Destination-Management
             </View>
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Description *</Text>
               <TextInput
                 value={description}
-<<<<<<< HEAD
                 onChangeText={(t) => { setDescription(t); markTouched('description'); }}
                 onBlur={() => markTouched('description')}
                 placeholder="Tell guests what makes your hotel special..."
@@ -741,14 +641,6 @@ export default function SearchPlacesScreen() {
               {touched.description && errors.description && (
                 <Text style={styles.errorText}>{errors.description}</Text>
               )}
-=======
-                onChangeText={setDescription}
-                placeholder="Tell guests what makes your hotel special..."
-                multiline
-                numberOfLines={4}
-                style={[styles.formInput, styles.textArea]}
-              />
->>>>>>> Destination-Management
             </View>
 
             <View style={styles.row}>
@@ -756,7 +648,6 @@ export default function SearchPlacesScreen() {
                 <Text style={styles.label}>Contact Email *</Text>
                 <TextInput
                   value={contactEmail}
-<<<<<<< HEAD
                   onChangeText={(t) => { setContactEmail(t); markTouched('contactEmail'); }}
                   onBlur={() => markTouched('contactEmail')}
                   placeholder="hotel@example.com"
@@ -766,13 +657,6 @@ export default function SearchPlacesScreen() {
                 {touched.contactEmail && errors.contactEmail && (
                   <Text style={styles.errorText}>{errors.contactEmail}</Text>
                 )}
-=======
-                  onChangeText={setContactEmail}
-                  placeholder="hotel@example.com"
-                  keyboardType="email-address"
-                  style={styles.formInput}
-                />
->>>>>>> Destination-Management
               </View>
             </View>
 
@@ -780,7 +664,6 @@ export default function SearchPlacesScreen() {
               <Text style={styles.label}>Contact Phone *</Text>
               <TextInput
                 value={contactPhone}
-<<<<<<< HEAD
                 onChangeText={(t) => { setContactPhone(t); markTouched('contactPhone'); }}
                 onBlur={() => markTouched('contactPhone')}
                 placeholder="+94 77 123 4567"
@@ -790,13 +673,6 @@ export default function SearchPlacesScreen() {
               {touched.contactPhone && errors.contactPhone && (
                 <Text style={styles.errorText}>{errors.contactPhone}</Text>
               )}
-=======
-                onChangeText={setContactPhone}
-                placeholder="+94 77 123 4567"
-                keyboardType="phone-pad"
-                style={styles.formInput}
-              />
->>>>>>> Destination-Management
             </View>
 
             <View style={styles.inputGroup}>
@@ -969,11 +845,7 @@ export default function SearchPlacesScreen() {
             {isSubmitting ? (
               <ActivityIndicator color="#1A3B2F" />
             ) : (
-<<<<<<< HEAD
               <Text style={styles.submitButtonText}>{id ? "Update Property" : "Register Property"}</Text>
-=======
-              <Text style={styles.submitButtonText}>Register Property</Text>
->>>>>>> Destination-Management
             )}
           </Pressable>
 
@@ -983,17 +855,9 @@ export default function SearchPlacesScreen() {
     );
   }
 
-
-
-
-
-
   return (
     <SafeAreaView style={styles.container}>
-<<<<<<< HEAD
       <Stack.Screen options={{ headerShown: false }} />
-=======
->>>>>>> Destination-Management
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.headerRow}>
           <Text style={styles.title}>Search Tourist Places</Text>
@@ -1366,7 +1230,6 @@ const styles = StyleSheet.create({
     color: 'rgba(26, 59, 47, 0.6)',
     fontWeight: '600',
   },
-<<<<<<< HEAD
   mapContainer: {
     height: 200,
     borderRadius: 12,
@@ -1446,6 +1309,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
-=======
->>>>>>> Destination-Management
 });

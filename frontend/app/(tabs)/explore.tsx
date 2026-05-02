@@ -27,8 +27,6 @@ import { API_BASE_URL } from '@/constants/api';
 import { Colors } from '@/constants/theme';
 const AUTH_USER_KEY = "auth:user";
 
-const AUTH_USER_KEY = "auth:user";
-
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48 - 16) / 2;
 
@@ -572,7 +570,7 @@ export default function SearchPlacesScreen() {
               )}
             </View>
 
-            <View style={styles.row}>
+            <View style={styles.formRow}>
               <View style={[styles.inputGroup, { flex: 1 }]}>
                 <Text style={styles.label}>Contact Email *</Text>
                 <TextInput
@@ -644,7 +642,7 @@ export default function SearchPlacesScreen() {
               </View>
             </View>
 
-            <View style={styles.row}>
+            <View style={styles.formRow}>
               <View style={[styles.inputGroup, { flex: 1 }]}>
                 <Text style={styles.label}>Price (LKR) *</Text>
                 <TextInput
@@ -1184,6 +1182,23 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(26, 59, 47, 0.08)',
   },
+  errorText: {
+    color: '#ff4444',
+    fontSize: 12,
+    marginTop: 4,
+    marginLeft: 4,
+    fontWeight: '600',
+  },
+  errorInput: {
+    borderColor: '#ff4444',
+    backgroundColor: '#fffcfc',
+  },
+  coordinatesText: {
+    fontSize: 12,
+    color: 'rgba(26, 59, 47, 0.6)',
+    marginTop: 4,
+    marginLeft: 4,
+  },
   inputGroup: {
     gap: 8,
   },
@@ -1241,7 +1256,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  row: {
+  formRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -1297,10 +1312,9 @@ const styles = StyleSheet.create({
   },
   checkboxLabel: {
     fontSize: 14,
-    color: '#ffffff',
-    fontSize: 10,
-    fontWeight: '700',
-    marginTop: 2,
+    color: '#1A3B2F',
+    fontWeight: '600',
+    marginLeft: 8,
   },
   featuredBadge: {
     position: 'absolute',
@@ -1419,30 +1433,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: 'rgba(26, 59, 47, 0.6)',
     fontWeight: '600',
-  },
-  featuredBadge: {
-    position: 'absolute',
-    top: 12,
-    left: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFD166',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    gap: 4,
-    zIndex: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  featuredBadgeText: {
-    fontSize: 10,
-    fontWeight: '900',
-    color: '#1A3B2F',
-    textTransform: 'uppercase',
   },
   featuredSection: {
     marginTop: 8,
@@ -1534,242 +1524,41 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.8)',
     fontWeight: '600',
   },
-  formContainer: {
-    marginTop: 20,
-    gap: 20,
-    backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(26, 59, 47, 0.08)',
-  },
-  inputGroup: {
-    gap: 8,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1A3B2F',
-    marginLeft: 4,
-  },
-  formInput: {
-    backgroundColor: '#F0FAF5',
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 15,
-    color: '#1A3B2F',
-    borderWidth: 1,
-    borderColor: 'rgba(26, 59, 47, 0.05)',
-  },
-  textArea: {
-    height: 120,
-    textAlignVertical: 'top',
-  },
-  submitButton: {
-    backgroundColor: '#FFD166',
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  submitButtonText: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#1A3B2F',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 24,
-    marginBottom: 8,
-    marginLeft: 4,
-    gap: 8,
-  },
-  sectionTitleText: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#1A3B2F',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  chipContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 4,
-  },
-  chip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#F0FAF5',
-    borderWidth: 1,
-    borderColor: 'rgba(26, 59, 47, 0.1)',
-  },
-  chipActive: {
-    backgroundColor: '#FFD166',
-    borderColor: '#FFD166',
-  },
-  chipText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: 'rgba(26, 59, 47, 0.6)',
-  },
-  chipTextActive: {
-    color: '#1A3B2F',
-  },
-  facilitiesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
-  },
-  checkboxContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '45%',
-    marginBottom: 8,
-  },
-  checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: '#FFD166',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-  },
-  checkboxChecked: {
-    backgroundColor: '#FFD166',
-  },
-  checkboxLabel: {
-    fontSize: 14,
-    color: '#1A3B2F',
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  imagePickerMain: {
-    height: 180,
-    backgroundColor: '#F0FAF5',
-    borderRadius: 16,
-    marginTop: 8,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: 'rgba(26, 59, 47, 0.2)',
-    overflow: 'hidden',
-  },
-  previewMain: {
+  webMapFallback: {
     width: '100%',
-    height: '100%',
-  },
-  pickerPlaceholder: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  pickerText: {
-    fontSize: 14,
-    color: 'rgba(26, 59, 47, 0.4)',
-    fontWeight: '600',
-  },
-  galleryContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginTop: 8,
-  },
-  galleryItem: {
-    width: '30%',
-    aspectRatio: 1,
-    borderRadius: 12,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  previewGallery: {
-    width: '100%',
-    height: '100%',
-  },
-  removeImage: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-  },
-  imagePickerGallery: {
-    width: '30%',
-    aspectRatio: 1,
+    height: 200,
     backgroundColor: '#F0FAF5',
-    borderRadius: 12,
-    alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: 'rgba(26, 59, 47, 0.2)',
-  },
-  addRoomButton: {
-    backgroundColor: '#FFD166',
-    width: 50,
-    height: 50,
-    borderRadius: 12,
     alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 22,
-    marginLeft: 10,
-  },
-  roomList: {
-    marginTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(26, 59, 47, 0.05)',
-    paddingTop: 10,
-  },
-  roomListItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F0FAF5',
-    padding: 12,
     borderRadius: 12,
-    marginBottom: 8,
   },
-  roomListType: {
+  webMapText: {
     fontSize: 14,
-    fontWeight: '800',
     color: '#1A3B2F',
-  },
-  roomListPrice: {
-    fontSize: 12,
-    color: 'rgba(26, 59, 47, 0.6)',
     fontWeight: '600',
   },
   mapContainer: {
     height: 200,
     borderRadius: 12,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(26, 59, 47, 0.05)',
   },
   map: {
     width: '100%',
     height: '100%',
   },
-  coordinatesText: {
-    fontSize: 12,
-    color: 'rgba(26, 59, 47, 0.6)',
-    marginTop: 4,
-    marginLeft: 4,
+  suggestionItem: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(26, 59, 47, 0.05)',
+  },
+  suggestionText: {
+    fontSize: 13,
+    color: '#1A3B2F',
+  },
+  searchLoader: {
+    position: 'absolute',
+    right: 12,
+    top: 16,
   },
   suggestionsContainer: {
     position: 'absolute',
@@ -1780,58 +1569,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(26, 59, 47, 0.1)',
-    marginTop: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 5,
-    maxHeight: 200,
-    zIndex: 999,
-  },
-  suggestionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(26, 59, 47, 0.05)',
-    gap: 8,
-  },
-  suggestionText: {
-    fontSize: 13,
-    color: '#1A3B2F',
-    flex: 1,
-  },
-  searchLoader: {
-    position: 'absolute',
-    right: 12,
-    top: 16,
-  },
-  errorText: {
-    color: '#ff4444',
-    fontSize: 12,
-    marginTop: 4,
-    marginLeft: 4,
-    fontWeight: '600',
-  },
-  errorInput: {
-    borderColor: '#ff4444',
-    backgroundColor: '#fffcfc',
-  },
-  webMapFallback: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F0FAF5',
-    borderRadius: 12,
-    gap: 12,
-  },
-  webMapText: {
-    fontSize: 14,
-    color: '#999',
-    fontWeight: '600',
-    textAlign: 'center',
   },
 });
 
