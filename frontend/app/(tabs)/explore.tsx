@@ -81,6 +81,7 @@ export default function SearchPlacesScreen() {
   const [description, setDescription] = useState('');
   const [contactEmail, setContactEmail] = useState('');
   const [contactPhone, setContactPhone] = useState('');
+  const [websiteLink, setWebsiteLink] = useState('');
   
   // Dynamic Room Pricing State
   const [roomConfigs, setRoomConfigs] = useState<{type: string, price: string, discountPrice: string}[]>([]);
@@ -392,6 +393,7 @@ export default function SearchPlacesScreen() {
           description,
           contactEmail,
           contactPhone,
+          websiteLink,
           roomConfigs: roomConfigs.map(r => ({
             type: r.type,
             price: Number(r.price),
@@ -420,6 +422,7 @@ export default function SearchPlacesScreen() {
       setDescription('');
       setContactEmail('');
       setContactPhone('');
+      setWebsiteLink('');
       setRoomConfigs([]);
       setFacilities({
         freeWifi: false,
@@ -610,6 +613,17 @@ export default function SearchPlacesScreen() {
               {touched.contactPhone && errors.contactPhone && (
                 <Text style={styles.errorText}>{errors.contactPhone}</Text>
               )}
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Hotel Website (Optional)</Text>
+              <TextInput
+                value={websiteLink}
+                onChangeText={setWebsiteLink}
+                placeholder="e.g. https://www.grandresort.com"
+                autoCapitalize="none"
+                style={styles.formInput}
+              />
             </View>
           </View>
 

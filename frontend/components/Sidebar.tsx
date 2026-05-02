@@ -119,23 +119,25 @@ export const Sidebar = ({ isVisible, onClose }: SidebarProps) => {
               label="Explore"
               onPress={() => handleNavigate('/(tabs)/explore')}
             />
-            {user?.role !== 'admin' && (
-              <SidebarItem
-                icon="airplane-outline"
-                label="Upcoming Tour Packages"
-                onPress={() => handleNavigate('/tour-packages')}
-              />
+            {user?.role !== 'admin' && user?.role !== 'hotel_manager' && (
+              <>
+                <SidebarItem
+                  icon="airplane-outline"
+                  label="Upcoming Tour Packages"
+                  onPress={() => handleNavigate('/tour-packages')}
+                />
+                <SidebarItem
+                  icon="business-outline"
+                  label="Hotels"
+                  onPress={() => handleNavigate('/tourist-hotels')}
+                />
+                <SidebarItem
+                  icon="bookmark-outline"
+                  label="My Bookings"
+                  onPress={() => handleNavigate('/(tabs)/bookings')}
+                />
+              </>
             )}
-            <SidebarItem
-              icon="business-outline"
-              label="Hotels"
-              onPress={() => handleNavigate('/tourist-hotels')}
-            />
-            <SidebarItem
-              icon="bookmark-outline"
-              label="My Bookings"
-              onPress={() => handleNavigate('/(tabs)/bookings')}
-            />
             <SidebarItem
               icon="notifications-outline"
               label="Notifications"
