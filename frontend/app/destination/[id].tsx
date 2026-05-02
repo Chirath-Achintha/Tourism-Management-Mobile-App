@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -28,6 +28,7 @@ export default function DestinationDetailScreen() {
   const router = useRouter();
   const [destination, setDestination] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [packages, setPackages] = useState<any[]>([]);
   const [isFavorite, setIsFavorite] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -49,6 +50,35 @@ export default function DestinationDetailScreen() {
 
     if (id) fetchDestination();
   }, [id]);
+
+  useEffect(() => {
+    const fetchPackages = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/tour-packages`);
+        const data = await response.json();
+        if (response.ok) {
+          setPackages(Array.isArray(data) ? data : []);
+        }
+      } catch (error) {
+        console.error('Fetch packages failed:', error);
+      }
+    };
+
+    fetchPackages();
+  }, []);
+
+  const relatedPackages = useMemo(() => {
+    if (!destination || !id) return [];
+
+    const destinationId = String(id);
+    const destinationName = String(destination.name || '').trim().toLowerCase();
+
+    return packages.filter((item) => {
+      const itemDestinationId = String(item?.destinationId?._id || item?.destinationId || '').trim();
+      const itemDestinationName = String(item?.destination || '').trim().toLowerCase();
+      return itemDestinationId === destinationId || (destinationName && itemDestinationName === destinationName);
+    });
+  }, [destination, id, packages]);
 
   const handleScroll = (event: any) => {
     const slideSize = event.nativeEvent.layoutMeasurement.width;
@@ -197,6 +227,23 @@ export default function DestinationDetailScreen() {
           <Text style={styles.sectionTitle}>About this place</Text>
           <Text style={styles.description}>{destination.description}</Text>
 
+          <View style={styles.packageSection}>
+            <Text style={styles.sectionTitle}>Tour Packages</Text>
+            {relatedPackages.length > 0 ? (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.packageScroll}>
+                {relatedPackages.map((item) => (
+                  <Pressable key={item._id} style={styles.packageCard} onPress={() => router.push(`/tour-packages/${item._id}` as any)}>
+                    <Text style={styles.packageCardTitle} numberOfLines={2}>{item.name}</Text>
+                    <Text style={styles.packageCardMeta} numberOfLines={1}>LKR {item.price ? Number(item.price).toLocaleString() : 'N/A'}</Text>
+                    <Text style={styles.packageCardMeta} numberOfLines={1}>{item.duration ? `${item.duration} days` : 'Duration TBA'}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            ) : (
+              <Text style={styles.packageEmptyText}>No packages are linked to this destination yet.</Text>
+            )}
+          </View>
+
           <View style={styles.categoryInfo}>
             <Text style={styles.categoryLabel}>{"Categories"}</Text>
             <View style={styles.categoryRowList}>
@@ -243,7 +290,7 @@ export default function DestinationDetailScreen() {
             <Text style={styles.priceLabel}>Starting from</Text>
             <Text style={styles.priceValue}>${destination.startingPrice || "150"}<Text style={styles.perPerson}>/person</Text></Text>
           </View>
-          <Pressable style={styles.bookBtn} onPress={() => router.push('/tour-packages')}>
+          <Pressable style={styles.bookBtn} onPress={() => router.push(`/tour-packages?destinationId=${encodeURIComponent(String(id || ''))}` as any)}>
             <Text style={styles.bookBtnText}>Packages</Text>
           </Pressable>
         </View>
@@ -396,6 +443,38 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     fontWeight: '500',
     marginBottom: 24,
+  },
+  packageSection: {
+    marginBottom: 8,
+  },
+  packageScroll: {
+    paddingTop: 6,
+    paddingBottom: 4,
+    gap: 12,
+  },
+  packageCard: {
+    width: 180,
+    borderRadius: 20,
+    backgroundColor: '#F7F9F4',
+    borderWidth: 1,
+    borderColor: 'rgba(26, 59, 47, 0.08)',
+    padding: 14,
+  },
+  packageCardTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#1A3B2F',
+    marginBottom: 8,
+  },
+  packageCardMeta: {
+    fontSize: 13,
+    color: '#64748b',
+    marginTop: 2,
+  },
+  packageEmptyText: {
+    color: '#64748b',
+    fontSize: 14,
+    marginTop: 4,
   },
   categoryInfo: {
     marginTop: 24,

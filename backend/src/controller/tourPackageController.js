@@ -1,4 +1,5 @@
 import TourPackage from "../models/TourPackage.js";
+import Destination from "../models/Destination.js";
 import cloudinary from 'cloudinary';
 
 cloudinary.v2.config({
@@ -14,7 +15,7 @@ export const createTourPackage = async (req, res) => {
       name,
       description,
       category,
-      destination,
+      location,
       duration,
       startDate,
       endDate,
@@ -34,6 +35,46 @@ export const createTourPackage = async (req, res) => {
 
     if (!name) return res.status(400).json({ message: 'Package name is required.' });
 
+    let resolvedDestination = location || '';
+    let resolvedDestinationId = null;
+
+    // Parse timeline to extract places
+    let timelineData = [];
+    if (typeof timeline === 'string') {
+      try {
+        timelineData = JSON.parse(timeline);
+      } catch {
+        timelineData = [];
+      }
+    } else if (Array.isArray(timeline)) {
+      timelineData = timeline;
+    }
+
+    // Auto-detect destination by checking places in the itinerary
+    if (Array.isArray(timelineData) && timelineData.length > 0) {
+      for (const day of timelineData) {
+        if (day.places && Array.isArray(day.places)) {
+          for (const place of day.places) {
+            if (place.name && place.name.trim()) {
+              const matchingDestination = await Destination.findOne({
+                $or: [
+                  { name: { $regex: `^${place.name.trim()}$`, $options: 'i' } },
+                  { location: { $regex: `^${place.name.trim()}$`, $options: 'i' } }
+                ]
+              });
+              
+              if (matchingDestination) {
+                resolvedDestination = matchingDestination.name;
+                resolvedDestinationId = matchingDestination._id;
+                break; // Found a match, stop searching
+              }
+            }
+          }
+          if (resolvedDestinationId) break; // If found, exit outer loop too
+        }
+      }
+    }
+
     // Parse included array if it's a string
     let includedArray = [];
     if (typeof included === 'string') {
@@ -50,7 +91,8 @@ export const createTourPackage = async (req, res) => {
       name,
       description,
       category,
-      destination,
+      destinationId: resolvedDestinationId,
+      destination: resolvedDestination,
       duration: Number(duration) || 0,
       startDate: startDate || '',
       endDate: endDate || '',
@@ -58,9 +100,7 @@ export const createTourPackage = async (req, res) => {
       minParticipants: Number(minParticipants) || 0,
       maxParticipants: Number(maxParticipants) || 0,
       coverImageUri: coverImageUri || '',
-      timeline: (typeof timeline === 'string' ? (() => {
-        try { return JSON.parse(timeline); } catch { return []; }
-      })() : Array.isArray(timeline) ? timeline : []),
+      timeline: timelineData,
       meals: meals || '',
       accommodation: accommodation || '',
       guide: guide || '',
@@ -130,14 +170,47 @@ export const getTourPackageById = async (req, res) => {
 export const updateTourPackage = async (req, res) => {
   try {
     const updateData = { ...req.body };
-    if (typeof updateData.timeline === 'string') {
-      try {
-        updateData.timeline = JSON.parse(updateData.timeline);
-      } catch {
-        updateData.timeline = [];
+    
+    // Parse timeline first
+    let timelineData = [];
+    if (updateData.timeline) {
+      if (typeof updateData.timeline === 'string') {
+        try {
+          timelineData = JSON.parse(updateData.timeline);
+        } catch {
+          timelineData = [];
+        }
+      } else if (Array.isArray(updateData.timeline)) {
+        timelineData = updateData.timeline;
+      }
+      updateData.timeline = timelineData;
+    }
+    
+    // Auto-detect destination by checking places in the itinerary
+    if (Array.isArray(timelineData) && timelineData.length > 0) {
+      for (const day of timelineData) {
+        if (day.places && Array.isArray(day.places)) {
+          for (const place of day.places) {
+            if (place.name && place.name.trim()) {
+              const matchingDestination = await Destination.findOne({
+                $or: [
+                  { name: { $regex: `^${place.name.trim()}$`, $options: 'i' } },
+                  { location: { $regex: `^${place.name.trim()}$`, $options: 'i' } }
+                ]
+              });
+              
+              if (matchingDestination) {
+                updateData.destination = matchingDestination.name;
+                updateData.destinationId = matchingDestination._id;
+                break;
+              }
+            }
+          }
+          if (updateData.destinationId) break;
+        }
       }
     }
-
+    
     // Parse included array if present
     if (updateData.included) {
       let includedArray = [];
