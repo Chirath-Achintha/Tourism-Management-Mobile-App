@@ -943,8 +943,12 @@ export default function SearchPlacesScreen() {
           
           <View style={styles.ratingRow}>
             <Ionicons name="star" size={12} color="#FFD166" />
-            <Text style={styles.ratingText}>{"4.8"}</Text>
-            <Text style={styles.reviewsText}>{" (1.2k)"}</Text>
+            <Text style={styles.ratingText}>
+              {place.averageRating > 0 ? place.averageRating.toFixed(1) : "N/A"}
+            </Text>
+            <Text style={styles.reviewsText}>
+              {place.totalReviews > 0 ? ` (${place.totalReviews})` : " (No reviews)"}
+            </Text>
           </View>
         </View>
       </View>

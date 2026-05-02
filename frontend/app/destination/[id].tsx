@@ -306,19 +306,14 @@ export default function DestinationDetailScreen() {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <Text 
                 style={[
-                  styles.parallaxName, 
-                  destination.name.length > 20 && { fontSize: 24 }
+                  styles.parallaxName,
+                  destination.name.length > 15 && { fontSize: 35, lineHeight: 40 },
+                  destination.name.length > 25 && { fontSize: 32, lineHeight: 36 }
                 ]}
                 numberOfLines={3}
               >
                 {destination.name}
               </Text>
-              {destination.isFeatured && (
-                <View style={styles.featuredBadge}>
-                  <Ionicons name="star" size={12} color="#1A3B2F" />
-                  <Text style={styles.featuredText}>Featured</Text>
-                </View>
-              )}
             </View>
             <View style={styles.parallaxLocationRow}>
               <Ionicons name="location" size={16} color="#FFD166" />
@@ -576,10 +571,10 @@ const styles = StyleSheet.create({
   },
   parallaxName: {
     color: '#ffffff',
-    fontSize: 30,
+    fontSize: 38,
     fontWeight: '900',
     letterSpacing: -0.5,
-    lineHeight: 36,
+    lineHeight: 44,
     textShadowColor: 'rgba(0, 0, 0, 0.4)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 12,

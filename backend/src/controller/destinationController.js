@@ -50,8 +50,36 @@ export const createDestination = async (req, res) => {
 export const getAllDestinations = async (req, res) => {
   try {
     const { category } = req.query;
-    const filter = category ? { category } : {};
-    const destinations = await Destination.find(filter).sort({ createdAt: -1 });
+    
+    // Aggregation pipeline to get destinations with their review stats
+    const destinations = await Destination.aggregate([
+      {
+        $match: category ? { categories: category } : {}
+      },
+      {
+        $lookup: {
+          from: "reviews",
+          localField: "_id",
+          foreignField: "destinationId",
+          as: "reviews"
+        }
+      },
+      {
+        $addFields: {
+          averageRating: { $ifNull: [{ $avg: "$reviews.rating" }, 0] },
+          totalReviews: { $size: "$reviews" }
+        }
+      },
+      {
+        $project: {
+          reviews: 0 // Remove the full reviews array to keep response small
+        }
+      },
+      {
+        $sort: { createdAt: -1 }
+      }
+    ]);
+
     res.status(200).json(destinations);
   } catch (error) {
     console.error("Error in getAllDestinations:", error);
