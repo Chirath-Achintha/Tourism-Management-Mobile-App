@@ -101,7 +101,7 @@ export default function ReservationFormScreen() {
 
       if (res.ok) {
         Alert.alert('Success', 'Submitted!', [
-          { text: 'My Bookings', onPress: () => router.push('/(tabs)/bookings') }
+          { text: 'My Bookings', onPress: () => router.push('/(tabs)/bookings' as any) }
         ]);
       } else {
         const data = await res.json();

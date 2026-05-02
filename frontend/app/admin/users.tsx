@@ -22,7 +22,7 @@ export default function UserManagementScreen() {
       
       if (!token) {
         Alert.alert("Session Expired", "Please log in again as an administrator.");
-        router.replace("/login");
+        router.replace("/login" as any);
         return;
       }
 

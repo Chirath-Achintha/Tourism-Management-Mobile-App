@@ -143,7 +143,7 @@ export default function EditTourPackageScreen() {
         const token = await AsyncStorage.getItem('auth:token');
         if (!token) {
           Alert.alert('Session expired', 'Please log in again.');
-          router.replace('/login');
+          router.replace('/login' as any);
           return;
         }
 
@@ -250,7 +250,7 @@ export default function EditTourPackageScreen() {
       const token = await AsyncStorage.getItem('auth:token');
       if (!token) {
         Alert.alert('Session expired', 'Please log in again.');
-        router.replace('/login');
+        router.replace('/login' as any);
         return;
       }
 
@@ -288,7 +288,7 @@ export default function EditTourPackageScreen() {
       Alert.alert('Success', 'Tour package updated successfully.', [
         {
           text: 'OK',
-          onPress: () => router.replace('/admin/tour-packages'),
+          onPress: () => router.replace('/admin/tour-packages' as any),
         },
       ]);
     } catch (error: any) {
@@ -574,7 +574,7 @@ export default function EditTourPackageScreen() {
 
                         <Pressable
                           onPress={() => {
-                            setTimeline((prev) => prev.map((it, i) => (i === dIdx ? { ...it, places: it.places.filter((_, pi) => pi !== pIdx) } : it)));
+                            setTimeline((prev) => prev.map((it, i) => (i === dIdx ? { ...it, places: it.places.filter((_: any, pi: number) => pi !== pIdx) } : it)));
                           }}
                           style={styles.removePlaceButton}
                         >
@@ -963,5 +963,8 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     paddingVertical: 10,
     paddingHorizontal: 6,
+  },
+  itineraryWrap: {
+    marginTop: 8,
   },
 });

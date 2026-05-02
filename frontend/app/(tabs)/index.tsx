@@ -284,11 +284,11 @@ export default function DashboardScreen() {
               ]);
               setUser(null);
               router.dismissAll();
-              router.replace("/");
+              router.replace("/" as any);
             } catch (error) {
               console.warn("Logout cleanup failed:", error);
               router.dismissAll();
-              router.replace("/");
+              router.replace("/" as any);
             }
           }
         }
@@ -314,18 +314,18 @@ export default function DashboardScreen() {
             stats={stats}
             onLogout={handleLogout} 
             onOpenSidebar={() => setSidebarVisible(true)}
-            onManageDestinations={() => router.push('/admin/destinations')}
-            onManagePackages={() => router.push('/admin/tour-packages')}
-            onManageHotels={() => router.push('/admin/hotels')}
-            onManageUsers={() => router.push('/admin/users')}
+            onManageDestinations={() => router.push('/admin/destinations' as any)}
+            onManagePackages={() => router.push('/admin/tour-packages' as any)}
+            onManageHotels={() => router.push('/admin/hotels' as any)}
+            onManageUsers={() => router.push('/admin/users' as any)}
           />
         ) : user?.role === 'hotel_manager' ? (
           <HotelManagerDashboardContent 
             user={user} 
             stats={stats}
             onLogout={handleLogout} 
-            onAddHotel={() => router.push('/(tabs)/explore')}
-            onMyHotels={() => router.push('/manager/my-hotels')}
+            onAddHotel={() => router.push('/(tabs)/explore' as any)}
+            onMyHotels={() => router.push('/manager/my-hotels' as any)}
             onOpenSidebar={() => setSidebarVisible(true)}
           />
         ) : (
@@ -333,7 +333,7 @@ export default function DashboardScreen() {
   user={user} 
   stats={stats}
   onLogout={handleLogout} 
-  onExplore={() => router.push('/(tabs)/explore')} 
+  onExplore={() => router.push('/(tabs)/explore' as any)} 
   onOpenSidebar={() => setSidebarVisible(true)}
 
 />

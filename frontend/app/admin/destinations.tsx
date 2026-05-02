@@ -537,6 +537,12 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#1A3B2F',
   },
+  categoryRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 8,
+  },
   categoryBadge: {
     backgroundColor: '#E3F2FD',
     paddingHorizontal: 8,
@@ -785,39 +791,6 @@ const styles = StyleSheet.create({
   submitBtnText: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#1A3B2F',
-  },
-  featuredBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFD166',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    gap: 3,
-  },
-  featuredText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#1A3B2F',
-    textTransform: 'uppercase',
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    marginBottom: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 16,
-    gap: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(26, 59, 47, 0.1)',
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
     color: '#1A3B2F',
   },
   featuredToggle: {

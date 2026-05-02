@@ -26,6 +26,9 @@ const COLORS = {
   // New colors for badges and cards
   badgeBackground: '#EEF6FF',
   hotelCardBackground: '#F8FAFF',
+  muted: '#64748b',
+  surface: '#FFFFFF',
+  surfaceDim: '#f1f5f9',
 };
 
 const INCLUDED_OPTIONS = [
@@ -72,7 +75,7 @@ export default function TourPackageDetailScreen() {
         packageName: pkg.name,
         packagePrice: pkg.price
       }
-    });
+    } as any);
   };
 
   const formatCategory = (value?: string) => {
@@ -149,7 +152,7 @@ export default function TourPackageDetailScreen() {
           {/* Rating Badge */}
           <Pressable 
             style={styles.ratingBadge}
-            onPress={() => router.push({ pathname: '/reviews', params: { destinationId: id } })}
+            onPress={() => router.push({ pathname: '/reviews', params: { destinationId: id } } as any)}
           >
             <View style={styles.ratingBox}>
               <Text style={styles.ratingText}>4.8</Text>
@@ -319,9 +322,9 @@ export default function TourPackageDetailScreen() {
                         <View key={i} style={styles.placeRowAlt}>
                           <Ionicons name="location-outline" size={18} color={COLORS.accent} />
                           <View style={{ marginLeft: 10, flex: 1 }}>
-                            <Text style={styles.placeName}>{p.name}</Text>
+                            <Text style={styles.placeNameAlt}>{p.name}</Text>
                             {p.location ? <Text style={styles.placeLocation}>{p.location}</Text> : null}
-                            {p.notes ? <Text style={styles.placeNotes}>{p.notes}</Text> : null}
+                            {p.notes ? <Text style={styles.placeNotesAlt}>{p.notes}</Text> : null}
                           </View>
                         </View>
                       ))}
@@ -340,10 +343,10 @@ export default function TourPackageDetailScreen() {
           <View style={styles.sectionHeaderRow}>
             <Text style={styles.sectionTitle}>Reviews & Ratings</Text>
             <Pressable 
-              onPress={() => router.push({ pathname: '/reviews', params: { destinationId: id } })}
-              style={styles.viewAllButton}
+              onPress={() => router.push({ pathname: '/reviews', params: { destinationId: id } } as any)}
+              style={styles.viewAllButtonAlt}
             >
-              <Text style={styles.viewAllText}>VIEW ALL</Text>
+              <Text style={styles.viewAllTextAlt}>VIEW ALL</Text>
               <Ionicons name="chevron-forward" size={14} color={COLORS.blue} />
             </Pressable>
           </View>
@@ -356,7 +359,7 @@ export default function TourPackageDetailScreen() {
           </View>
           <Pressable 
             style={styles.addReviewButton}
-            onPress={() => router.push({ pathname: '/reviews', params: { destinationId: id } })}
+            onPress={() => router.push({ pathname: '/reviews', params: { destinationId: id } } as any)}
           >
             <Text style={styles.addReviewText}>Write a Review</Text>
           </Pressable>
@@ -859,7 +862,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     paddingVertical: 8,
   },
-  placeName: {
+  placeNameAlt: {
     fontSize: 14,
     fontWeight: '600',
     color: COLORS.text,
@@ -871,7 +874,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
     marginLeft: 26,
   },
-  placeNotes: {
+  placeNotesAlt: {
     fontSize: 12,
     color: COLORS.secondary,
     marginTop: 4,
@@ -923,17 +926,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  viewAllLink: {
+  viewAllLinkAlt: {
     fontSize: 12,
     fontWeight: '700',
     color: COLORS.blue,
   },
-  viewAllButton: {
+  viewAllButtonAlt: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
-  viewAllText: {
+  viewAllTextAlt: {
     fontSize: 12,
     fontWeight: '700',
     color: COLORS.blue,

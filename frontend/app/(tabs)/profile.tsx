@@ -67,10 +67,10 @@ export default function ProfileScreen() {
                 AUTH_TOKEN_KEY,
                 ONBOARDING_SEEN_KEY,
               ]);
-              router.replace('/');
+              router.replace('/' as any);
             } catch (error) {
               console.warn('Logout cleanup failed:', error);
-              router.replace('/');
+              router.replace('/' as any);
             }
           }
         }
@@ -236,28 +236,28 @@ export default function ProfileScreen() {
             <View style={styles.infoCard}>
               <Text style={[styles.sectionTitle, { marginBottom: 20 }]}>Admin Control Panel</Text>
               <View style={styles.adminGrid}>
-                <Pressable style={styles.adminTool} onPress={() => router.push('/admin/users')}>
+                <Pressable style={styles.adminTool} onPress={() => router.push('/admin/users' as any)}>
                   <View style={[styles.toolIcon, { backgroundColor: '#E3F2FD' }]}>
                     <Ionicons name="people" size={24} color="#1E88E5" />
                   </View>
                   <Text style={styles.toolLabel}>Users</Text>
                 </Pressable>
                 
-                <Pressable style={styles.adminTool} onPress={() => router.push('/admin/hotels')}>
+                <Pressable style={styles.adminTool} onPress={() => router.push('/admin/hotels' as any)}>
                   <View style={[styles.toolIcon, { backgroundColor: '#F3E5F5' }]}>
                     <Ionicons name="business" size={24} color="#8E24AA" />
                   </View>
                   <Text style={styles.toolLabel}>Hotels</Text>
                 </Pressable>
 
-                <Pressable style={styles.adminTool} onPress={() => router.push('/admin/reviews')}>
+                <Pressable style={styles.adminTool} onPress={() => router.push('/admin/reviews' as any)}>
                   <View style={[styles.toolIcon, { backgroundColor: '#FFF3E0' }]}>
                     <Ionicons name="star" size={24} color="#FB8C00" />
                   </View>
                   <Text style={styles.toolLabel}>Reviews</Text>
                 </Pressable>
 
-                <Pressable style={styles.adminTool} onPress={() => router.push('/admin/destinations')}>
+                <Pressable style={styles.adminTool} onPress={() => router.push('/admin/destinations' as any)}>
                   <View style={[styles.toolIcon, { backgroundColor: '#E8F5E9' }]}>
                     <Ionicons name="map" size={24} color="#43A047" />
                   </View>

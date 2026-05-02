@@ -314,7 +314,7 @@ export default function TouristHotelDetailScreen() {
           <View style={styles.sectionHeaderRow}>
             <Text style={styles.sectionTitle}>Reviews & Ratings</Text>
             <Pressable 
-              onPress={() => router.push({ pathname: '/reviews', params: { hotelId: id } })}
+              onPress={() => router.push({ pathname: '/reviews' as any, params: { hotelId: id } })}
               style={styles.viewAllButton}
             >
               <Text style={styles.viewAllText}>View All</Text>

@@ -99,10 +99,10 @@ export const Sidebar = ({ isVisible, onClose }: SidebarProps) => {
                 AUTH_TOKEN_KEY,
                 ONBOARDING_SEEN_KEY,
               ]);
-              router.replace('/');
+              router.replace('/' as any);
             } catch (error) {
               console.error('Logout failed:', error);
-              router.replace('/');
+              router.replace('/' as any);
             }
           }
         }

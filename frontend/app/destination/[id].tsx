@@ -404,7 +404,7 @@ export default function DestinationDetailScreen() {
             <Text style={styles.priceLabel}>Starting from</Text>
             <Text style={styles.priceValue}>${destination.startingPrice || "150"}<Text style={styles.perPerson}>/person</Text></Text>
           </View>
-          <Pressable style={styles.bookBtn} onPress={() => router.push('/tour-packages')}>
+          <Pressable style={styles.bookBtn} onPress={() => router.push('/tour-packages' as any)}>
             <Text style={styles.bookBtnText}>Packages</Text>
           </Pressable>
         </View>

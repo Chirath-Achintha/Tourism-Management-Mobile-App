@@ -134,7 +134,7 @@ export default function EditReservationScreen() {
 
       if (res.ok) {
         Alert.alert('Success', 'Reservation updated!', [
-          { text: 'Back to Bookings', onPress: () => router.replace('/(tabs)/bookings') }
+          { text: 'Back to Bookings', onPress: () => router.replace('/(tabs)/bookings' as any) }
         ]);
       } else {
         const data = await res.json();

@@ -613,7 +613,7 @@ export default function AddTourPackageScreen() {
             <MetaPill icon="time-outline" text={activeSummary.duration} />
             <MetaPill icon="people-outline" text={`${activeSummary.participants} pax`} />
           </View>
-          <Pressable style={styles.successPrimaryButton} onPress={() => router.replace('/admin/tour-packages')}>
+          <Pressable style={styles.successPrimaryButton} onPress={() => router.replace('/admin/tour-packages' as any)}>
             <Text style={styles.successPrimaryButtonText}>View Tour Packages</Text>
           </Pressable>
           <Pressable
