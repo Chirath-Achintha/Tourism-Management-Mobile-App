@@ -279,7 +279,7 @@ export const deleteHotel = async (req, res) => {
  */
 export const adminGetAllHotels = async (req, res) => {
   try {
-    const hotels = await Hotel.find();
+    const hotels = await Hotel.find().populate("managerId", "fullName email phoneNumber");
     res.status(200).json(hotels);
   } catch (error) {
     res.status(500).json({ message: "Server error fetching hotels" });
@@ -300,3 +300,49 @@ export const adminDeleteHotel = async (req, res) => {
     res.status(500).json({ message: "Server error deleting hotel" });
   }
 };
+
+/**
+ * @desc    Admin endpoint to verify/accept a specific hotel listing
+ * @route   PUT /api/admin/hotels/:id/verify
+ * @access  Private (Admin only)
+ */
+export const adminVerifyHotel = async (req, res) => {
+  try {
+    const hotelId = req.params.id;
+    const hotel = await Hotel.findByIdAndUpdate(
+      hotelId,
+      { $set: { isVerified: true, status: "verified" } },
+      { new: true }
+    );
+    if (!hotel) {
+      return res.status(404).json({ message: "Hotel not found" });
+    }
+    res.status(200).json({ message: "Hotel verified successfully", hotel });
+  } catch (error) {
+    res.status(500).json({ message: "Server error verifying hotel" });
+  }
+};
+
+/**
+ * @desc    Admin endpoint to decline a specific hotel listing instead of deleting it
+ * @route   PUT /api/admin/hotels/:id/decline
+ * @access  Private (Admin only)
+ */
+export const adminDeclineHotel = async (req, res) => {
+  try {
+    const hotelId = req.params.id;
+    const { reason } = req.body;
+    const hotel = await Hotel.findByIdAndUpdate(
+      hotelId,
+      { $set: { isVerified: false, status: "declined", declineReason: reason || "Declined by admin." } },
+      { new: true }
+    );
+    if (!hotel) {
+      return res.status(404).json({ message: "Hotel not found" });
+    }
+    res.status(200).json({ message: "Hotel declined successfully", hotel });
+  } catch (error) {
+    res.status(500).json({ message: "Server error declining hotel" });
+  }
+};
+
