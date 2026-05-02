@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   SafeAreaView,
   ScrollView,
+  TextInput,
 } from 'react-native';
 import { API_BASE_URL } from '@/constants/api';
 import { useRouter } from 'expo-router';
@@ -35,6 +36,7 @@ export default function TourPackagesScreen() {
   const [packages, setPackages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [locationQuery, setLocationQuery] = useState('');
   const router = useRouter();
 
   useEffect(() => {
@@ -55,9 +57,16 @@ export default function TourPackagesScreen() {
   };
 
   const filteredPackages = useMemo(() => {
-    if (selectedCategory === 'all') return packages;
-    return packages.filter((p) => p.category === selectedCategory);
-  }, [packages, selectedCategory]);
+    let list = packages;
+    if (selectedCategory !== 'all') {
+      list = list.filter((p) => p.category === selectedCategory);
+    }
+    if (locationQuery && locationQuery.trim()) {
+      const q = locationQuery.trim().toLowerCase();
+      list = list.filter((p) => (p.destination || '').toLowerCase().includes(q));
+    }
+    return list;
+  }, [packages, selectedCategory, locationQuery]);
 
   const renderCategoryPill = ({ item }: any) => {
     const isSelected = selectedCategory === item.key;
@@ -103,7 +112,7 @@ export default function TourPackagesScreen() {
 
           <View style={styles.cardMeta}>
             <View style={styles.priceTag}>
-              <Text style={styles.priceText}>${item.price || 'N/A'}</Text>
+              <Text style={styles.priceText}>LKR {item.price ? Number(item.price).toLocaleString() : 'N/A'}</Text>
             </View>
 
             <View style={styles.metaInfo}>
@@ -171,6 +180,22 @@ export default function TourPackagesScreen() {
             contentContainerStyle={styles.categoryList}
           />
 
+          {/* Location Search */}
+          <View style={styles.searchRow}>
+            <View style={styles.searchInputWrap}>
+              <Ionicons name="search-outline" size={18} color={COLORS.secondary} />
+              <TextInput
+                placeholder="Search by location"
+                placeholderTextColor="#94a3b8"
+                value={locationQuery}
+                onChangeText={setLocationQuery}
+                style={styles.searchInput}
+              />
+            </View>
+            <Pressable onPress={() => setLocationQuery('')} style={styles.clearButton}>
+              <Ionicons name="close-circle" size={20} color={COLORS.secondary} />
+            </Pressable>
+          </View>
           {/* Package Cards */}
           {filteredPackages.length === 0 ? (
             <View style={styles.emptyContainer}>
@@ -239,7 +264,31 @@ const styles = StyleSheet.create({
   },
   categoryList: {
     gap: 8,
-    marginBottom: 20,
+    marginBottom: 12,
+  },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  searchInputWrap: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#f8fbff',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: COLORS.text,
+  },
+  clearButton: {
+    padding: 8,
   },
   categoryPill: {
     paddingHorizontal: 14,

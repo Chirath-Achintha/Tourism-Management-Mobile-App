@@ -14,6 +14,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { API_BASE_URL } from '@/constants/api';
+import * as DocumentPicker from 'expo-document-picker';
 
 const COLORS = {
   bg: '#EBF5EA',
@@ -22,284 +23,179 @@ const COLORS = {
   secondary: '#64748b',
   white: '#FFFFFF',
   blue: '#3152c5',
+  green: '#10B981',
 };
 
 export default function ReservationFormScreen() {
   const router = useRouter();
-  const { packageId, packageName, packagePrice } = useLocalSearchParams();
+  const params = useLocalSearchParams();
+  const packageId = params.packageId as string;
+  const packageName = params.packageName as string;
+  const packagePrice = Number(params.packagePrice) || 0;
   
   const [travelDate, setTravelDate] = useState('');
   const [numberOfPeople, setNumberOfPeople] = useState('1');
   const [specialRequest, setSpecialRequest] = useState('');
-  const [totalPrice, setTotalPrice] = useState(Number(packagePrice) || 0);
+  const [totalPrice, setTotalPrice] = useState(packagePrice);
+  const [documentType, setDocumentType] = useState('NIC');
+  const [documentFile, setDocumentFile] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
-  // Auto-calculate total price whenever the number of people changes
   useEffect(() => {
     const people = parseInt(numberOfPeople) || 0;
-    const price = Number(packagePrice) || 0;
-    setTotalPrice(people * price);
+    setTotalPrice(people * packagePrice);
   }, [numberOfPeople, packagePrice]);
 
-  const handleConfirmReservation = async () => {
-    // Basic validation
-    if (!travelDate || !numberOfPeople) {
-      Alert.alert('Required Fields', 'Please provide a travel date and number of people.');
+  async function pickDocument() {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['image/*', 'application/pdf'],
+        copyToCacheDirectory: true,
+      });
+      if (!result.canceled) setDocumentFile(result.assets[0]);
+    } catch (err) {
+      Alert.alert('Error', 'Failed to pick');
+    }
+  }
+
+  async function handleConfirm() {
+    if (!travelDate || !numberOfPeople || !documentFile) {
+      Alert.alert('Missing Fields', 'Please provide travel date, people count, and identity document.');
+      return;
+    }
+
+    if (parseInt(numberOfPeople) <= 0) {
+      Alert.alert('Invalid Input', 'Number of people must be at least 1.');
+      return;
+    }
+
+    const selectedDate = new Date(travelDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (isNaN(selectedDate.getTime()) || selectedDate < today) {
+      Alert.alert('Invalid Date', 'Please enter a valid future travel date (YYYY-MM-DD).');
       return;
     }
 
     try {
       setLoading(true);
       const token = await AsyncStorage.getItem('auth:token');
-      
-      const response = await fetch(`${API_BASE_URL}/reservations`, {
+      const formData = new FormData();
+      formData.append('packageId', packageId);
+      formData.append('travelDate', travelDate);
+      formData.append('numberOfPeople', numberOfPeople);
+      formData.append('specialRequest', specialRequest);
+      formData.append('documentType', documentType);
+      formData.append('document', {
+        uri: documentFile.uri,
+        name: documentFile.name,
+        type: documentFile.mimeType,
+      } as any);
+
+      const res = await fetch(`${API_BASE_URL}/reservations`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          packageId,
-          travelDate,
-          numberOfPeople: parseInt(numberOfPeople),
-          specialRequest,
-        }),
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData,
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        Alert.alert('Success', 'Your reservation request has been submitted!', [
-          { text: 'View My Bookings', onPress: () => router.push('/(tabs)/bookings') }
+      if (res.ok) {
+        Alert.alert('Success', 'Submitted!', [
+          { text: 'My Bookings', onPress: () => router.push('/(tabs)/bookings') }
         ]);
       } else {
-        Alert.alert('Booking Failed', data.message || 'Something went wrong.');
+        const data = await res.json();
+        Alert.alert('Error', data.message || 'Failed to submit');
       }
     } catch (error) {
-      Alert.alert('Network Error', 'Could not connect to the server. Please try again.');
+      Alert.alert('Error', 'Network error');
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.text} />
-        </Pressable>
+        <Pressable onPress={() => router.back()} style={styles.backBtn}><Ionicons name="arrow-back" size={24} /></Pressable>
         <Text style={styles.headerTitle}>Book Your Trip</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Package Summary */}
+      <ScrollView contentContainerStyle={{ padding: 20 }}>
         <View style={styles.card}>
           <Text style={styles.label}>Selected Package</Text>
-          <Text style={styles.packageName}>{packageName}</Text>
-          <Text style={styles.packagePrice}>${packagePrice} per person</Text>
+          <Text style={styles.pkgName}>{packageName}</Text>
+          <Text style={styles.pkgPrice}>${packagePrice} / person</Text>
         </View>
 
-        {/* Input Form */}
         <View style={styles.form}>
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Travel Date</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="YYYY-MM-DD"
-              value={travelDate}
-              onChangeText={setTravelDate}
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Number of People</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="1"
-              keyboardType="numeric"
-              value={numberOfPeople}
-              onChangeText={setNumberOfPeople}
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Special Requests (Optional)</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="E.g. Food allergies, wheelchair access..."
-              multiline
-              numberOfLines={4}
-              value={specialRequest}
-              onChangeText={setSpecialRequest}
-            />
-          </View>
-        </View>
-
-        {/* Price Breakdown */}
-        <View style={styles.totalCard}>
-          <View style={styles.row}>
-            <Text style={styles.totalLabel}>Total Amount</Text>
-            <Text style={styles.totalAmount}>${totalPrice}</Text>
-          </View>
-          <Text style={styles.taxNote}>Includes all applicable taxes</Text>
-        </View>
-
-        {/* Actions */}
-        <View style={styles.actions}>
-          <Pressable 
-            style={[styles.confirmButton, loading && styles.disabledButton]} 
-            onPress={handleConfirmReservation}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color={COLORS.white} />
-            ) : (
-              <Text style={styles.confirmButtonText}>Confirm Reservation</Text>
-            )}
-          </Pressable>
+          <Input label="Travel Date" val={travelDate} setVal={setTravelDate} placeholder="YYYY-MM-DD" />
+          <Input label="People" val={numberOfPeople} setVal={setNumberOfPeople} placeholder="1" keyboard="numeric" />
+          <Input label="Special Request" val={specialRequest} setVal={setSpecialRequest} placeholder="Optional..." multiline />
           
-          <Pressable style={styles.cancelButton} onPress={() => router.back()}>
-            <Text style={styles.cancelButtonText}>Cancel</Text>
+          <Text style={styles.inputLabel}>ID Type</Text>
+          <View style={styles.typeGrid}>
+            {['NIC', 'Driving License', 'Passport', 'Int. License'].map(t => (
+              <Pressable key={t} onPress={() => setDocumentType(t)} style={[styles.typeBtn, documentType === t && styles.typeBtnActive]}>
+                <Text style={[styles.typeBtnText, documentType === t && styles.typeBtnTextActive]}>{t}</Text>
+              </Pressable>
+            ))}
+          </View>
+
+          <Text style={styles.inputLabel}>Upload ID</Text>
+          <Pressable style={styles.uploadBox} onPress={pickDocument}>
+            <Ionicons name={documentFile ? "checkmark-circle" : "cloud-upload-outline"} size={32} color={documentFile ? COLORS.green : COLORS.blue} />
+            <Text style={{ textAlign: 'center', fontSize: 12 }}>{documentFile ? documentFile.name : "Tap to upload document"}</Text>
           </Pressable>
         </View>
+
+        <View style={styles.totalCard}>
+          <Text style={{ fontWeight: '700' }}>Total: <Text style={{ color: COLORS.blue, fontSize: 24 }}>${totalPrice}</Text></Text>
+        </View>
+
+        <Pressable style={[styles.mainBtn, loading && { opacity: 0.5 }]} onPress={handleConfirm} disabled={loading}>
+          {loading ? <ActivityIndicator color="white" /> : <Text style={styles.mainBtnText}>Confirm Reservation</Text>}
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
+function Input({ label, val, setVal, placeholder, keyboard, multiline }: any) {
+  return (
+    <View style={{ gap: 4 }}>
+      <Text style={styles.inputLabel}>{label}</Text>
+      <TextInput
+        style={[styles.input, multiline && { height: 80, textAlignVertical: 'top' }]}
+        value={val}
+        onChangeText={setVal}
+        placeholder={placeholder}
+        keyboardType={keyboard || 'default'}
+        multiline={multiline}
+      />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.bg,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: COLORS.white,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  backButton: {
-    marginRight: 16,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.text,
-  },
-  scrollContent: {
-    padding: 20,
-  },
-  card: {
-    backgroundColor: COLORS.white,
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 12,
-    color: COLORS.secondary,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 6,
-  },
-  packageName: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: COLORS.text,
-    marginBottom: 4,
-  },
-  packagePrice: {
-    fontSize: 14,
-    color: COLORS.blue,
-    fontWeight: '600',
-  },
-  form: {
-    gap: 16,
-    marginBottom: 24,
-  },
-  inputGroup: {
-    gap: 8,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.text,
-  },
-  input: {
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 14,
-    fontSize: 16,
-    color: COLORS.text,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  textArea: {
-    height: 100,
-    textAlignVertical: 'top',
-  },
-  totalCard: {
-    backgroundColor: COLORS.white,
-    padding: 20,
-    borderRadius: 16,
-    marginBottom: 30,
-    borderLeftWidth: 6,
-    borderLeftColor: COLORS.accent,
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  totalLabel: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.text,
-  },
-  totalAmount: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: COLORS.blue,
-  },
-  taxNote: {
-    fontSize: 12,
-    color: COLORS.secondary,
-    marginTop: 4,
-  },
-  actions: {
-    gap: 12,
-  },
-  confirmButton: {
-    backgroundColor: COLORS.blue,
-    height: 56,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: COLORS.blue,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  confirmButtonText: {
-    color: COLORS.white,
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  disabledButton: {
-    opacity: 0.6,
-  },
-  cancelButton: {
-    height: 56,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelButtonText: {
-    color: COLORS.secondary,
-    fontSize: 15,
-    fontWeight: '600',
-  },
+  container: { flex: 1, backgroundColor: COLORS.bg },
+  header: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: 'white' },
+  backBtn: { marginRight: 16 },
+  headerTitle: { fontSize: 18, fontWeight: '700' },
+  card: { backgroundColor: 'white', padding: 16, borderRadius: 16, marginBottom: 20 },
+  label: { fontSize: 12, color: COLORS.secondary },
+  pkgName: { fontSize: 20, fontWeight: '800' },
+  pkgPrice: { color: COLORS.blue, fontWeight: '600' },
+  form: { gap: 16, marginBottom: 24 },
+  inputLabel: { fontSize: 14, fontWeight: '600' },
+  input: { backgroundColor: 'white', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: '#eee' },
+  typeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  typeBtn: { padding: 8, borderRadius: 8, borderWidth: 1, borderColor: '#eee' },
+  typeBtnActive: { backgroundColor: COLORS.blue, borderColor: COLORS.blue },
+  typeBtnText: { fontSize: 12, fontWeight: '600' },
+  typeBtnTextActive: { color: 'white' },
+  uploadBox: { backgroundColor: 'white', padding: 20, borderRadius: 12, borderWidth: 2, borderColor: '#eee', borderStyle: 'dashed', alignItems: 'center', gap: 8 },
+  totalCard: { backgroundColor: 'white', padding: 20, borderRadius: 16, marginBottom: 20 },
+  mainBtn: { backgroundColor: COLORS.blue, height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  mainBtnText: { color: 'white', fontSize: 16, fontWeight: '800' },
 });

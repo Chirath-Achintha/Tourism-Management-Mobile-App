@@ -1,17 +1,87 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, StyleSheet, FlatList, SafeAreaView, Pressable, ActivityIndicator, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, FlatList, SafeAreaView, Pressable, ActivityIndicator, Alert, ScrollView, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { API_BASE_URL } from '@/constants/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+const DASHBOARD_PRIMARY = '#1A3B2F';
+const DASHBOARD_SECONDARY = '#2D5C4D';
+
+const DEFAULT_CATEGORY_FILTERS = [
+  { key: 'all', label: 'All' },
+  { key: 'adventure', label: 'Adventure' },
+  { key: 'cultural', label: 'Cultural' },
+  { key: 'beach', label: 'Beach' },
+  { key: 'mountain', label: 'Mountain' },
+  { key: 'city', label: 'City Tour' },
+  { key: 'wildlife', label: 'Wildlife' },
+  { key: 'forest', label: 'Forest' },
+];
+
 export default function TourPackagesScreen() {
   const [packages, setPackages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedPriceFilter, setSelectedPriceFilter] = useState<'all' | 'under100' | '100to300' | '300to700' | '700plus'>('all');
+  const [selectedDurationFilter, setSelectedDurationFilter] = useState<'all' | '1to3' | '4to7' | '8plus'>('all');
   const router = useRouter();
 
+  const publishedPackages = useMemo(() => {
+    // Treat missing `published` as published for backward compatibility with existing records.
+    return packages.filter((item) => item?.published !== false);
+  }, [packages]);
+
+  const categoryFilters = useMemo(() => {
+    const predefined = new Map(DEFAULT_CATEGORY_FILTERS.map((item) => [item.key, item]));
+
+    publishedPackages.forEach((item) => {
+      const key = String(item?.category || '').trim().toLowerCase();
+      if (!key || predefined.has(key)) return;
+      const label = key
+        .split('-')
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ');
+      predefined.set(key, { key, label });
+    });
+
+    return Array.from(predefined.values());
+  }, [publishedPackages]);
+
+  const filteredPackages = useMemo(() => {
+    const normalizedSearch = searchQuery.trim().toLowerCase();
+
+    return publishedPackages.filter((item) => {
+      const searchable = `${item?.name || ''} ${item?.description || ''} ${item?.destination || ''} ${item?.category || ''}`.toLowerCase();
+
+      if (normalizedSearch && !searchable.includes(normalizedSearch)) {
+        return false;
+      }
+
+      if (selectedCategory !== 'all') {
+        const itemCategory = String(item?.category || '').toLowerCase();
+        if (itemCategory !== selectedCategory) {
+          return false;
+        }
+      }
+
+      const price = Number(item?.price);
+      if (selectedPriceFilter === 'under100' && !(price < 100)) return false;
+      if (selectedPriceFilter === '100to300' && !(price >= 100 && price <= 300)) return false;
+      if (selectedPriceFilter === '300to700' && !(price > 300 && price <= 700)) return false;
+      if (selectedPriceFilter === '700plus' && !(price > 700)) return false;
+
+      const duration = Number(item?.duration);
+      if (selectedDurationFilter === '1to3' && !(duration >= 1 && duration <= 3)) return false;
+      if (selectedDurationFilter === '4to7' && !(duration >= 4 && duration <= 7)) return false;
+      if (selectedDurationFilter === '8plus' && !(duration >= 8)) return false;
+
+      return true;
+    });
+  }, [publishedPackages, searchQuery, selectedCategory, selectedPriceFilter, selectedDurationFilter]);
   const fetchTourPackages = async () => {
     try {
       setLoading(true);
@@ -71,6 +141,9 @@ export default function TourPackagesScreen() {
     router.push(`/admin/edit-tour-package/${packageId}`);
   };
 
+  const handleViewPackage = (packageId: string) => {
+    router.push(`/tour-packages/${packageId}`);
+  };
   const handleDeletePackage = async (packageId: string) => {
     Alert.alert(
       "Confirm Delete",
@@ -114,7 +187,7 @@ export default function TourPackagesScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar style="dark" backgroundColor="#FFFFFF" />
       
       {/* Header */}
       <View style={styles.header}>
@@ -137,24 +210,76 @@ export default function TourPackagesScreen() {
         <Text style={styles.addButtonText}>Add Tour Package</Text>
       </Pressable>
 
+      <View style={styles.filtersPanel}>
+        <View style={styles.searchInputWrap}>
+          <Ionicons name="search" size={18} color="#6B7280" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search packages, destination, category..."
+            placeholderTextColor="#9CA3AF"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery ? (
+            <Pressable onPress={() => setSearchQuery('')}>
+              <Ionicons name="close-circle" size={18} color="#9CA3AF" />
+            </Pressable>
+          ) : null}
+        </View>
+
+        <Text style={styles.filterHeading}>Category</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+          {categoryFilters.map((category) => (
+            <FilterChip
+              key={category.key}
+              label={category.label}
+              selected={selectedCategory === category.key}
+              onPress={() => setSelectedCategory(category.key)}
+            />
+          ))}
+        </ScrollView>
+
+        <Text style={styles.filterHeading}>Price</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+          <FilterChip label="All" selected={selectedPriceFilter === 'all'} onPress={() => setSelectedPriceFilter('all')} />
+          <FilterChip label="Under $100" selected={selectedPriceFilter === 'under100'} onPress={() => setSelectedPriceFilter('under100')} />
+          <FilterChip label="$100-$300" selected={selectedPriceFilter === '100to300'} onPress={() => setSelectedPriceFilter('100to300')} />
+          <FilterChip label="$301-$700" selected={selectedPriceFilter === '300to700'} onPress={() => setSelectedPriceFilter('300to700')} />
+          <FilterChip label="$701+" selected={selectedPriceFilter === '700plus'} onPress={() => setSelectedPriceFilter('700plus')} />
+        </ScrollView>
+
+        <Text style={styles.filterHeading}>Duration</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+          <FilterChip label="Any" selected={selectedDurationFilter === 'all'} onPress={() => setSelectedDurationFilter('all')} />
+          <FilterChip label="1-3 days" selected={selectedDurationFilter === '1to3'} onPress={() => setSelectedDurationFilter('1to3')} />
+          <FilterChip label="4-7 days" selected={selectedDurationFilter === '4to7'} onPress={() => setSelectedDurationFilter('4to7')} />
+          <FilterChip label="8+ days" selected={selectedDurationFilter === '8plus'} onPress={() => setSelectedDurationFilter('8plus')} />
+        </ScrollView>
+      </View>
       {/* Content */}
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#1A3B2F" />
           <Text style={styles.loadingText}>Loading tour packages...</Text>
         </View>
-      ) : packages.length === 0 ? (
+      ) : publishedPackages.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="briefcase-outline" size={64} color="#C0C0C0" />
-          <Text style={styles.emptyText}>No tour packages found</Text>
-          <Text style={styles.emptySubtext}>Create one by clicking the button above</Text>
+          <Text style={styles.emptyText}>No published tour packages found</Text>
+          <Text style={styles.emptySubtext}>Publish packages to manage them here.</Text>
+        </View>
+      ) : filteredPackages.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="filter-outline" size={64} color="#C0C0C0" />
+          <Text style={styles.emptyText}>No packages match your filters</Text>
+          <Text style={styles.emptySubtext}>Try adjusting search text or filter chips.</Text>
         </View>
       ) : (
         <FlatList
-          data={packages}
+          data={filteredPackages}
           renderItem={({ item }) => (
             <View style={styles.packageCard}>
-              <View style={styles.packageInfo}>
+              <Pressable style={styles.packageInfo} onPress={() => handleViewPackage(item._id)}>
                 <Text style={styles.packageName}>{item.name || 'Unnamed Package'}</Text>
                 <Text style={styles.packageDescription} numberOfLines={2}>
                   {item.description || 'No description'}
@@ -162,7 +287,7 @@ export default function TourPackagesScreen() {
                 <View style={styles.packageDetails}>
                   <View style={styles.detailBadge}>
                     <Text style={styles.badgeText}>
-                      ${item.price || 'N/A'}
+                      LKR {item.price ? Number(item.price).toLocaleString() : 'N/A'}
                     </Text>
                   </View>
                   <View style={styles.detailBadge}>
@@ -171,7 +296,7 @@ export default function TourPackagesScreen() {
                     </Text>
                   </View>
                 </View>
-              </View>
+              </Pressable>
               <View style={styles.packageActions}>
                 <Pressable 
                   style={({ pressed }) => [
@@ -205,6 +330,20 @@ export default function TourPackagesScreen() {
   );
 }
 
+function FilterChip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      style={({ pressed }) => [
+        styles.filterChip,
+        selected && styles.filterChipSelected,
+        pressed && styles.filterChipPressed,
+      ]}
+      onPress={onPress}
+    >
+      <Text style={[styles.filterChipText, selected && styles.filterChipTextSelected]}>{label}</Text>
+    </Pressable>
+  );
+}
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -226,7 +365,7 @@ const styles = StyleSheet.create({
   },
   addButton: {
     flexDirection: 'row',
-    backgroundColor: '#1A8E5F',
+    backgroundColor: DASHBOARD_PRIMARY,
     marginHorizontal: 20,
     marginVertical: 16,
     paddingHorizontal: 16,
@@ -243,6 +382,62 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '600',
     fontSize: 16,
+  },
+  filtersPanel: {
+    marginHorizontal: 20,
+    marginBottom: 8,
+  },
+  searchInputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    gap: 8,
+    height: 44,
+    marginBottom: 10,
+  },
+  searchInput: {
+    flex: 1,
+    color: '#111827',
+    fontSize: 14,
+  },
+  filterHeading: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '700',
+    marginBottom: 6,
+    marginTop: 2,
+  },
+  filterRow: {
+    paddingBottom: 8,
+    gap: 8,
+  },
+  filterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    backgroundColor: '#FFFFFF',
+  },
+  filterChipSelected: {
+    backgroundColor: DASHBOARD_PRIMARY,
+    borderColor: DASHBOARD_PRIMARY,
+  },
+  filterChipPressed: {
+    opacity: 0.8,
+  },
+  filterChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#374151',
+    textTransform: 'capitalize',
+  },
+  filterChipTextSelected: {
+    color: '#FFFFFF',
   },
   loadingContainer: {
     flex: 1,
@@ -330,9 +525,9 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   editButton: {
-    backgroundColor: '#4A90E2',
+    backgroundColor: DASHBOARD_PRIMARY,
   },
   deleteButton: {
-    backgroundColor: '#E74C3C',
+    backgroundColor: DASHBOARD_SECONDARY,
   },
 });

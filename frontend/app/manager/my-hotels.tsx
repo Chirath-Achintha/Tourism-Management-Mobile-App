@@ -69,11 +69,10 @@ export default function MyHotelsScreen() {
       ]
     );
   };
-
   const renderHotelItem = ({ item }: { item: any }) => (
     <View style={styles.card}>
       {item.mainImage ? (
-        <Image source={{ uri: `${API_BASE_URL}${item.mainImage}` }} style={styles.hotelImage} />
+        <Image source={{ uri: item.mainImage.startsWith('http') ? item.mainImage : `${API_BASE_URL}${item.mainImage}` }} style={styles.hotelImage} />
       ) : (
         <View style={styles.imagePlaceholder}>
           <Ionicons name="business" size={40} color="rgba(26, 59, 47, 0.2)" />

@@ -24,7 +24,7 @@ const MAPPING: IconMapping = {
   'square.and.pencil': 'edit',
   'plus.circle.fill': 'add-circle',
   'calendar.fill': 'event-note',
-};
+} as IconMapping;
 
 /**
  * An icon component that uses native SF Symbols on iOS, and Material Icons on Android and web.

@@ -11,8 +11,9 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Platform,
 } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import { MapView, Marker, PROVIDER_GOOGLE } from '@/components/MapViewComponent';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -83,6 +84,7 @@ export default function SearchPlacesScreen() {
   const [description, setDescription] = useState('');
   const [contactEmail, setContactEmail] = useState('');
   const [contactPhone, setContactPhone] = useState('');
+  const [websiteLink, setWebsiteLink] = useState('');
   
   // Dynamic Room Pricing State
   const [roomConfigs, setRoomConfigs] = useState<{type: string, price: string, discountPrice: string}[]>([]);
@@ -110,6 +112,8 @@ export default function SearchPlacesScreen() {
     latitudeDelta: 3.5,
     longitudeDelta: 3.5,
   });
+
+  const [fetchedRating, setFetchedRating] = useState<string | null>(null);
 
   const [touched, setTouched] = useState({
     hotelName: false,
@@ -224,13 +228,14 @@ export default function SearchPlacesScreen() {
           setDescription(hotel.description);
           setContactEmail(hotel.contactEmail);
           setContactPhone(hotel.contactPhone);
+          setWebsiteLink(hotel.websiteLink || '');
           setRoomConfigs(hotel.roomConfigs || []);
           setFacilities(hotel.facilities || {
             freeWifi: false, swimmingPool: false, airConditioning: false,
             parking: false, restaurant: false, gym: false
           });
-          setMainImage(hotel.mainImage ? `${API_BASE_URL}${hotel.mainImage}` : null);
-          setGalleryImages(hotel.galleryImages ? hotel.galleryImages.map((img: string) => `${API_BASE_URL}${img}`) : []);
+          setMainImage(hotel.mainImage ? (hotel.mainImage.startsWith('http') ? hotel.mainImage : `${API_BASE_URL}${hotel.mainImage}`) : null);
+          setGalleryImages(hotel.galleryImages ? hotel.galleryImages.map((img: string) => img.startsWith('http') ? img : `${API_BASE_URL}${img}`) : []);
           
           if (hotel.latitude && hotel.longitude) {
             setSelectedLocation({ latitude: hotel.latitude, longitude: hotel.longitude });
@@ -248,7 +253,6 @@ export default function SearchPlacesScreen() {
         setLoading(false);
       }
     };
-
     checkRole();
     fetchHotelData();
   }, [id]);
@@ -275,7 +279,6 @@ export default function SearchPlacesScreen() {
       Alert.alert("Validation", "Please enter a price for the room.");
       return;
     }
-
     const cleanPrice = tempPrice.replace(/,/g, '');
     const priceVal = parseFloat(cleanPrice);
     if (isNaN(priceVal) || priceVal <= 0) {
@@ -296,6 +299,7 @@ export default function SearchPlacesScreen() {
         Alert.alert("Validation", "Discount must be between 0% and 100%.");
         return;
       }
+      const priceVal = parseFloat(cleanPrice);
       if (!isNaN(priceVal) && !isNaN(discountPercentage)) {
         const finalPrice = priceVal - (priceVal * (discountPercentage / 100));
         calculatedDiscountPrice = finalPrice.toFixed(2); // Store the calculated LKR price
@@ -352,8 +356,18 @@ export default function SearchPlacesScreen() {
       longitudeDelta: 0.05,
     });
     setAddressSuggestions([]);
-  };
 
+    if (hotelName) {
+      fetch(`${API_BASE_URL}/hotels/google/rating?name=${encodeURIComponent(hotelName)}&address=${encodeURIComponent(displayName)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.googleRating) {
+            setFetchedRating(`${data.googleRating} ★ (${data.googleTotalReviews} reviews)`);
+          }
+        })
+        .catch(err => console.error("Error fetching google rating:", err));
+    }
+  };
   const removeRoomConfig = (index: number) => {
     setRoomConfigs(prev => prev.filter((_, i) => i !== index));
   };
@@ -379,7 +393,6 @@ export default function SearchPlacesScreen() {
       Alert.alert("Validation Error", "Please correct all highlighted errors.");
       return;
     }
-
     if (!hotelName || !location || !address || !description || !contactEmail || !contactPhone || !mainImage) {
       Alert.alert("Validation", "Please fill in all essential details.");
       return;
@@ -446,6 +459,7 @@ export default function SearchPlacesScreen() {
           description,
           contactEmail,
           contactPhone,
+          websiteLink,
           roomConfigs: roomConfigs.map(r => ({
             type: r.type,
             price: Number(r.price),
@@ -478,6 +492,7 @@ export default function SearchPlacesScreen() {
       setDescription('');
       setContactEmail('');
       setContactPhone('');
+      setWebsiteLink('');
       setRoomConfigs([]);
       setFacilities({
         freeWifi: false,
@@ -566,7 +581,7 @@ export default function SearchPlacesScreen() {
                       const displayName = [props.name, props.city || props.state, props.country].filter(Boolean).join(', ');
                       return (
                         <Pressable 
-                          key={item.id || index} 
+                           key={item.id || index} 
                           style={styles.suggestionItem}
                           onPress={() => handleSelectAddress(item)}
                         >
@@ -583,26 +598,44 @@ export default function SearchPlacesScreen() {
               {touched.address && errors.address && (
                 <Text style={styles.errorText}>{errors.address}</Text>
               )}
+              {fetchedRating && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6, backgroundColor: '#EBF5EA', padding: 8, borderRadius: 8 }}>
+                  <Ionicons name="star" size={14} color="#FFD166" />
+                  <Text style={{ fontSize: 13, color: '#1A3B2F', fontWeight: '700' }}>Google Rating: {fetchedRating}</Text>
+                </View>
+              )}
             </View>
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Map Location (Tap to pin)</Text>
               <View style={styles.mapContainer}>
-                <MapView
-                  provider={PROVIDER_GOOGLE}
-                  style={styles.map}
-                  region={mapRegion}
-                  onRegionChangeComplete={(region) => setMapRegion(region)}
-                  onPress={(e) => setSelectedLocation(e.nativeEvent.coordinate)}
-                >
-                  {selectedLocation && (
-                    <Marker 
-                      draggable
-                      coordinate={selectedLocation} 
-                      onDragEnd={(e) => setSelectedLocation(e.nativeEvent.coordinate)}
-                    />
-                  )}
-                </MapView>
+                {Platform.OS !== 'web' ? (
+                  <MapView
+                    provider={PROVIDER_GOOGLE}
+                    style={styles.map}
+                    region={mapRegion}
+                      onRegionChangeComplete={(region: any) => setMapRegion(region)}
+                      onPress={(e: any) => setSelectedLocation(e.nativeEvent.coordinate)}
+                  >
+                    {selectedLocation && (
+                      <Marker 
+                        draggable
+                        coordinate={selectedLocation} 
+                            onDragEnd={(e: any) => setSelectedLocation(e.nativeEvent.coordinate)}
+                      />
+                    )}
+                  </MapView>
+                ) : (
+                  <View style={styles.webMapFallback}>
+                    <Ionicons name="map" size={40} color="#999" />
+                    <Text style={styles.webMapText}>Map view is available on mobile</Text>
+                    {selectedLocation && (
+                      <Text style={styles.coordinatesText}>
+                        Pinned: {selectedLocation.latitude.toFixed(4)}, {selectedLocation.longitude.toFixed(4)}
+                      </Text>
+                    )}
+                  </View>
+                )}
               </View>
               {selectedLocation && (
                 <Text style={styles.coordinatesText}>
@@ -657,6 +690,17 @@ export default function SearchPlacesScreen() {
               {touched.contactPhone && errors.contactPhone && (
                 <Text style={styles.errorText}>{errors.contactPhone}</Text>
               )}
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Hotel Website (Optional)</Text>
+              <TextInput
+                value={websiteLink}
+                onChangeText={setWebsiteLink}
+                placeholder="e.g. https://www.grandresort.com"
+                autoCapitalize="none"
+                style={styles.formInput}
+              />
             </View>
           </View>
 
@@ -1271,5 +1315,20 @@ const styles = StyleSheet.create({
   errorInput: {
     borderColor: '#ff4444',
     backgroundColor: '#fffcfc',
+  },
+  webMapFallback: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F0FAF5',
+    borderRadius: 12,
+    gap: 12,
+  },
+  webMapText: {
+    fontSize: 14,
+    color: '#999',
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });

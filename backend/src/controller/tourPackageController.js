@@ -1,7 +1,15 @@
 import TourPackage from "../models/TourPackage.js";
+import cloudinary from 'cloudinary';
+
+cloudinary.v2.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 export const createTourPackage = async (req, res) => {
   try {
+    // Accept multipart/form-data with optional 'cover' file
     const {
       name,
       description,
@@ -11,13 +19,32 @@ export const createTourPackage = async (req, res) => {
       startDate,
       endDate,
       price,
+      minParticipants,
       maxParticipants,
+      // coverImageUri may be provided as a fallback string
       coverImageUri,
       timeline,
-      published,
+        published,
+        meals,
+        accommodation,
+        guide,
+        transport,
+        included,
     } = req.body;
 
     if (!name) return res.status(400).json({ message: 'Package name is required.' });
+
+    // Parse included array if it's a string
+    let includedArray = [];
+    if (typeof included === 'string') {
+      try {
+        includedArray = JSON.parse(included);
+      } catch {
+        includedArray = [];
+      }
+    } else if (Array.isArray(included)) {
+      includedArray = included;
+    }
 
     const pkg = new TourPackage({
       name,
@@ -28,12 +55,37 @@ export const createTourPackage = async (req, res) => {
       startDate: startDate || '',
       endDate: endDate || '',
       price: Number(price) || 0,
+      minParticipants: Number(minParticipants) || 0,
       maxParticipants: Number(maxParticipants) || 0,
       coverImageUri: coverImageUri || '',
-      timeline: Array.isArray(timeline) ? timeline : [],
+      timeline: (typeof timeline === 'string' ? (() => {
+        try { return JSON.parse(timeline); } catch { return []; }
+      })() : Array.isArray(timeline) ? timeline : []),
+      meals: meals || '',
+      accommodation: accommodation || '',
+      guide: guide || '',
+      transport: transport || '',
+      includeHotels: includedArray.includes('hotels'),
+      includeMeals: includedArray.includes('meals'),
+      includeTransport: includedArray.includes('transport'),
+      includeActivities: includedArray.includes('activities'),
+      includeInsurance: includedArray.includes('insurance'),
       published: published !== undefined ? Boolean(published) : true,
       createdBy: req.user ? req.user._id : undefined,
     });
+
+    // If a file was uploaded under the field 'cover', upload it to Cloudinary
+    if (req.file && req.file.buffer) {
+      try {
+        const dataUri = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+        const uploadRes = await cloudinary.v2.uploader.upload(dataUri, { folder: 'tour-packages' });
+        if (uploadRes && uploadRes.secure_url) {
+          pkg.coverImageUri = uploadRes.secure_url;
+        }
+      } catch (uploadErr) {
+        console.error('Cloudinary upload failed:', uploadErr.message || uploadErr);
+      }
+    }
 
     await pkg.save();
 
@@ -77,7 +129,49 @@ export const getTourPackageById = async (req, res) => {
 
 export const updateTourPackage = async (req, res) => {
   try {
-    const pkg = await TourPackage.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const updateData = { ...req.body };
+    if (typeof updateData.timeline === 'string') {
+      try {
+        updateData.timeline = JSON.parse(updateData.timeline);
+      } catch {
+        updateData.timeline = [];
+      }
+    }
+
+    // Parse included array if present
+    if (updateData.included) {
+      let includedArray = [];
+      if (typeof updateData.included === 'string') {
+        try {
+          includedArray = JSON.parse(updateData.included);
+        } catch {
+          includedArray = [];
+        }
+      } else if (Array.isArray(updateData.included)) {
+        includedArray = updateData.included;
+      }
+      updateData.includeHotels = includedArray.includes('hotels');
+      updateData.includeMeals = includedArray.includes('meals');
+      updateData.includeTransport = includedArray.includes('transport');
+      updateData.includeActivities = includedArray.includes('activities');
+      updateData.includeInsurance = includedArray.includes('insurance');
+      delete updateData.included; // Remove the array from updateData
+    }
+
+    // If a new cover file was uploaded, upload to Cloudinary and set coverImageUri
+    if (req.file && req.file.buffer) {
+      try {
+        const dataUri = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+        const uploadRes = await cloudinary.v2.uploader.upload(dataUri, { folder: 'tour-packages' });
+        if (uploadRes && uploadRes.secure_url) {
+          updateData.coverImageUri = uploadRes.secure_url;
+        }
+      } catch (uploadErr) {
+        console.error('Cloudinary upload failed on update:', uploadErr.message || uploadErr);
+      }
+    }
+
+    const pkg = await TourPackage.findByIdAndUpdate(req.params.id, updateData, { new: true });
     if (!pkg) return res.status(404).json({ message: 'Tour package not found' });
     res.status(200).json({ message: 'Tour package updated', package: pkg });
   } catch (error) {

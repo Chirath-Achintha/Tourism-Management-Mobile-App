@@ -85,12 +85,12 @@ export default function TabLayout() {
         options={{
           title: 'Bookings',
           tabBarIcon: ({ color }) => <IconSymbol size={26} name="calendar.fill" color={color} />,
+          href: isHotelManager ? null : undefined,
         }}
       />
       
       <Tabs.Screen
         name="profile"
-
         options={{
           title: 'Profile',
           tabBarIcon: ({ color }) => <IconSymbol size={26} name="person.crop.circle.fill" color={color} />,
