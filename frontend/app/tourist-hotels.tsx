@@ -30,6 +30,8 @@ export default function TouristHotelsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDistrict, setSelectedDistrict] = useState('All');
   const [showDistrictDropdown, setShowDistrictDropdown] = useState(false);
+  const [selectedRating, setSelectedRating] = useState('All');
+  const [showRatingDropdown, setShowRatingDropdown] = useState(false);
   const router = useRouter();
 
   const fetchHotels = async () => {
@@ -64,6 +66,14 @@ export default function TouristHotelsScreen() {
       );
     }
 
+    if (selectedRating !== 'All') {
+      const minRating = parseFloat(selectedRating);
+      list = list.filter(h => {
+        const rating = h.googleRating ? parseFloat(h.googleRating) : 4.8;
+        return rating >= minRating;
+      });
+    }
+
     if (searchQuery.trim()) {
       const q = searchQuery.trim().toLowerCase();
       list = list.filter(h => 
@@ -72,12 +82,13 @@ export default function TouristHotelsScreen() {
       );
     }
     return list;
-  }, [hotels, selectedDistrict, searchQuery]);
+  }, [hotels, selectedDistrict, selectedRating, searchQuery]);
 
   const renderItem = ({ item }: any) => {
     // Get lowest room price
-    const lowestPrice = item.rooms && item.rooms.length > 0
-      ? Math.min(...item.rooms.map((r: any) => r.price))
+    const rooms = item.roomConfigs || item.rooms || [];
+    const lowestPrice = rooms.length > 0
+      ? Math.min(...rooms.map((r: any) => r.price))
       : 0;
 
     return (
@@ -86,7 +97,7 @@ export default function TouristHotelsScreen() {
         onPress={() => router.push(`/tourist-hotel-detail?id=${item._id}` as any)}
       >
         {item.mainImage ? (
-          <Image source={{ uri: `${API_BASE_URL}${item.mainImage}` }} style={styles.hotelImage} />
+          <Image source={{ uri: item.mainImage.startsWith('http') ? item.mainImage : `${API_BASE_URL}${item.mainImage}` }} style={styles.hotelImage} />
         ) : (
           <View style={styles.imagePlaceholder}>
             <Ionicons name="business" size={40} color="rgba(26, 36, 50, 0.2)" />
@@ -95,11 +106,6 @@ export default function TouristHotelsScreen() {
         <View style={styles.cardContent}>
           <View style={styles.headerRow}>
             <Text style={styles.hotelName} numberOfLines={1}>{item.hotelName}</Text>
-            {lowestPrice > 0 && (
-              <View style={styles.priceBadge}>
-                <Text style={styles.priceText}>{lowestPrice} LKR</Text>
-              </View>
-            )}
           </View>
           
           <Text style={styles.location}>
@@ -131,12 +137,10 @@ export default function TouristHotelsScreen() {
 
           <View style={styles.actions}>
             <View style={styles.contactRow}>
-              <Ionicons name="call-outline" size={14} color="#1A2432" />
-              <Text style={styles.contactText}>{item.contactPhone}</Text>
-            </View>
-            <View style={styles.contactRow}>
-              <Ionicons name="mail-outline" size={14} color="#1A2432" />
-              <Text style={styles.contactText}>{item.contactEmail}</Text>
+              <Ionicons name="star" size={16} color={COLORS.accent} />
+              <Text style={[styles.contactText, { fontWeight: '700', fontSize: 13, color: COLORS.text }]}>
+                {item.googleRating ? Number(item.googleRating).toFixed(1) : '4.8'}
+              </Text>
             </View>
           </View>
         </View>
@@ -219,6 +223,55 @@ export default function TouristHotelsScreen() {
                   {district}
                 </Text>
                 {selectedDistrict === district && (
+                  <Ionicons name="checkmark" size={16} color="#1A2432" />
+                )}
+              </Pressable>
+            ))}
+          </ScrollView>
+        )}
+
+        {/* Rating Select box */}
+        <Pressable 
+          style={[styles.selectBox, { marginTop: 12 }]} 
+          onPress={() => setShowRatingDropdown(!showRatingDropdown)}
+        >
+          <Ionicons name="star" size={16} color="rgba(26, 36, 50, 0.5)" />
+          <Text style={styles.selectText}>
+            {selectedRating === 'All' ? 'Select Rating: All' : `Rating: ${selectedRating} & up`}
+          </Text>
+          <Ionicons 
+            name={showRatingDropdown ? "chevron-up" : "chevron-down"} 
+            size={18} 
+            color="rgba(26, 36, 50, 0.5)" 
+          />
+        </Pressable>
+
+        {showRatingDropdown && (
+          <ScrollView 
+            style={styles.dropdownContainer}
+            nestedScrollEnabled={true}
+          >
+            {['All', '4.5', '4.0', '3.5', '3.0'].map((rating) => (
+              <Pressable
+                key={rating}
+                style={[
+                  styles.dropdownOption,
+                  selectedRating === rating && styles.dropdownOptionActive,
+                ]}
+                onPress={() => {
+                  setSelectedRating(rating);
+                  setShowRatingDropdown(false);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.dropdownOptionText,
+                    selectedRating === rating && styles.dropdownOptionTextActive,
+                  ]}
+                >
+                  {rating === 'All' ? 'All' : `${rating} & up`}
+                </Text>
+                {selectedRating === rating && (
                   <Ionicons name="checkmark" size={16} color="#1A2432" />
                 )}
               </Pressable>
