@@ -71,7 +71,16 @@ const hotelSchema = new mongoose.Schema(
     },
     isVerified: {
       type: Boolean,
-      default: true,
+      default: false,
+    },
+    status: {
+      type: String,
+      enum: ["pending", "verified", "declined"],
+      default: "pending",
+    },
+    declineReason: {
+      type: String,
+      default: "",
     },
   },
   {

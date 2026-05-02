@@ -167,6 +167,11 @@ export const Sidebar = ({ isVisible, onClose }: SidebarProps) => {
                   onPress={() => handleNavigate('/tourist-hotels')}
                 />
                 <SidebarItem
+                  icon="people-outline"
+                  label="Tour Guides"
+                  onPress={() => handleNavigate('/tourist-guides')}
+                />
+                <SidebarItem
                   icon="bookmark-outline"
                   label="My Bookings"
                   onPress={() => handleNavigate('/(tabs)/bookings')}
@@ -188,6 +193,11 @@ export const Sidebar = ({ isVisible, onClose }: SidebarProps) => {
                   onPress={() => handleNavigate('/admin/users')}
                 />
                 <SidebarItem
+                  icon="map-outline"
+                  label="Destination Management"
+                  onPress={() => handleNavigate('/admin/destinations')}
+                />
+                <SidebarItem
                   icon="airplane-outline"
                   label="Tour Packages"
                   onPress={() => handleNavigate('/admin/tour-packages')}
@@ -196,6 +206,11 @@ export const Sidebar = ({ isVisible, onClose }: SidebarProps) => {
                   icon="business-outline"
                   label="Hotel Management"
                   onPress={() => handleNavigate('/admin/hotels')}
+                />
+                <SidebarItem
+                  icon="id-card-outline"
+                  label="Tour Guide Management"
+                  onPress={() => handleNavigate('/admin/tour-guides')}
                 />
                 <SidebarItem
                   icon="list-outline"
@@ -218,16 +233,6 @@ export const Sidebar = ({ isVisible, onClose }: SidebarProps) => {
                   icon="business-outline"
                   label="My Hotels"
                   onPress={() => handleNavigate('/manager/my-hotels')}
-                />
-                <SidebarItem
-                  icon="map-outline"
-                  label="Destination Management"
-                  onPress={() => handleNavigate('/admin/destinations')}
-                />
-                <SidebarItem
-                  icon="airplane-outline"
-                  label="Tour Packages"
-                  onPress={() => handleNavigate('/admin/tour-packages')}
                 />
               </>
             )}

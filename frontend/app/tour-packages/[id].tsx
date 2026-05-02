@@ -321,6 +321,7 @@ export default function TourPackageDetailScreen() {
                           <Ionicons name="location-outline" size={18} color={COLORS.accent} />
                           <View style={{ marginLeft: 10, flex: 1 }}>
                             <Text style={styles.placeName}>{p.name}</Text>
+                            {p.location ? <Text style={styles.placeLocation}>{p.location}</Text> : null}
                             {p.notes ? <Text style={styles.placeNotes}>{p.notes}</Text> : null}
                           </View>
                         </View>
@@ -833,6 +834,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     paddingVertical: 8,
+  },
+  placeName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginLeft: 8,
+  },
+  placeLocation: {
+    fontSize: 12,
+    color: COLORS.secondary,
+    marginTop: 2,
+    marginLeft: 26,
+  },
+  placeNotes: {
+    fontSize: 12,
+    color: COLORS.secondary,
+    marginTop: 4,
+    marginLeft: 26,
+    fontStyle: 'italic',
   },
 
   // Pricing Section
