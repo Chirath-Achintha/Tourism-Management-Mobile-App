@@ -65,6 +65,10 @@ const hotelSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    websiteLink: {
+      type: String,
+      trim: true,
+    },
     isVerified: {
       type: Boolean,
       default: true,
