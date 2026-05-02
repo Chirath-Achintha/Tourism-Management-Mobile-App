@@ -48,15 +48,45 @@ export default function DestinationDetailScreen() {
   const [userId, setUserId] = useState<string | null>(null);
   const [editingReview, setEditingReview] = useState<any | null>(null);
 
+  const FAVORITES_KEY = "wishlist:favorites";
+
   const fetchUserData = async () => {
     try {
-      const userData = await AsyncStorage.getItem('auth:user');
+      const [userData, favData] = await Promise.all([
+        AsyncStorage.getItem('auth:user'),
+        AsyncStorage.getItem(FAVORITES_KEY)
+      ]);
+      
       if (userData) {
         const user = JSON.parse(userData);
         setUserId(user._id || user.id);
       }
+
+      if (favData) {
+        const favs = JSON.parse(favData);
+        setIsFavorite(favs.includes(id));
+      }
     } catch (error) {
       console.error("Failed to load user data", error);
+    }
+  };
+
+  const toggleFavorite = async () => {
+    try {
+      const stored = await AsyncStorage.getItem(FAVORITES_KEY);
+      let favs = stored ? JSON.parse(stored) : [];
+      
+      if (favs.includes(id)) {
+        favs = favs.filter((f: string) => f !== id);
+        setIsFavorite(false);
+      } else {
+        favs.push(id);
+        setIsFavorite(true);
+      }
+      
+      await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(favs));
+    } catch (error) {
+      console.error("Failed to update favorite", error);
     }
   };
 
@@ -227,7 +257,7 @@ export default function DestinationDetailScreen() {
         <Pressable style={styles.iconCircle} onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={24} color="#1A3B2F" />
         </Pressable>
-        <Pressable style={styles.iconCircle} onPress={() => setIsFavorite(!isFavorite)}>
+        <Pressable style={styles.iconCircle} onPress={toggleFavorite}>
           <Ionicons 
             name={isFavorite ? "heart" : "heart-outline"} 
             size={24} 
@@ -306,19 +336,14 @@ export default function DestinationDetailScreen() {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <Text 
                 style={[
-                  styles.parallaxName, 
-                  destination.name.length > 20 && { fontSize: 24 }
+                  styles.parallaxName,
+                  destination.name.length > 15 && { fontSize: 35, lineHeight: 40 },
+                  destination.name.length > 25 && { fontSize: 32, lineHeight: 36 }
                 ]}
                 numberOfLines={3}
               >
                 {destination.name}
               </Text>
-              {destination.isFeatured && (
-                <View style={styles.featuredBadge}>
-                  <Ionicons name="star" size={12} color="#1A3B2F" />
-                  <Text style={styles.featuredText}>Featured</Text>
-                </View>
-              )}
             </View>
             <View style={styles.parallaxLocationRow}>
               <Ionicons name="location" size={16} color="#FFD166" />
@@ -576,10 +601,10 @@ const styles = StyleSheet.create({
   },
   parallaxName: {
     color: '#ffffff',
-    fontSize: 30,
+    fontSize: 38,
     fontWeight: '900',
     letterSpacing: -0.5,
-    lineHeight: 36,
+    lineHeight: 44,
     textShadowColor: 'rgba(0, 0, 0, 0.4)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 12,

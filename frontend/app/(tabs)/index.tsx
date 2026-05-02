@@ -6,6 +6,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { Sidebar } from '@/components/Sidebar';
 import { API_BASE_URL } from '@/constants/api';
+import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 
 
 const AUTH_USER_KEY = "auth:user";
@@ -64,8 +66,37 @@ const TouristDashboardContent = ({ user, stats, onLogout, onExplore, onOpenSideb
       <Pressable style={styles.actionButton} onPress={onExplore}>
         <Text style={styles.actionButtonText}>Explore Options</Text>
       </Pressable>
-
     </View>
+
+    {stats.wishlistCount > 0 && (
+      <View style={{ marginTop: 32 }}>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionTitle}>My Wishlist</Text>
+          <Pressable onPress={() => stats.onViewWishlist()}>
+            <Text style={styles.viewAllText}>View All</Text>
+          </Pressable>
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
+          {stats.wishlistItems.map((place: any) => (
+            <Pressable 
+              key={place._id} 
+              style={styles.wishlistCard}
+              onPress={() => stats.onNavigateToPlace(place._id)}
+            >
+              <Image source={{ uri: place.images[0]?.url }} style={styles.wishlistImage} />
+              <LinearGradient colors={['transparent', 'rgba(0,0,0,0.7)']} style={styles.wishlistGradient} />
+              <View style={styles.wishlistInfo}>
+                <Text style={styles.wishlistName} numberOfLines={1}>{place.name}</Text>
+                <View style={styles.wishlistLocation}>
+                  <Ionicons name="location" size={10} color="#FFD166" />
+                  <Text style={styles.wishlistLocationText}>{place.location}</Text>
+                </View>
+              </View>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
+    )}
   </ScrollView>
 );
 
@@ -224,46 +255,74 @@ export default function DashboardScreen() {
   const [isSidebarVisible, setSidebarVisible] = useState(false);
   const router = useRouter();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const userData = await AsyncStorage.getItem(AUTH_USER_KEY);
-        const token = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
-        
-        let currentUser = null;
-        if (userData) {
-          currentUser = JSON.parse(userData);
-          setUser(currentUser);
-        }
+  const fetchData = async () => {
+    try {
+      const userData = await AsyncStorage.getItem(AUTH_USER_KEY);
+      const token = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
+      const favData = await AsyncStorage.getItem("wishlist:favorites");
+      
+      let currentUser = null;
+      if (userData) {
+        currentUser = JSON.parse(userData);
+        setUser(currentUser);
+      }
 
-        if (token) {
-          if (currentUser?.role === 'hotel_manager') {
-            const res = await fetch(`${API_BASE_URL}/hotels/my-hotels`, {
+      const favoritesIds = favData ? JSON.parse(favData) : [];
+
+      if (token) {
+        if (currentUser?.role === 'hotel_manager') {
+          const res = await fetch(`${API_BASE_URL}/hotels/my-hotels`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const hotelsData = await res.json();
+          if (res.ok && Array.isArray(hotelsData)) {
+            const verified = hotelsData.filter((h: any) => h.status === 'verified').length;
+            const pending = hotelsData.filter((h: any) => h.status === 'pending').length;
+            const declined = hotelsData.filter((h: any) => h.status === 'declined').length;
+            setStats({ verified, pending, declined } as any);
+          }
+        } else {
+          // Fetch stats and destinations for wishlist
+          const [statsRes, destinationsRes] = await Promise.all([
+            fetch(`${API_BASE_URL}/reservations/stats`, {
               headers: { 'Authorization': `Bearer ${token}` }
+            }),
+            fetch(`${API_BASE_URL}/destinations`)
+          ]);
+
+          const statsData = await statsRes.json();
+          const destinationsData = await destinationsRes.json();
+
+          if (statsRes.ok) {
+            const wishlistItems = destinationsData.filter((d: any) => favoritesIds.includes(d._id));
+            setStats({
+              ...statsData,
+              wishlistCount: wishlistItems.length,
+              wishlistItems: wishlistItems,
+              onViewWishlist: () => router.push('/(tabs)/favorites' as any),
+              onNavigateToPlace: (id: string) => router.push(`/destination/${id}` as any)
             });
-            const hotelsData = await res.json();
-            if (res.ok && Array.isArray(hotelsData)) {
-              const verified = hotelsData.filter((h: any) => h.status === 'verified').length;
-              const pending = hotelsData.filter((h: any) => h.status === 'pending').length;
-              const declined = hotelsData.filter((h: any) => h.status === 'declined').length;
-              setStats({ verified, pending, declined } as any);
-            }
-          } else {
-            const res = await fetch(`${API_BASE_URL}/reservations/stats`, {
-              headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await res.json();
-            if (res.ok) setStats(data);
           }
         }
-      } catch (error) {
-        console.error("Fetch dashboard data failed:", error);
-      } finally {
-        setLoading(false);
       }
-    };
+    } catch (error) {
+      console.error("Fetch dashboard data failed:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
   }, []);
+
+  // Use focus effect to refresh wishlist when returning to home
+  const { useFocusEffect } = require('expo-router');
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchData();
+    }, [])
+  );
 
   const handleLogout = async () => {
     Alert.alert(
@@ -598,5 +657,61 @@ reviewButtonText: {
     fontSize: 11,
     color: 'rgba(26, 59, 47, 0.4)',
     marginTop: 2,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  horizontalScroll: {
+    gap: 16,
+    paddingRight: 24,
+  },
+  wishlistCard: {
+    width: 160,
+    height: 120,
+    borderRadius: 20,
+    overflow: 'hidden',
+    backgroundColor: '#ffffff',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+  },
+  wishlistImage: {
+    width: '100%',
+    height: '100%',
+  },
+  wishlistGradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: '70%',
+  },
+  wishlistInfo: {
+    position: 'absolute',
+    bottom: 10,
+    left: 12,
+    right: 12,
+  },
+  wishlistName: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#ffffff',
+    marginBottom: 2,
+  },
+  wishlistLocation: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  wishlistLocationText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#FFD166',
+    textTransform: 'uppercase',
   },
 });
