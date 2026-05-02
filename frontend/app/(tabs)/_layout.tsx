@@ -77,6 +77,7 @@ export default function TabLayout() {
               color={color} 
             />
           ),
+          href: isAdmin ? null : undefined,
         }}
       />
       
@@ -85,7 +86,7 @@ export default function TabLayout() {
         options={{
           title: 'Bookings',
           tabBarIcon: ({ color }) => <IconSymbol size={26} name="calendar.fill" color={color} />,
-          href: isHotelManager ? null : undefined,
+          href: (isHotelManager || isAdmin) ? null : undefined,
         }}
       />
       
