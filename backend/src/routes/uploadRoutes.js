@@ -1,9 +1,5 @@
 import express from "express";
-<<<<<<< HEAD
 import { upload, uploadDoc } from "../middleware/uploadMiddleware.js";
-=======
-import { upload } from "../middleware/uploadMiddleware.js";
->>>>>>> Destination-Management
 import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
@@ -26,7 +22,6 @@ router.post("/multiple", protect, upload.array("images", 6), (req, res) => {
   res.status(200).json({ filePaths });
 });
 
-<<<<<<< HEAD
 // Route for reservation document upload (PDF or Image)
 router.post("/reservation-doc", protect, uploadDoc.single("document"), (req, res) => {
   if (!req.file) {
@@ -36,6 +31,4 @@ router.post("/reservation-doc", protect, uploadDoc.single("document"), (req, res
   res.status(200).json({ filePath });
 });
 
-=======
->>>>>>> Destination-Management
 export default router;
