@@ -139,7 +139,7 @@ export default function DestinationDetailScreen() {
     return { 
       average, 
       total, 
-      happyTravelers: total, // Show total reviewers as travelers
+      happyTravelers: happy, // Correctly show count of satisfied travelers (3+ stars)
       satisfaction 
     };
   }, [reviews]);
@@ -359,42 +359,10 @@ export default function DestinationDetailScreen() {
             </View>
           </View>
 
-          <Text style={styles.sectionTitle}>About this place</Text>
-          <Text style={styles.description}>{destination.description}</Text>
-
-          <View style={styles.packageSection}>
-            <Text style={styles.sectionTitle}>Tour Packages</Text>
-            {relatedPackages.length > 0 ? (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.packageScroll}>
-                {relatedPackages.map((item) => (
-                  <Pressable key={item._id} style={styles.packageCard} onPress={() => router.push(`/tour-packages/${item._id}` as any)}>
-                    <Text style={styles.packageCardTitle} numberOfLines={2}>{item.name}</Text>
-                    <Text style={styles.packageCardMeta} numberOfLines={1}>LKR {item.price ? Number(item.price).toLocaleString() : 'N/A'}</Text>
-                    <Text style={styles.packageCardMeta} numberOfLines={1}>{item.duration ? `${item.duration} days` : 'Duration TBA'}</Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-            ) : (
-              <Text style={styles.packageEmptyText}>No packages are linked to this destination yet.</Text>
-            )}
-          </View>
-
-          <View style={styles.categoryInfo}>
-            <Text style={styles.categoryLabel}>{"Categories"}</Text>
-            <View style={styles.categoryRowList}>
-              {(destination.categories || []).map((cat: string, index: number) => (
-                <View key={index} style={styles.categoryBadge}>
-                  <Text style={styles.categoryText}>{cat}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-
-          {/* Map Section - Simplified */}
-          <View style={styles.mapContainer}>
-            <Text style={styles.sectionTitle}>Location</Text>
+          <View style={styles.aboutHeader}>
+            <Text style={styles.sectionTitle}>About this place</Text>
             <Pressable 
-              style={styles.simpleMapBtn} 
+              style={styles.locationBadge}
               onPress={async () => {
                 const query = encodeURIComponent(`${destination.name}, ${destination.location}`);
                 const url = `https://www.google.com/maps/search/?api=1&query=${query}`;
@@ -406,27 +374,94 @@ export default function DestinationDetailScreen() {
                 }
               }}
             >
-              <Ionicons name="map-outline" size={24} color="#1A3B2F" />
+              <Ionicons name="location" size={14} color="#FFD166" />
+              <Text style={styles.locationBadgeText}>VIEW ON MAP</Text>
+            </Pressable>
+          </View>
+          <View style={styles.categoryInfo}>
+            <View style={styles.categoryRowList}>
+              {(destination.categories || []).map((cat: string, index: number) => (
+                <View key={index} style={styles.categoryBadge}>
+                  <Text style={styles.categoryText}>{cat}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+          <Text style={styles.description}>{destination.description}</Text>
+
+
+          <View style={styles.mapContainer}>
+            <Pressable 
+              style={styles.simpleMapBtn}
+              onPress={() => router.push(`/tourist-hotels?district=${encodeURIComponent(destination.location)}` as any)}
+            >
+              <Ionicons name="bed-outline" size={24} color="#1A3B2F" />
               <View style={{ flex: 1 }}>
-                <Text style={styles.mapBtnTitle}>View on Maps</Text>
-                <Text style={styles.mapBtnSub}>{destination.location}</Text>
+                <Text style={styles.mapBtnTitle}>Nearby Hotels</Text>
+                <Text style={styles.mapBtnSub}>Explore stays in {destination.location}</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color="#1A3B2F" />
             </Pressable>
           </View>
 
-          <View style={styles.nearbyHotelsContainer}>
-            <Pressable 
-              style={styles.nearbyHotelsBtn}
-              onPress={() => router.push(`/tourist-hotels?district=${encodeURIComponent(destination.location)}` as any)}
+          {/* Reviews Section */}
+          <View style={styles.reviewsContainer}>
+            <View style={styles.reviewHeaderRow}>
+              <Text style={styles.sectionTitle}>Reviews</Text>
+              <Pressable 
+                style={styles.addReviewBtn}
+                onPress={() => setModalVisible(true)}
+              >
+                <Ionicons name="add" size={20} color="#1A3B2F" />
+                <Text style={styles.addReviewText}>Write a Review</Text>
+              </Pressable>
+            </View>
+
+            <RatingSummary 
+              average={reviewStats.average} 
+              total={reviewStats.total} 
+              happyTravelers={reviewStats.happyTravelers}
+              satisfactionRate={reviewStats.satisfaction}
+            />
+
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false} 
+              contentContainerStyle={styles.reviewsHorizontalList}
+              snapToInterval={Dimensions.get('window').width * 0.75 + 16}
+              decelerationRate="fast"
+              snapToAlignment="center"
+              scrollEventThrottle={16}
             >
-              <Ionicons name="bed-outline" size={24} color="#ffffff" />
-              <Text style={styles.nearbyHotelsText}>View Nearby Hotels</Text>
-            </Pressable>
+              {/* Spacer to center the first item */}
+              <View style={{ width: Dimensions.get('window').width * 0.125 - 16 }} />
+              
+              {reviews.length > 0 ? (
+                reviews.map((review) => (
+                  <View key={review._id} style={styles.horizontalReviewWrapper}>
+                    <ReviewCard 
+                      review={review} 
+                      currentUserId={userId}
+                      onDelete={() => handleDeleteReview(review._id)}
+                      onEdit={() => handleEditReview(review)}
+                    />
+                  </View>
+                ))
+              ) : (
+                <View style={styles.emptyReviews}>
+                  <Ionicons name="chatbox-outline" size={48} color="rgba(26, 59, 47, 0.1)" />
+                  <Text style={styles.emptyReviewsText}>No reviews yet. Be the first to share your experience!</Text>
+                </View>
+              )}
+
+              {/* Spacer to center the last item */}
+              <View style={{ width: Dimensions.get('window').width * 0.125 - 16 }} />
+            </ScrollView>
           </View>
 
-          <View style={{ height: 100 }} />
+          <View style={{ height: 120 }} />
         </View>
+      </View>
       </Animated.ScrollView>
 
       {/* Submission Modal */}
@@ -445,12 +480,8 @@ export default function DestinationDetailScreen() {
       <BlurView intensity={90} tint="light" style={styles.footer}>
         <View style={styles.footerContent}>
 
-          <View>
-            <Text style={styles.priceLabel}>Starting from</Text>
-            <Text style={styles.priceValue}>${destination.startingPrice || "150"}<Text style={styles.perPerson}>/person</Text></Text>
-          </View>
           <Pressable style={styles.bookBtn} onPress={() => router.push('/tour-packages' as any)}>
-            <Text style={styles.bookBtnText}>Packages</Text>
+            <Text style={styles.bookBtnText}>Explore Tour Packages</Text>
           </Pressable>
         </View>
 
@@ -620,18 +651,42 @@ const styles = StyleSheet.create({
     color: 'rgba(26, 59, 47, 0.4)',
     fontWeight: '700',
   },
+  aboutHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  locationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 209, 102, 0.1)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 209, 102, 0.3)',
+  },
+  locationBadgeText: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#1A3B2F',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '900',
     color: '#1A3B2F',
-    marginBottom: 12,
   },
   description: {
     fontSize: 15,
     color: 'rgba(26, 59, 47, 0.7)',
-    lineHeight: 24,
+    lineHeight: 22,
     fontWeight: '600',
-    marginBottom: 32,
+    marginBottom: 16,
+    textAlign: 'justify',
   },
   packageSection: {
     marginBottom: 8,
@@ -666,7 +721,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   categoryInfo: {
-    marginTop: 24,
+    marginTop: 8,
+    marginBottom: 20,
   },
   categoryRowList: {
     flexDirection: 'row',
@@ -704,7 +760,7 @@ const styles = StyleSheet.create({
   },
   footerContent: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
   },
   priceLabel: {
@@ -724,14 +780,16 @@ const styles = StyleSheet.create({
   },
   bookBtn: {
     backgroundColor: '#1A3B2F',
-    paddingHorizontal: 28,
-    paddingVertical: 16,
-    borderRadius: 20,
+    paddingHorizontal: 40,
+    paddingVertical: 18,
+    borderRadius: 24,
     shadowColor: '#1A3B2F',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+    width: '100%',
+    alignItems: 'center',
   },
   bookBtnText: {
     color: '#ffffff',
@@ -787,59 +845,51 @@ const styles = StyleSheet.create({
   titleSection: {
     marginBottom: 24,
   },
-  name: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: '#1A3B2F',
-    letterSpacing: -0.5,
+  reviewsContainer: {
+    marginTop: 32,
   },
-  locationRowMain: {
+  reviewHeaderRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 8,
-    gap: 4,
+    marginBottom: 20,
   },
-  location: {
-    fontSize: 16,
-    color: 'rgba(26, 59, 47, 0.6)',
-    fontWeight: '600',
-  },
-  featuredBadge: {
+  addReviewBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFD166',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
     gap: 4,
   },
-  featuredText: {
-    fontSize: 10,
-    fontWeight: '900',
-    color: '#1A3B2F',
-    textTransform: 'uppercase',
-  },
-  nearbyHotelsContainer: {
-    marginTop: 20,
-  },
-  nearbyHotelsBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#1A3B2F',
-    padding: 16,
-    borderRadius: 20,
-    gap: 12,
-    shadowColor: '#1A3B2F',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
-  },
-  nearbyHotelsText: {
-    color: '#ffffff',
-    fontSize: 16,
+  addReviewText: {
+    fontSize: 12,
     fontWeight: '800',
+    color: '#1A3B2F',
+  },
+  reviewsHorizontalList: {
+    marginTop: 16,
+    gap: 16,
+  },
+  horizontalReviewWrapper: {
+    // Width is handled by the ReviewCard component
+  },
+  emptyReviews: {
+    alignItems: 'center',
+    paddingVertical: 40,
+    backgroundColor: '#F7F9F4',
+    borderRadius: 24,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(26, 59, 47, 0.05)',
+  },
+  emptyReviewsText: {
+    fontSize: 14,
+    color: 'rgba(26, 59, 47, 0.4)',
+    fontWeight: '600',
+    textAlign: 'center',
+    paddingHorizontal: 40,
   },
 });
 
