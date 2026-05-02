@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { Sidebar } from '@/components/Sidebar';
+import { API_BASE_URL } from '@/constants/api';
 
 const AUTH_USER_KEY = "auth:user";
 const AUTH_STATUS_KEY = "auth:isSignedIn";
