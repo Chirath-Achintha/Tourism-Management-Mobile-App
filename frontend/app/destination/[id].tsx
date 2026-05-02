@@ -139,7 +139,7 @@ export default function DestinationDetailScreen() {
     return { 
       average, 
       total, 
-      happyTravelers: total, // Show total reviewers as travelers
+      happyTravelers: happy, // Correctly show count of satisfied travelers (3+ stars)
       satisfaction 
     };
   }, [reviews]);
@@ -404,7 +404,62 @@ export default function DestinationDetailScreen() {
             </Pressable>
           </View>
 
-          <View style={{ height: 100 }} />
+          {/* Reviews Section */}
+          <View style={styles.reviewsContainer}>
+            <View style={styles.reviewHeaderRow}>
+              <Text style={styles.sectionTitle}>Reviews</Text>
+              <Pressable 
+                style={styles.addReviewBtn}
+                onPress={() => setModalVisible(true)}
+              >
+                <Ionicons name="add" size={20} color="#1A3B2F" />
+                <Text style={styles.addReviewText}>Write a Review</Text>
+              </Pressable>
+            </View>
+
+            <RatingSummary 
+              average={reviewStats.average} 
+              total={reviewStats.total} 
+              happyTravelers={reviewStats.happyTravelers}
+              satisfactionRate={reviewStats.satisfaction}
+            />
+
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false} 
+              contentContainerStyle={styles.reviewsHorizontalList}
+              snapToInterval={Dimensions.get('window').width * 0.75 + 16}
+              decelerationRate="fast"
+              snapToAlignment="center"
+              scrollEventThrottle={16}
+            >
+              {/* Spacer to center the first item */}
+              <View style={{ width: Dimensions.get('window').width * 0.125 - 16 }} />
+              
+              {reviews.length > 0 ? (
+                reviews.map((review) => (
+                  <View key={review._id} style={styles.horizontalReviewWrapper}>
+                    <ReviewCard 
+                      review={review} 
+                      currentUserId={userId}
+                      onDelete={() => handleDeleteReview(review._id)}
+                      onEdit={() => handleEditReview(review)}
+                    />
+                  </View>
+                ))
+              ) : (
+                <View style={styles.emptyReviews}>
+                  <Ionicons name="chatbox-outline" size={48} color="rgba(26, 59, 47, 0.1)" />
+                  <Text style={styles.emptyReviewsText}>No reviews yet. Be the first to share your experience!</Text>
+                </View>
+              )}
+
+              {/* Spacer to center the last item */}
+              <View style={{ width: Dimensions.get('window').width * 0.125 - 16 }} />
+            </ScrollView>
+          </View>
+
+          <View style={{ height: 120 }} />
         </View>
       </View>
       </Animated.ScrollView>
@@ -790,37 +845,51 @@ const styles = StyleSheet.create({
   titleSection: {
     marginBottom: 24,
   },
-  name: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: '#1A3B2F',
-    letterSpacing: -0.5,
+  reviewsContainer: {
+    marginTop: 32,
   },
-  locationRowMain: {
+  reviewHeaderRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 8,
-    gap: 4,
+    marginBottom: 20,
   },
-  location: {
-    fontSize: 16,
-    color: 'rgba(26, 59, 47, 0.6)',
-    fontWeight: '600',
-  },
-  featuredBadge: {
+  addReviewBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFD166',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
     gap: 4,
   },
-  featuredText: {
-    fontSize: 10,
-    fontWeight: '900',
+  addReviewText: {
+    fontSize: 12,
+    fontWeight: '800',
     color: '#1A3B2F',
-    textTransform: 'uppercase',
+  },
+  reviewsHorizontalList: {
+    marginTop: 16,
+    gap: 16,
+  },
+  horizontalReviewWrapper: {
+    // Width is handled by the ReviewCard component
+  },
+  emptyReviews: {
+    alignItems: 'center',
+    paddingVertical: 40,
+    backgroundColor: '#F7F9F4',
+    borderRadius: 24,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(26, 59, 47, 0.05)',
+  },
+  emptyReviewsText: {
+    fontSize: 14,
+    color: 'rgba(26, 59, 47, 0.4)',
+    fontWeight: '600',
+    textAlign: 'center',
+    paddingHorizontal: 40,
   },
 });
 
