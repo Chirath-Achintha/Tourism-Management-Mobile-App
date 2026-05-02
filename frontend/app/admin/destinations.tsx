@@ -27,6 +27,21 @@ const { width } = Dimensions.get('window');
 
 type Category = 'Beach' | 'Mountain' | 'City' | 'Cultural' | 'Nature' | 'Landmark' | 'Adventure' | 'Wildlife' | 'Religious' | 'Historical';
 const CATEGORIES: Category[] = ['Beach', 'Mountain', 'City', 'Cultural', 'Nature', 'Landmark', 'Adventure', 'Wildlife', 'Religious', 'Historical'];
+const SRI_LANKAN_LOCATIONS = [
+  "Colombo", "Kandy", "Galle", "Matale", "Matara", "Jaffna", "Gampaha", "Kalutara", 
+  "Anuradhapura", "Polonnaruwa", "Hambantota", "Badulla", "Moneragala", "Ratnapura", 
+  "Kegalle", "Nuwara Eliya", "Puttalam", "Kurunegala", "Mullaitivu", "Kilinochchi", 
+  "Mannar", "Vavuniya", "Batticaloa", "Ampara", "Trincomalee", "Sigiriya", "Dambulla", 
+  "Ella", "Mirissa", "Hikkaduwa", "Bentota", "Unawatuna", "Weligama", "Negombo", 
+  "Arugam Bay", "Pinnawala", "Kataragama", "Pasikudah", "Tangalle", "Yala", 
+  "Udawalawe", "Wilpattu", "Minneriya", "Kumana", "Bundala", "Wasgamuwa", 
+  "Horton Plains", "Sinharaja", "Kitulgala", "Belihuloya", "Hatton", "Maskeliya", 
+  "Knuckles Range", "Deniyaya", "Nilaveli", "Kalkudah", "Kalpitiya", "Thalpe", 
+  "Midigama", "Hiriketiya", "Polhena", "Habarana", "Mihintale", "Aukana", 
+  "Yapahuwa", "Bandarawela", "Diyatalawa", "Beragala", "Kaudulla", "Koggala", 
+  "Ahungalla", "Induruwa", "Kosgoda", "Balapitiya", "Wadduwa", "Mount Lavinia", 
+  "Marawila", "Mannar Island", "Kalpitiya Lagoon", "Rekawa", "Talalla"
+].sort();
 
 export default function DestinationsManagementScreen() {
   const [destinations, setDestinations] = useState<any[]>([]);
@@ -45,6 +60,8 @@ export default function DestinationsManagementScreen() {
   const [bestTimeToVisit, setBestTimeToVisit] = useState('Year-round');
   const [isFeatured, setIsFeatured] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [locationPickerVisible, setLocationPickerVisible] = useState(false);
+  const [locationSearchQuery, setLocationSearchQuery] = useState('');
 
   const router = useRouter();
 
@@ -230,6 +247,10 @@ export default function DestinationsManagementScreen() {
     );
   };
 
+  const filteredLocations = SRI_LANKAN_LOCATIONS.filter(loc => 
+    loc.toLowerCase().includes(locationSearchQuery.toLowerCase())
+  );
+
   const filteredDestinations = destinations.filter(dest => 
     dest.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
     dest.location.toLowerCase().includes(searchQuery.toLowerCase())
@@ -354,12 +375,73 @@ export default function DestinationsManagementScreen() {
                 />
 
                 <Text style={styles.inputLabel}>Location</Text>
-                <TextInput
-                  style={styles.input}
-                  value={location}
-                  onChangeText={setLocation}
-                  placeholder="e.g. Matale District"
-                />
+                <View style={styles.inlinePickerContainer}>
+                  {!locationPickerVisible && !locationSearchQuery ? (
+                    <Pressable 
+                      style={[styles.input, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]} 
+                      onPress={() => setLocationPickerVisible(true)}
+                    >
+                      <Text style={{ color: location ? '#1A3B2F' : 'rgba(26, 59, 47, 0.4)', fontWeight: location ? '700' : '500' }}>
+                        {location || "Select location..."}
+                      </Text>
+                      <Ionicons name="chevron-down" size={18} color="rgba(26, 59, 47, 0.4)" />
+                    </Pressable>
+                  ) : (
+                    <View style={[styles.input, styles.inlineSearchWrapper]}>
+                      <Ionicons name="search" size={18} color="rgba(26, 59, 47, 0.4)" />
+                      <TextInput
+                        style={styles.inlineSearchInput}
+                        placeholder="Search location..."
+                        value={locationSearchQuery}
+                        onChangeText={setLocationSearchQuery}
+                        autoFocus
+                      />
+                      <Pressable onPress={() => {
+                        setLocationSearchQuery('');
+                        setLocationPickerVisible(false);
+                      }}>
+                        <Ionicons name="close-circle" size={18} color="rgba(26, 59, 47, 0.4)" />
+                      </Pressable>
+                    </View>
+                  )}
+
+                  {locationPickerVisible && (
+                    <View style={styles.dropdownList}>
+                      <ScrollView 
+                        nestedScrollEnabled={true} 
+                        style={{ maxHeight: 300 }}
+                        keyboardShouldPersistTaps="handled"
+                        persistentScrollbar={true}
+                        showsVerticalScrollIndicator={true}
+                        scrollEventThrottle={16}
+                      >
+                        {filteredLocations.length > 0 ? (
+                          filteredLocations.map((item) => (
+                            <Pressable 
+                              key={item} 
+                              style={styles.dropdownItem}
+                              onPress={() => {
+                                setLocation(item);
+                                setLocationSearchQuery('');
+                                setLocationPickerVisible(false);
+                              }}
+                            >
+                              <Ionicons name="location-outline" size={16} color="#1A3B2F" />
+                              <Text style={styles.dropdownItemText}>{item}</Text>
+                              {location === item && (
+                                <Ionicons name="checkmark" size={16} color="#FFD166" />
+                              )}
+                            </Pressable>
+                          ))
+                        ) : (
+                          <View style={styles.dropdownEmpty}>
+                            <Text style={styles.dropdownEmptyText}>No locations found</Text>
+                          </View>
+                        )}
+                      </ScrollView>
+                    </View>
+                  )}
+                </View>
 
                 <Text style={styles.inputLabel}>Categories (Select multiple)</Text>
                 <View style={styles.categoryGrid}>
@@ -464,6 +546,7 @@ export default function DestinationsManagementScreen() {
             </View>
           </KeyboardAvoidingView>
         </Modal>
+
       </SafeAreaView>
     </View>
   );
@@ -561,6 +644,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     marginBottom: 8,
+  },
+  categoryRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 8,
   },
   cardLocation: {
     fontSize: 13,
@@ -820,5 +909,60 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: '#1A3B2F',
+  },
+  inlinePickerContainer: {
+    zIndex: 100,
+    position: 'relative',
+  },
+  inlineSearchWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 0, // Remove vertical padding to keep height standard
+    height: 54, // Standardize with other inputs
+  },
+  inlineSearchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#1A3B2F',
+    height: '100%',
+  },
+  dropdownList: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(26, 59, 47, 0.1)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 5,
+    overflow: 'hidden',
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(26, 59, 47, 0.05)',
+    gap: 10,
+  },
+  dropdownItemText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1A3B2F',
+  },
+  dropdownEmpty: {
+    padding: 16,
+    alignItems: 'center',
+  },
+  dropdownEmptyText: {
+    fontSize: 12,
+    color: 'rgba(26, 59, 47, 0.4)',
+    fontStyle: 'italic',
   },
 });
