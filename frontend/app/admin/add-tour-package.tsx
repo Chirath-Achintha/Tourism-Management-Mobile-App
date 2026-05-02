@@ -296,13 +296,18 @@ export default function AddTourPackageScreen() {
     updateField(field, String(value));
   };
 
+  const normalizeLocationLabel = (value: string) => String(value || '').trim().toLowerCase();
+
   const selectDestination = (destination: DestinationItem) => {
-    const label = destination.location || destination.name;
+    const label = String(destination.name || '').trim();
     setFormData(prev => {
       const next = { ...prev } as FormData;
       const existing = Array.isArray(next.locations) ? [...next.locations] : [];
-      if (existing.includes(label)) {
-        next.locations = existing.filter((l) => l !== label);
+      const normalizedLabel = normalizeLocationLabel(label);
+      const hasLabel = existing.some((location) => normalizeLocationLabel(String(location || '')) === normalizedLabel);
+
+      if (hasLabel) {
+        next.locations = existing.filter((location) => normalizeLocationLabel(String(location || '')) !== normalizedLabel);
       } else {
         next.locations = [...existing, label];
       }
@@ -318,6 +323,11 @@ export default function AddTourPackageScreen() {
     const location = (destination.location || '').toLowerCase();
     return name.includes(query) || location.includes(query);
   });
+
+  const selectedDestinationNames = useMemo(() => {
+    const values = Array.isArray(formData.locations) ? formData.locations : [];
+    return new Set(values.map((value) => normalizeLocationLabel(String(value || ''))));
+  }, [formData.locations]);
 
   const formatDate = (date: Date) =>
     date.toLocaleDateString('en-US', {
@@ -431,7 +441,9 @@ export default function AddTourPackageScreen() {
   const validateStep = (currentStep: Step) => {
     if (currentStep === 0) {
       if (!formData.name.trim()) return 'Please enter a package name.';
-      if (!formData.location.trim()) return 'Please enter a destination location.';
+      const hasSelectedDestination = Array.isArray(formData.locations) && formData.locations.length > 0;
+      const hasCustomLocation = String(formData.location || '').trim().length > 0;
+      if (!hasSelectedDestination && !hasCustomLocation) return 'Please select a destination or enter a custom location.';
       if (!formData.guide) return 'Please choose a guide option.';
       return null;
     }
@@ -516,7 +528,7 @@ export default function AddTourPackageScreen() {
         // append fields
         Object.entries({ ...payload }).forEach(([k, v]) => {
           if (v !== undefined && v !== null) {
-            if (k === 'timeline' || k === 'included') {
+            if (k === 'timeline' || k === 'included' || k === 'destinations') {
               form.append(k, JSON.stringify(v));
             } else {
               form.append(k, String(v));
@@ -586,7 +598,7 @@ export default function AddTourPackageScreen() {
     price: formData.price ? `LKR ${formData.price}` : '—',
   };
   const includedSummary = {
-    meals: formData.meals.length ? formData.meals.join(', ') : '—',
+    meals: formData.included.includes('meals') ? 'Included' : 'Not included',
     guide: formData.guide || '—',
   };
 
@@ -745,7 +757,7 @@ export default function AddTourPackageScreen() {
               </Field>
 
               <Field label="Destination" required>
-                <Text style={styles.destinationHint}>Search the destination table by location and pick one, or type a custom location for this package.</Text>
+                    <Text style={styles.destinationHint}>Search all destination names from the system and select the ones to include in this package, or add a custom location below.</Text>
                 <View style={styles.iconInputWrap}>
                   <Ionicons name="search-outline" size={18} color="#64748b" />
                   <TextInput
@@ -762,10 +774,10 @@ export default function AddTourPackageScreen() {
                     <Text style={styles.destinationLoadingText}>Loading destinations...</Text>
                   </View>
                 ) : filteredDestinations.length > 0 ? (
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.destinationScroll} contentContainerStyle={styles.destinationScrollContent}>
+                  <ScrollView showsVerticalScrollIndicator={false} style={styles.destinationScroll} contentContainerStyle={styles.destinationScrollContent}>
                     {filteredDestinations.map((destination) => {
-                      const locationLabel = destination.location || destination.name;
-                      const selected = Array.isArray(formData.locations) && formData.locations.includes(locationLabel);
+                      const destinationLabel = String(destination.name || '').trim();
+                      const selected = selectedDestinationNames.has(normalizeLocationLabel(destinationLabel));
 
                       return (
                         <Pressable
@@ -774,8 +786,13 @@ export default function AddTourPackageScreen() {
                           style={[styles.destinationChip, selected && styles.destinationChipSelected]}
                         >
                           <Text style={[styles.destinationChipTitle, selected && styles.destinationChipTitleSelected]} numberOfLines={2}>
-                            {locationLabel}
+                            {destinationLabel}
                           </Text>
+                          {!!destination.location && (
+                            <Text style={[styles.destinationChipSubtitle, selected && styles.destinationChipSubtitleSelected]} numberOfLines={1}>
+                              {destination.location}
+                            </Text>
+                          )}
                         </Pressable>
                       );
                     })}
@@ -783,7 +800,7 @@ export default function AddTourPackageScreen() {
                 ) : (
                   <View style={styles.destinationLoadingPill}>
                     <Ionicons name="alert-circle-outline" size={18} color={ACCENT} />
-                    <Text style={styles.destinationLoadingText}>No matching destination locations found.</Text>
+                    <Text style={styles.destinationLoadingText}>No matching destinations found.</Text>
                   </View>
                 )}
                 <View style={[styles.iconInputWrap, { marginTop: 10 }]}>
@@ -802,10 +819,17 @@ export default function AddTourPackageScreen() {
                     onPress={() => {
                       const val = (formData.location || '').trim();
                       if (!val) return;
-                      setFormData(prev => ({ ...prev, locations: [...(prev.locations || []), val], location: '' } as FormData));
+                      setFormData(prev => {
+                        const existing = Array.isArray(prev.locations) ? [...prev.locations] : [];
+                        const normalizedVal = normalizeLocationLabel(val);
+                        const nextLocations = existing.some((location) => normalizeLocationLabel(String(location || '')) === normalizedVal)
+                          ? existing
+                          : [...existing, val];
+                        return { ...prev, locations: nextLocations, location: '' } as FormData;
+                      });
                     }}
                   >
-                    <Text style={{ color: SELECTED_TEXT, fontWeight: '700' }}>+ Add Location</Text>
+                    <Text style={{ color: SELECTED_TEXT, fontWeight: '700' }}>+ Add Custom Location</Text>
                   </Pressable>
                   <Text style={{ color: '#6B7280', fontSize: 13 }}>{Array.isArray(formData.locations) && formData.locations.length ? `${formData.locations.length} selected` : 'No extra locations'}</Text>
                 </View>
@@ -949,86 +973,7 @@ export default function AddTourPackageScreen() {
                           multiline
                           numberOfLines={3}
                         />
-                        <View style={styles.hotelSelectorWrap}>
-                          <Text style={styles.hotelLabel}>Select Hotel</Text>
-                          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.hotelListScroll}>
-                            {hotelsLoading ? (
-                              <Text style={styles.noHotelsText}>Loading hotels...</Text>
-                            ) : filteredHotels.length === 0 ? (
-                              formData.location ? (
-                                <Text style={styles.noHotelsText}>No hotels found for this location.</Text>
-                              ) : (
-                                <Text style={styles.noHotelsText}>No hotels available</Text>
-                              )
-                            ) : (
-                              filteredHotels.map((hotel) => (
-                                <Pressable
-                                  key={hotel._id}
-                                  style={[
-                                    styles.hotelChip,
-                                    day.hotel === hotel._id && styles.hotelChipSelected,
-                                  ]}
-                                  onPress={() => {
-                                    updateTimelineDay(idx, 'hotel', hotel._id);
-                                    updateTimelineDay(idx, 'hotelName', hotel.hotelName || hotel.name || '');
-                                    updateTimelineDay(idx, 'hotelLocation', hotel.location || hotel.address || '');
-                                  }}
-                                >
-                                  <Text style={[
-                                    styles.hotelChipText,
-                                    day.hotel === hotel._id && styles.hotelChipTextSelected,
-                                  ]}>{hotel.hotelName || hotel.name}</Text>
-                                </Pressable>
-                              ))
-                            )}
-                          </ScrollView>
-                        </View>
-                        <View style={{ marginTop: 8 }}>
-                          <TextInput
-                            placeholder="Hotel name (type to override or enter new)"
-                            placeholderTextColor="#94a3b8"
-                            value={day.hotelName || ''}
-                            onChangeText={(val) => updateTimelineDay(idx, 'hotelName', val)}
-                            style={styles.formInput}
-                          />
-                          <TextInput
-                            placeholder="Hotel location (city/address)"
-                            placeholderTextColor="#94a3b8"
-                            value={day.hotelLocation || ''}
-                            onChangeText={(val) => updateTimelineDay(idx, 'hotelLocation', val)}
-                            style={[styles.formInput, { marginTop: 8 }]}
-                          />
-
-                          {/* Places (visited locations) */}
-                          <View style={{ marginTop: 10 }}>
-                            <Text style={[styles.hotelLabel, { marginBottom: 6 }]}>Places to visit this day</Text>
-                            {Array.isArray(day.places) && day.places.length > 0 ? (
-                              day.places.map((place, pIdx) => (
-                                <View key={pIdx} style={styles.placeRow}>
-                                  <View style={{ flex: 1 }}>
-                                    <TextInput
-                                      placeholder="Place name"
-                                      placeholderTextColor="#94a3b8"
-                                      value={place.name || ''}
-                                      onChangeText={(val) => updatePlaceField(idx, pIdx, 'name', val)}
-                                      style={styles.placeInput}
-                                    />
-                                  </View>
-                                  <Pressable onPress={() => removePlaceFromDay(idx, pIdx)} style={styles.placeRemoveButton}>
-                                    <Ionicons name="trash-outline" size={18} color="#ef4444" />
-                                  </Pressable>
-                                </View>
-                              ))
-                            ) : (
-                              <Text style={styles.noHotelsText}>No places added yet</Text>
-                            )}
-
-                            <Pressable onPress={() => addPlaceToDay(idx)} style={[styles.addDayButton, { marginTop: 8 }]}>
-                              <Ionicons name="add" size={14} color={SELECTED_TEXT} />
-                              <Text style={styles.addDayButtonText}>Add Place</Text>
-                            </Pressable>
-                          </View>
-                        </View>
+                        {/* Hotel and Places inputs removed per request */}
                       </View>
                     </View>
                   ))
@@ -1096,7 +1041,10 @@ export default function AddTourPackageScreen() {
                   <Ionicons name="analytics-outline" size={18} color="#FFFFFF" />
                   <Text style={styles.summaryHeaderText}>Package Summary</Text>
                 </View>
-                <SummaryRow label="Destination" value={formData.location || '—'} />
+                <SummaryRow
+                  label="Destination"
+                  value={Array.isArray(formData.locations) && formData.locations.length ? formData.locations.join(', ') : (formData.location || '—')}
+                />
                 <SummaryRow label="Category" value={activeSummary.category} />
                 <SummaryRow label="Meals" value={includedSummary.meals} />
                 <SummaryRow label="Guide" value={includedSummary.guide} />

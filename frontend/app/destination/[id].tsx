@@ -167,11 +167,14 @@ export default function DestinationDetailScreen() {
 
     const destinationId = String(id);
     const destinationName = String(destination.name || '').trim().toLowerCase();
+    const normalize = (value: any) => String(value || '').trim().toLowerCase();
 
     return packages.filter((item) => {
       const itemDestinationId = String(item?.destinationId?._id || item?.destinationId || '').trim();
-      const itemDestinationName = String(item?.destination || '').trim().toLowerCase();
-      return itemDestinationId === destinationId || (destinationName && itemDestinationName === destinationName);
+      const selectedDestinations = Array.isArray(item?.destinations) ? item.destinations : [];
+      const matchedSelectedDestination = selectedDestinations.some((name) => normalize(name) === destinationName);
+      const matchedDestinationName = normalize(item?.destination) === destinationName;
+      return itemDestinationId === destinationId || matchedSelectedDestination || matchedDestinationName;
     });
   }, [destination, id, packages]);
 
@@ -480,7 +483,14 @@ export default function DestinationDetailScreen() {
       <BlurView intensity={90} tint="light" style={styles.footer}>
         <View style={styles.footerContent}>
 
-          <Pressable style={styles.bookBtn} onPress={() => router.push('/tour-packages' as any)}>
+          <Pressable
+            style={styles.bookBtn}
+            onPress={() =>
+              router.push(
+                `/tour-packages?destinationId=${encodeURIComponent(String(id))}&destinationName=${encodeURIComponent(destination?.name || '')}&location=${encodeURIComponent(destination?.location || '')}` as any
+              )
+            }
+          >
             <Text style={styles.bookBtnText}>Explore Tour Packages</Text>
           </Pressable>
         </View>

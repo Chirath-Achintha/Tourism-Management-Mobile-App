@@ -1,6 +1,7 @@
 import TourPackage from "../models/TourPackage.js";
 import Destination from "../models/Destination.js";
 import cloudinary from 'cloudinary';
+import mongoose from 'mongoose';
 
 cloudinary.v2.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -31,6 +32,7 @@ export const createTourPackage = async (req, res) => {
         guide,
         transport,
         included,
+        destinations,
     } = req.body;
 
     if (!name) return res.status(400).json({ message: 'Package name is required.' });
@@ -49,6 +51,25 @@ export const createTourPackage = async (req, res) => {
     } else if (Array.isArray(timeline)) {
       timelineData = timeline;
     }
+
+    // Parse selected destinations if provided
+    let selectedDestinations = [];
+    if (typeof destinations === 'string') {
+      try {
+        selectedDestinations = JSON.parse(destinations);
+      } catch {
+        selectedDestinations = destinations
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean);
+      }
+    } else if (Array.isArray(destinations)) {
+      selectedDestinations = destinations;
+    }
+
+    selectedDestinations = selectedDestinations
+      .map((item) => String(item || '').trim())
+      .filter(Boolean);
 
     // Auto-detect destination by checking places in the itinerary
     if (Array.isArray(timelineData) && timelineData.length > 0) {
@@ -93,6 +114,7 @@ export const createTourPackage = async (req, res) => {
       category,
       destinationId: resolvedDestinationId,
       destination: resolvedDestination,
+      destinations: selectedDestinations,
       duration: Number(duration) || 0,
       startDate: startDate || '',
       endDate: endDate || '',
@@ -185,6 +207,27 @@ export const updateTourPackage = async (req, res) => {
       }
       updateData.timeline = timelineData;
     }
+
+    // Normalize selected destinations if present on update
+    if (updateData.destinations !== undefined) {
+      let selectedDestinations = [];
+      if (typeof updateData.destinations === 'string') {
+        try {
+          selectedDestinations = JSON.parse(updateData.destinations);
+        } catch {
+          selectedDestinations = updateData.destinations
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
+        }
+      } else if (Array.isArray(updateData.destinations)) {
+        selectedDestinations = updateData.destinations;
+      }
+
+      updateData.destinations = selectedDestinations
+        .map((item) => String(item || '').trim())
+        .filter(Boolean);
+    }
     
     // Auto-detect destination by checking places in the itinerary
     if (Array.isArray(timelineData) && timelineData.length > 0) {
@@ -255,12 +298,17 @@ export const updateTourPackage = async (req, res) => {
 export const deleteTourPackage = async (req, res) => {
   try {
     console.log('DELETE /admin/tour-packages/:id called with ID:', req.params.id);
-    const pkg = await TourPackage.findByIdAndDelete(req.params.id);
+    const packageId = String(req.params.id || '').trim();
+    if (!mongoose.Types.ObjectId.isValid(packageId)) {
+      return res.status(400).json({ message: 'Invalid package ID' });
+    }
+
+    const pkg = await TourPackage.findByIdAndDelete(packageId);
     if (!pkg) {
-      console.log('Package not found:', req.params.id);
+      console.log('Package not found:', packageId);
       return res.status(404).json({ message: 'Tour package not found' });
     }
-    console.log('Package deleted:', req.params.id);
+    console.log('Package deleted:', packageId);
     res.status(200).json({ message: 'Tour package deleted' });
   } catch (error) {
     console.error('deleteTourPackage error:', error);
