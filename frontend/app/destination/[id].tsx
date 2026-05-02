@@ -48,15 +48,45 @@ export default function DestinationDetailScreen() {
   const [userId, setUserId] = useState<string | null>(null);
   const [editingReview, setEditingReview] = useState<any | null>(null);
 
+  const FAVORITES_KEY = "wishlist:favorites";
+
   const fetchUserData = async () => {
     try {
-      const userData = await AsyncStorage.getItem('auth:user');
+      const [userData, favData] = await Promise.all([
+        AsyncStorage.getItem('auth:user'),
+        AsyncStorage.getItem(FAVORITES_KEY)
+      ]);
+      
       if (userData) {
         const user = JSON.parse(userData);
         setUserId(user._id || user.id);
       }
+
+      if (favData) {
+        const favs = JSON.parse(favData);
+        setIsFavorite(favs.includes(id));
+      }
     } catch (error) {
       console.error("Failed to load user data", error);
+    }
+  };
+
+  const toggleFavorite = async () => {
+    try {
+      const stored = await AsyncStorage.getItem(FAVORITES_KEY);
+      let favs = stored ? JSON.parse(stored) : [];
+      
+      if (favs.includes(id)) {
+        favs = favs.filter((f: string) => f !== id);
+        setIsFavorite(false);
+      } else {
+        favs.push(id);
+        setIsFavorite(true);
+      }
+      
+      await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(favs));
+    } catch (error) {
+      console.error("Failed to update favorite", error);
     }
   };
 
@@ -227,7 +257,7 @@ export default function DestinationDetailScreen() {
         <Pressable style={styles.iconCircle} onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={24} color="#1A3B2F" />
         </Pressable>
-        <Pressable style={styles.iconCircle} onPress={() => setIsFavorite(!isFavorite)}>
+        <Pressable style={styles.iconCircle} onPress={toggleFavorite}>
           <Ionicons 
             name={isFavorite ? "heart" : "heart-outline"} 
             size={24} 

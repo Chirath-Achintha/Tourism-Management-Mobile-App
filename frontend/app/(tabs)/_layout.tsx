@@ -5,6 +5,7 @@ import { View, ActivityIndicator, Platform } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -85,7 +86,16 @@ export default function TabLayout() {
         name="bookings"
         options={{
           title: 'Bookings',
-          tabBarIcon: ({ color }) => <IconSymbol size={26} name="calendar.fill" color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons size={26} name="calendar" color={color} />,
+          href: (isHotelManager || isAdmin) ? null : undefined,
+        }}
+      />
+      
+      <Tabs.Screen
+        name="favorites"
+        options={{
+          title: 'Wishlist',
+          tabBarIcon: ({ color }) => <Ionicons size={26} name="heart" color={color} />,
           href: (isHotelManager || isAdmin) ? null : undefined,
         }}
       />

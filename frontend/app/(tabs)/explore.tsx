@@ -175,33 +175,59 @@ export default function SearchPlacesScreen() {
     return isMultiple ? data.filePaths : data.filePath;
   };
 
-  useEffect(() => {
-    const initialize = async () => {
-      try {
-        setLoading(true);
-        const userData = await AsyncStorage.getItem(AUTH_USER_KEY);
-        if (userData) {
-          const user = JSON.parse(userData);
-          setRole(user.role);
-        }
-        const response = await fetch(`${API_BASE_URL}/destinations`);
-        const data = await response.json();
-        if (response.ok) {
-          setPlaces(data);
-        }
-      } catch (error) {
-        console.error("Initialization failed:", error);
-      } finally {
-        setLoading(false);
+  const FAVORITES_KEY = "wishlist:favorites";
+
+  const initialize = async (silent = false) => {
+    try {
+      if (!silent) setLoading(true);
+      const [userData, favData] = await Promise.all([
+        AsyncStorage.getItem(AUTH_USER_KEY),
+        AsyncStorage.getItem(FAVORITES_KEY)
+      ]);
+      
+      if (userData) {
+        const user = JSON.parse(userData);
+        setRole(user.role);
       }
-    };
+      
+      if (favData) {
+        setFavorites(JSON.parse(favData));
+      }
+
+      const response = await fetch(`${API_BASE_URL}/destinations`);
+      const data = await response.json();
+      if (response.ok) {
+        setPlaces(data);
+      }
+    } catch (error) {
+      console.error("Initialization failed:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     initialize();
   }, []);
 
-  const toggleFavorite = (id: string) => {
-    setFavorites(prev => 
-      prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]
-    );
+  const { useFocusEffect } = require('expo-router');
+  useFocusEffect(
+    React.useCallback(() => {
+      initialize(true);
+    }, [])
+  );
+
+  const toggleFavorite = async (id: string) => {
+    try {
+      const newFavorites = favorites.includes(id)
+        ? favorites.filter(f => f !== id)
+        : [...favorites, id];
+      
+      setFavorites(newFavorites);
+      await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(newFavorites));
+    } catch (error) {
+      console.error("Failed to update favorites", error);
+    }
   };
 
   const filteredPlaces = useMemo(() => {
@@ -862,6 +888,17 @@ export default function SearchPlacesScreen() {
                     <Text style={styles.featuredLocationText}>{place.location}</Text>
                   </View>
                 </View>
+
+                <Pressable 
+                  style={styles.featuredHeartIcon} 
+                  onPress={() => toggleFavorite(place._id)}
+                >
+                  <Ionicons 
+                    name={favorites.includes(place._id) ? "heart" : "heart-outline"} 
+                    size={22} 
+                    color={favorites.includes(place._id) ? "#FF4D4D" : "#ffffff"} 
+                  />
+                </Pressable>
               </Pressable>
             )}
           />
@@ -1544,6 +1581,18 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     marginBottom: 8,
     gap: 4,
+  },
+  featuredHeartIcon: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 20,
   },
   featuredTagText: {
     fontSize: 10,
