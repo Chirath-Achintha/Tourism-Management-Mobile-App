@@ -115,3 +115,74 @@ export const cancelReservation = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// @desc    Get reservation by ID
+// @route   GET /api/reservations/:id
+// @access  Private
+export const getReservationById = async (req, res) => {
+  try {
+    const reservation = await Reservation.findById(req.params.id).populate('packageId', 'name price');
+    if (!reservation) {
+      return res.status(404).json({ message: 'Reservation not found' });
+    }
+    // Security: Only owner or admin
+    if (reservation.userId.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(401).json({ message: 'Not authorized' });
+    }
+    res.json(reservation);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Update reservation (User only)
+// @route   PUT /api/reservations/:id
+// @access  Private
+export const updateReservation = async (req, res) => {
+  try {
+    const { travelDate, numberOfPeople, specialRequest, documentType } = req.body;
+    
+    const reservation = await Reservation.findById(req.params.id);
+
+    if (!reservation) {
+      return res.status(404).json({ message: 'Reservation not found' });
+    }
+
+    // Security check: Only the owner can edit their reservation
+    if (reservation.userId.toString() !== req.user._id.toString()) {
+      return res.status(401).json({ message: 'Not authorized to edit this reservation' });
+    }
+
+    // Business rule: Only Pending reservations can be edited
+    if (reservation.status !== 'Pending') {
+      return res.status(400).json({ 
+        message: `This reservation is ${reservation.status} and locked for editing. Only pending reservations can be modified.` 
+      });
+    }
+
+    // Update basic fields
+    if (travelDate) reservation.travelDate = travelDate;
+    if (specialRequest !== undefined) reservation.specialRequest = specialRequest;
+    if (documentType) reservation.documentType = documentType;
+
+    // Handle document replacement (Reuse existing upload middleware)
+    if (req.file) {
+      reservation.documentPath = `/uploads/${req.file.filename}`;
+    }
+
+    // Handle number of people and price recalculation
+    if (numberOfPeople) {
+      const tourPackage = await TourPackage.findById(reservation.packageId);
+      if (!tourPackage) {
+        return res.status(404).json({ message: 'Linked tour package not found' });
+      }
+      reservation.numberOfPeople = numberOfPeople;
+      reservation.totalPrice = tourPackage.price * numberOfPeople;
+    }
+
+    const updatedReservation = await reservation.save();
+    res.json(updatedReservation);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

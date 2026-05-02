@@ -30,5 +30,4 @@ router.post("/reservation-doc", protect, uploadDoc.single("document"), (req, res
   const filePath = `/uploads/${req.file.filename}`;
   res.status(200).json({ filePath });
 });
-
 export default router;
