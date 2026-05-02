@@ -12,7 +12,10 @@ import {
   FlatList,
   Linking,
   Platform,
+  Alert,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -22,37 +25,126 @@ import { API_BASE_URL } from '@/constants/api';
 import * as WebBrowser from 'expo-web-browser';
 import { Animated } from 'react-native';
 
+// Import Premium Components
+import { ReviewCard } from '@/components/reviews/ReviewCard';
+import { RatingSummary } from '@/components/reviews/RatingSummary';
+import { AddReviewModal } from '@/components/reviews/AddReviewModal';
+
+
 const { width, height } = Dimensions.get('window');
 
 export default function DestinationDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const [destination, setDestination] = useState<any>(null);
+  const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [packages, setPackages] = useState<any[]>([]);
   const [isFavorite, setIsFavorite] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const scrollY = React.useRef(new Animated.Value(0)).current;
   const HEADER_HEIGHT = height * 0.5;
+  const [modalVisible, setModalVisible] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [editingReview, setEditingReview] = useState<any | null>(null);
+
+  const fetchUserData = async () => {
+    try {
+      const userData = await AsyncStorage.getItem('auth:user');
+      if (userData) {
+        const user = JSON.parse(userData);
+        setUserId(user._id || user.id);
+      }
+    } catch (error) {
+      console.error("Failed to load user data", error);
+    }
+  };
+
+  const fetchDestination = async (silent = false) => {
+    try {
+      if (!silent) setLoading(true);
+      const [destRes, reviewsRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/destinations/${id}`),
+        fetch(`${API_BASE_URL}/reviews/destination/${id}`)
+      ]);
+      
+      const destData = await destRes.json();
+      const reviewsData = await reviewsRes.json();
+
+      if (destRes.ok) setDestination(destData);
+      if (reviewsRes.ok) setReviews(reviewsData);
+    } catch (error) {
+      console.error("Fetch destination details failed:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchDestination = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch(`${API_BASE_URL}/destinations/${id}`);
-        const data = await response.json();
-        if (response.ok) {
-          setDestination(data);
-        }
-      } catch (error) {
-        console.error("Fetch destination failed:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (id) fetchDestination();
+    if (id) {
+      fetchDestination();
+      fetchUserData();
+    }
   }, [id]);
+
+  const handleDeleteReview = async (reviewId: string) => {
+    Alert.alert(
+      "Delete Review",
+      "Are you sure you want to remove your review?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Delete", 
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const token = await AsyncStorage.getItem('auth:token');
+              const response = await fetch(`${API_BASE_URL}/reviews/${reviewId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
+              if (response.ok) {
+                fetchDestination(true);
+              } else {
+                const data = await response.json();
+                Alert.alert("Error", data.message || "Failed to delete review");
+              }
+            } catch (error) {
+              Alert.alert("Error", "Network error occurred");
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleEditReview = (review: any) => {
+    setEditingReview(review);
+    setModalVisible(true);
+  };
+
+
+
+  // Calculate Stats
+  const reviewStats = React.useMemo(() => {
+    if (reviews.length === 0) return { average: 0, total: 0, happyTravelers: 0, satisfaction: 0 };
+    const total = reviews.length;
+    const sum = reviews.reduce((acc, r) => acc + r.rating, 0);
+    const average = sum / total;
+    // Happy travelers = anyone who left a positive review (3+ stars)
+    const happy = reviews.filter(r => r.rating >= 3).length;
+    // Satisfaction rate = percentage of 3+ star reviews
+    const satisfaction = Math.round((happy / total) * 100);
+    
+    return { 
+      average, 
+      total, 
+      happyTravelers: total, // Show total reviewers as travelers
+      satisfaction 
+    };
+  }, [reviews]);
+
+
 
   useEffect(() => {
     const fetchPackages = async () => {
@@ -242,9 +334,10 @@ export default function DestinationDetailScreen() {
                 <Ionicons name="star" size={20} color="#FFD166" />
               </View>
               <View>
-                <Text style={styles.statValue}>{destination.averageRating || "4.8"}</Text>
+                <Text style={styles.statValue}>{reviewStats.total > 0 ? reviewStats.average.toFixed(1) : "4.8"}</Text>
                 <Text style={styles.statLabel}>Rating</Text>
               </View>
+
             </View>
             <View style={styles.statItem}>
               <View style={[styles.statIcon, { backgroundColor: '#F0F7FF' }]}>
@@ -309,7 +402,6 @@ export default function DestinationDetailScreen() {
                   await WebBrowser.openBrowserAsync(url);
                 } catch (error) {
                   console.error("Error opening map:", error);
-                  // Final fallback to Linking if WebBrowser fails
                   Linking.openURL(url);
                 }
               }}
@@ -323,21 +415,51 @@ export default function DestinationDetailScreen() {
             </Pressable>
           </View>
 
+          <View style={styles.nearbyHotelsContainer}>
+            <Pressable 
+              style={styles.nearbyHotelsBtn}
+              onPress={() => router.push(`/tourist-hotels?district=${encodeURIComponent(destination.location)}` as any)}
+            >
+              <Ionicons name="bed-outline" size={24} color="#ffffff" />
+              <Text style={styles.nearbyHotelsText}>View Nearby Hotels</Text>
+            </Pressable>
+          </View>
+
           <View style={{ height: 100 }} />
         </View>
-      </View>
       </Animated.ScrollView>
+
+      {/* Submission Modal */}
+      <AddReviewModal 
+        visible={modalVisible}
+        onClose={() => {
+          setModalVisible(false);
+          setEditingReview(null);
+        }}
+        onSuccess={() => fetchDestination(true)}
+        targetId={id as string}
+        targetType="destination"
+        targetName={destination?.name}
+        initialData={editingReview}
+      />
       <BlurView intensity={90} tint="light" style={styles.footer}>
-        <Pressable 
-          style={styles.bookBtn} 
-          onPress={() => router.push('/tour-packages')}
-        >
-          <Text style={styles.bookBtnText}>View Available Tour Packages</Text>
-        </Pressable>
+        <View style={styles.footerContent}>
+
+          <View>
+            <Text style={styles.priceLabel}>Starting from</Text>
+            <Text style={styles.priceValue}>${destination.startingPrice || "150"}<Text style={styles.perPerson}>/person</Text></Text>
+          </View>
+          <Pressable style={styles.bookBtn} onPress={() => router.push('/tour-packages' as any)}>
+            <Text style={styles.bookBtnText}>Packages</Text>
+          </Pressable>
+        </View>
+
       </BlurView>
     </View>
   );
 }
+
+
 
 const styles = StyleSheet.create({
   container: {
@@ -697,4 +819,28 @@ const styles = StyleSheet.create({
     color: '#1A3B2F',
     textTransform: 'uppercase',
   },
+  nearbyHotelsContainer: {
+    marginTop: 20,
+  },
+  nearbyHotelsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#1A3B2F',
+    padding: 16,
+    borderRadius: 20,
+    gap: 12,
+    shadowColor: '#1A3B2F',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  nearbyHotelsText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '800',
+  },
 });
+
+

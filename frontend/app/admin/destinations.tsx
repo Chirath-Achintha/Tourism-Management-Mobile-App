@@ -620,6 +620,12 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#1A3B2F',
   },
+  categoryRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 8,
+  },
   categoryBadge: {
     backgroundColor: '#E3F2FD',
     paddingHorizontal: 8,

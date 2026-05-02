@@ -7,6 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Sidebar } from '@/components/Sidebar';
 import { API_BASE_URL } from '@/constants/api';
 
+
 const AUTH_USER_KEY = "auth:user";
 const AUTH_STATUS_KEY = "auth:isSignedIn";
 const AUTH_TOKEN_KEY = "auth:token";
@@ -15,7 +16,8 @@ const ONBOARDING_SEEN_KEY = "onboarding:seen";
 // --- Components ---
 
 //const TouristDashboardContent = ({ user, onLogout, onExplore, onOpenSidebar }: any) => (
-const TouristDashboardContent = ({ user, stats, onLogout, onExplore, onOpenReviews, onOpenSidebar }: any) => (
+const TouristDashboardContent = ({ user, stats, onLogout, onExplore, onOpenSidebar }: any) => (
+
   <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
     <View style={styles.header}>
       <View style={styles.headerLeft}>
@@ -62,14 +64,12 @@ const TouristDashboardContent = ({ user, stats, onLogout, onExplore, onOpenRevie
       <Pressable style={styles.actionButton} onPress={onExplore}>
         <Text style={styles.actionButtonText}>Explore Options</Text>
       </Pressable>
-     <Pressable style={styles.reviewButton} onPress={onOpenReviews}>
-  <Text style={styles.reviewButtonText}>Review & Ratings</Text>
-</Pressable>
+
     </View>
   </ScrollView>
 );
 
-const HotelManagerDashboardContent = ({ user, stats, onLogout, onOpenSidebar }: any) => (
+const HotelManagerDashboardContent = ({ user, stats, onLogout, onAddHotel, onMyHotels, onOpenSidebar }: any) => (
   <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
     <View style={styles.header}>
       <View style={styles.headerLeft}>
@@ -93,60 +93,33 @@ const HotelManagerDashboardContent = ({ user, stats, onLogout, onOpenSidebar }: 
 
     <View style={styles.statsContainer}>
       <View style={styles.statCard}>
-        <Text style={styles.statNumber}>{stats.total}</Text>
-        <Text style={styles.statLabel}>Bookings</Text>
+        <Text style={styles.statNumber}>{stats.verified || 0}</Text>
+        <Text style={styles.statLabel}>Verified</Text>
       </View>
       <View style={styles.statCard}>
-        <Text style={styles.statNumber}>{stats.pending}</Text>
+        <Text style={styles.statNumber}>{stats.pending || 0}</Text>
         <Text style={styles.statLabel}>Pending</Text>
       </View>
       <View style={styles.statCard}>
-        <Text style={styles.statNumber}>{stats.approved}</Text>
-        <Text style={styles.statLabel}>Approved</Text>
+        <Text style={styles.statNumber}>{stats.declined || 0}</Text>
+        <Text style={styles.statLabel}>Declined</Text>
       </View>
     </View>
 
     <Text style={styles.sectionTitle}>Quick Actions</Text>
     <View style={styles.quickActionsGrid}>
-      <Pressable style={styles.quickActionItem}>
+      <Pressable style={styles.quickActionItem} onPress={onAddHotel}>
         <View style={[styles.actionIcon, { backgroundColor: 'rgba(46, 125, 50, 0.2)' }]}>
           <Ionicons name="add-outline" size={24} color="#81C784" />
         </View>
-        <Text style={styles.actionLabel}>Add Room</Text>
+        <Text style={styles.actionLabel}>Add Hotel</Text>
       </Pressable>
-      <Pressable style={styles.quickActionItem}>
-        <View style={[styles.actionIcon, { backgroundColor: 'rgba(21, 101, 192, 0.2)' }]}>
-          <Ionicons name="calendar-outline" size={24} color="#64B5F6" />
+      <Pressable style={styles.quickActionItem} onPress={onMyHotels}>
+        <View style={[styles.actionIcon, { backgroundColor: 'rgba(103, 58, 183, 0.2)' }]}>
+          <Ionicons name="business-outline" size={24} color="#9575CD" />
         </View>
-        <Text style={styles.actionLabel}>Schedule</Text>
+        <Text style={styles.actionLabel}>My Hotels</Text>
       </Pressable>
-      <Pressable style={styles.quickActionItem}>
-        <View style={[styles.actionIcon, { backgroundColor: 'rgba(239, 108, 0, 0.2)' }]}>
-          <Ionicons name="star-outline" size={24} color="#FFB74D" />
-        </View>
-        <Text style={styles.actionLabel}>Reviews</Text>
-      </Pressable>
-    </View>
-
-    <View style={styles.managerCard}>
-      <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle}>Recent Activity</Text>
-        <Pressable><Text style={styles.viewAllText}>View All</Text></Pressable>
-      </View>
-      <View style={styles.activityItem}>
-        <View style={styles.activityDot} />
-        <View>
-          <Text style={styles.activityText}>New booking from John Doe</Text>
-          <Text style={styles.activityTime}>2 mins ago</Text>
-        </View>
-      </View>
-      <View style={styles.activityItem}>
-        <View style={[styles.activityDot, { backgroundColor: '#FFD166' }]} />
-        <View>
-          <Text style={styles.activityText}>Payment received for #BK-204</Text>
-          <Text style={styles.activityTime}>1 hour ago</Text>
-        </View>
-      </View>
     </View>
   </ScrollView>
 );
@@ -246,7 +219,7 @@ const AdminDashboardContent = ({
 
 export default function DashboardScreen() {
   const [user, setUser] = useState<any>(null);
-  const [stats, setStats] = useState({ total: 0, pending: 0, approved: 0 });
+  const [stats, setStats] = useState<any>({ total: 0, pending: 0, approved: 0, verified: 0, declined: 0 });
   const [loading, setLoading] = useState(true);
   const [isSidebarVisible, setSidebarVisible] = useState(false);
   const router = useRouter();
@@ -257,16 +230,31 @@ export default function DashboardScreen() {
         const userData = await AsyncStorage.getItem(AUTH_USER_KEY);
         const token = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
         
+        let currentUser = null;
         if (userData) {
-          setUser(JSON.parse(userData));
+          currentUser = JSON.parse(userData);
+          setUser(currentUser);
         }
 
         if (token) {
-          const res = await fetch(`${API_BASE_URL}/reservations/stats`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          const data = await res.json();
-          if (res.ok) setStats(data);
+          if (currentUser?.role === 'hotel_manager') {
+            const res = await fetch(`${API_BASE_URL}/hotels/my-hotels`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const hotelsData = await res.json();
+            if (res.ok && Array.isArray(hotelsData)) {
+              const verified = hotelsData.filter((h: any) => h.status === 'verified').length;
+              const pending = hotelsData.filter((h: any) => h.status === 'pending').length;
+              const declined = hotelsData.filter((h: any) => h.status === 'declined').length;
+              setStats({ verified, pending, declined } as any);
+            }
+          } else {
+            const res = await fetch(`${API_BASE_URL}/reservations/stats`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+            if (res.ok) setStats(data);
+          }
         }
       } catch (error) {
         console.error("Fetch dashboard data failed:", error);
@@ -296,11 +284,11 @@ export default function DashboardScreen() {
               ]);
               setUser(null);
               router.dismissAll();
-              router.replace("/");
+              router.replace("/" as any);
             } catch (error) {
               console.warn("Logout cleanup failed:", error);
               router.dismissAll();
-              router.replace("/");
+              router.replace("/" as any);
             }
           }
         }
@@ -326,16 +314,18 @@ export default function DashboardScreen() {
             stats={stats}
             onLogout={handleLogout} 
             onOpenSidebar={() => setSidebarVisible(true)}
-            onManageDestinations={() => router.push('/admin/destinations')}
-            onManagePackages={() => router.push('/admin/tour-packages')}
-            onManageHotels={() => router.push('/admin/hotels')}
-            onManageUsers={() => router.push('/admin/users')}
+            onManageDestinations={() => router.push('/admin/destinations' as any)}
+            onManagePackages={() => router.push('/admin/tour-packages' as any)}
+            onManageHotels={() => router.push('/admin/hotels' as any)}
+            onManageUsers={() => router.push('/admin/users' as any)}
           />
         ) : user?.role === 'hotel_manager' ? (
           <HotelManagerDashboardContent 
             user={user} 
             stats={stats}
             onLogout={handleLogout} 
+            onAddHotel={() => router.push('/(tabs)/explore' as any)}
+            onMyHotels={() => router.push('/manager/my-hotels' as any)}
             onOpenSidebar={() => setSidebarVisible(true)}
           />
         ) : (
@@ -343,9 +333,9 @@ export default function DashboardScreen() {
   user={user} 
   stats={stats}
   onLogout={handleLogout} 
-  onExplore={() => router.push('/(tabs)/explore')} 
-  onOpenReviews={() => router.push('/reviews')} 
+  onExplore={() => router.push('/(tabs)/explore' as any)} 
   onOpenSidebar={() => setSidebarVisible(true)}
+
 />
         )}
       </SafeAreaView>
@@ -536,8 +526,10 @@ reviewButtonText: {
 },
   quickActionsGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
+    gap: 24,
     marginBottom: 32,
+    flexWrap: 'wrap',
   },
   quickActionItem: {
     alignItems: 'center',

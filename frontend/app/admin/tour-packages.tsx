@@ -89,7 +89,7 @@ export default function TourPackagesScreen() {
       
       if (!token) {
         Alert.alert("Session Expired", "Please log in again as an administrator.");
-        router.replace("/login");
+        router.replace("/login" as any);
         return;
       }
 
@@ -134,15 +134,15 @@ export default function TourPackagesScreen() {
   );
 
   const handleAddPackage = () => {
-    router.push('/admin/add-tour-package');
+    router.push('/admin/add-tour-package' as any);
   };
 
   const handleEditPackage = (packageId: string) => {
-    router.push(`/admin/edit-tour-package/${packageId}`);
+    router.push(`/admin/edit-tour-package/${packageId}` as any);
   };
 
   const handleViewPackage = (packageId: string) => {
-    router.push(`/tour-packages/${packageId}`);
+    router.push(`/tour-packages/${packageId}` as any);
   };
   const handleDeletePackage = async (packageId: string) => {
     Alert.alert(

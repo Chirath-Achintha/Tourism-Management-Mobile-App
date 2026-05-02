@@ -99,10 +99,10 @@ export const Sidebar = ({ isVisible, onClose }: SidebarProps) => {
                 AUTH_TOKEN_KEY,
                 ONBOARDING_SEEN_KEY,
               ]);
-              router.replace('/');
+              router.replace('/' as any);
             } catch (error) {
               console.error('Logout failed:', error);
-              router.replace('/');
+              router.replace('/' as any);
             }
           }
         }
@@ -217,6 +217,12 @@ export const Sidebar = ({ isVisible, onClose }: SidebarProps) => {
                   label="Reservation Management"
                   onPress={() => handleNavigate('/admin/reservations')}
                 />
+                <SidebarItem
+                  icon="star-outline"
+                  label="Review Management"
+                  onPress={() => handleNavigate('/admin/reviews')}
+                />
+
               </>
             )}
             {user?.role === 'hotel_manager' && (

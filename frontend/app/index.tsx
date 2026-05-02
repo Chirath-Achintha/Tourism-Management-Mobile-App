@@ -62,14 +62,14 @@ export default function IndexScreen() {
                   styles.button,
                   pressed && { opacity: 0.9, transform: [{ scale: 0.97 }] }
                 ]}
-                onPress={() => router.push("/register")}
+                onPress={() => router.push("/register" as any)}
               >
                 <Text style={styles.buttonText}>Start your journey</Text>
               </Pressable>
 
               <View style={styles.signInRow}>
                 <Text style={styles.signInPrompt}>ALREADY HAVE AN ACCOUNT? </Text>
-                <Pressable onPress={() => router.push("/login")} hitSlop={10}>
+                <Pressable onPress={() => router.push("/login" as any)} hitSlop={10}>
                   <Text style={styles.signInLink}>SIGN IN</Text>
                 </Pressable>
               </View>

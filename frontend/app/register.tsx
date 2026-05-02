@@ -317,7 +317,7 @@ export default function RegisterScreen() {
 
                 <View style={styles.footer}>
                   <Text style={styles.footerText}>ALREADY HAVE AN ACCOUNT? </Text>
-                  <Pressable onPress={() => router.push("/login")}>
+                  <Pressable onPress={() => router.push("/login" as any)}>
                     <Text style={styles.footerLink}>SIGN IN</Text>
                   </Pressable>
                 </View>

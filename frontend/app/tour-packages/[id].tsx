@@ -26,6 +26,9 @@ const COLORS = {
   // New colors for badges and cards
   badgeBackground: '#EEF6FF',
   hotelCardBackground: '#F8FAFF',
+  muted: '#64748b',
+  surface: '#FFFFFF',
+  surfaceDim: '#f1f5f9',
 };
 
 const INCLUDED_OPTIONS = [
@@ -72,7 +75,7 @@ export default function TourPackageDetailScreen() {
         packageName: pkg.name,
         packagePrice: pkg.price
       }
-    });
+    } as any);
   };
 
   const formatCategory = (value?: string) => {
@@ -147,7 +150,10 @@ export default function TourPackageDetailScreen() {
           </View>
 
           {/* Rating Badge */}
-          <View style={styles.ratingBadge}>
+          <Pressable 
+            style={styles.ratingBadge}
+            onPress={() => router.push({ pathname: '/reviews', params: { destinationId: id } } as any)}
+          >
             <View style={styles.ratingBox}>
               <Text style={styles.ratingText}>4.8</Text>
               <View style={styles.starsRow}>
@@ -169,7 +175,7 @@ export default function TourPackageDetailScreen() {
             >
               <Text style={styles.bookButtonSmallText}>BOOK NOW</Text>
             </Pressable>
-          </View>
+          </Pressable>
         </View>
 
         {/* Title */}
@@ -237,14 +243,14 @@ export default function TourPackageDetailScreen() {
           <View style={styles.itineraryHeader}>
             <Text style={styles.sectionTitle}>Itinerary</Text>
             {pkg.timeline && pkg.timeline.length > 0 && (
-              <Pressable onPress={() => router.push(`/tour-packages/${id}/itinerary` as any)}>
-                <Text style={styles.viewAllLink}>VIEW ALL</Text>
-              </Pressable>
-            )}
+                <Pressable style={styles.viewAllButton} onPress={() => router.push(`/tour-packages/${id}/itinerary` as any)}>
+                  <Text style={styles.viewAllText}>VIEW ALL</Text>
+                </Pressable>
+              )}
           </View>
 
           {pkg.timeline && pkg.timeline.length > 0 ? (
-            pkg.timeline.slice(0, 3).map((day: any, idx: number) => (
+            pkg.timeline.slice(0, 1).map((day: any, idx: number) => (
               <Pressable
                 key={idx}
                 style={styles.previewCard}
@@ -259,8 +265,8 @@ export default function TourPackageDetailScreen() {
 
                   <View style={styles.previewBody}>
                     <Text style={styles.previewLabel}>{`Day ${idx + 1}`}</Text>
-                    <Text style={styles.previewTitle}>{day.title || 'Untitled'}</Text>
-                    <Text style={styles.previewText} numberOfLines={2}>{day.notes || 'Experience the highlights of this day'}</Text>
+                    <Text style={styles.previewTitle} numberOfLines={1}>{day.title || 'Untitled'}</Text>
+                    <Text style={styles.previewText} numberOfLines={3}>{day.notes || 'Experience the highlights of this day'}</Text>
 
                     {day.places && day.places.length > 0 && (
                       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.previewThumbs}>
@@ -287,15 +293,14 @@ export default function TourPackageDetailScreen() {
             <View style={styles.modalOverlay}>
               <View style={styles.modalBox}>
                 <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>{selectedDay?.title || `Day ${selectedDay ? selectedDay.index + 1 : ''}`}</Text>
+                  <Text style={styles.modalTitle}>{selectedDay ? `Day ${selectedDay.index + 1} — ${selectedDay.title || ''}` : ''}</Text>
                   <Pressable onPress={() => setDayModalVisible(false)} style={styles.modalClose}>
                     <Text style={{ fontSize: 16, color: '#64748b' }}>Close</Text>
                   </Pressable>
                 </View>
                 <ScrollView style={styles.modalContent}>
                   <View>
-                    <Text style={styles.modalTitle}>{`Day ${selectedDay ? selectedDay.index + 1 : ''}`}</Text>
-                    <Text style={styles.modalSubtitle}>{selectedDay?.title || ''}</Text>
+                    {selectedDay?.title ? <Text style={styles.modalSubtitle}>{selectedDay.title}</Text> : null}
                   </View>
                   <Text style={styles.modalSectionTitle}>Overview</Text>
                   <Text style={styles.modalText}>{selectedDay?.notes || 'No details provided.'}</Text>
@@ -317,9 +322,9 @@ export default function TourPackageDetailScreen() {
                         <View key={i} style={styles.placeRowAlt}>
                           <Ionicons name="location-outline" size={18} color={COLORS.accent} />
                           <View style={{ marginLeft: 10, flex: 1 }}>
-                            <Text style={styles.placeName}>{p.name}</Text>
+                            <Text style={styles.placeNameAlt}>{p.name}</Text>
                             {p.location ? <Text style={styles.placeLocation}>{p.location}</Text> : null}
-                            {p.notes ? <Text style={styles.placeNotes}>{p.notes}</Text> : null}
+                            {p.notes ? <Text style={styles.placeNotesAlt}>{p.notes}</Text> : null}
                           </View>
                         </View>
                       ))}
@@ -331,6 +336,33 @@ export default function TourPackageDetailScreen() {
               </View>
             </View>
           </Modal>
+        </View>
+
+        {/* Reviews Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>Reviews & Ratings</Text>
+            <Pressable 
+              onPress={() => router.push({ pathname: '/reviews', params: { destinationId: id } } as any)}
+              style={styles.viewAllButtonAlt}
+            >
+              <Text style={styles.viewAllTextAlt}>VIEW ALL</Text>
+              <Ionicons name="chevron-forward" size={14} color={COLORS.blue} />
+            </Pressable>
+          </View>
+          <View style={styles.reviewSummary}>
+            <View style={styles.ratingSummaryBox}>
+              <Ionicons name="star" size={24} color={COLORS.accent} />
+              <Text style={styles.ratingValue}>4.8</Text>
+            </View>
+            <Text style={styles.reviewCount}>Based on 231 guest reviews</Text>
+          </View>
+          <Pressable 
+            style={styles.addReviewButton}
+            onPress={() => router.push({ pathname: '/reviews', params: { destinationId: id } } as any)}
+          >
+            <Text style={styles.addReviewText}>Write a Review</Text>
+          </Pressable>
         </View>
 
         {/* Pricing Section */}
@@ -505,17 +537,21 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(0,0,0,0.45)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
   modalBox: {
     width: '100%',
-    maxHeight: '80%',
+    maxHeight: '82%',
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 6,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -523,36 +559,46 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#eef2f7',
+    borderBottomColor: '#f1f5f9',
   },
   modalTitle: {
-    fontSize: 16,
-    fontWeight: '800',
+    fontSize: 17,
+    fontWeight: '900',
+    color: COLORS.text,
+  },
+  modalSubtitle: {
+    fontSize: 15,
+    color: COLORS.muted,
+    marginTop: 6,
+    fontWeight: '600',
   },
   modalClose: {
+    padding: 8,
+  },
+
   /* preview card styles */
   previewCard: {
     backgroundColor: COLORS.surface,
-    borderRadius: 14,
-    padding: 12,
+    borderRadius: 16,
+    padding: 14,
     marginBottom: 14,
     shadowColor: COLORS.secondary,
     shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowRadius: 10,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(15,23,42,0.03)',
   },
   previewRow: { flexDirection: 'row', alignItems: 'flex-start' },
-  previewBulletWrap: { width: 44, alignItems: 'center', justifyContent: 'flex-start' },
-  previewBulletOuter: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: COLORS.accent, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(169,55,0,0.06)' },
-  previewBulletInner: { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.accent },
+  previewBulletWrap: { width: 52, alignItems: 'center', justifyContent: 'flex-start' },
+  previewBulletOuter: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: COLORS.accent, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(169,55,0,0.06)' },
+  previewBulletInner: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: COLORS.accent },
   previewBody: { flex: 1 },
-  previewLabel: { fontSize: 12, color: COLORS.muted, fontWeight: '600' },
-  previewTitle: { fontSize: 15, color: COLORS.text, fontWeight: '700', marginTop: 2 },
-  previewText: { fontSize: 13, color: COLORS.muted, marginTop: 6 },
-  previewThumbs: { marginTop: 8 },
-  previewThumb: { width: 84, height: 56, borderRadius: 8, marginRight: 10, backgroundColor: COLORS.surfaceDim },
-    padding: 6,
-  },
+  previewLabel: { fontSize: 12, color: COLORS.muted, fontWeight: '700' },
+  previewTitle: { fontSize: 16, color: COLORS.text, fontWeight: '800', marginTop: 4 },
+  previewText: { fontSize: 14, color: COLORS.muted, marginTop: 8, lineHeight: 20 },
+  previewThumbs: { marginTop: 10 },
+  previewThumb: { width: 100, height: 66, borderRadius: 10, marginRight: 12, backgroundColor: COLORS.surfaceDim },
   modalContent: {
     padding: 16,
   },
@@ -703,6 +749,17 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.blue,
   },
+  viewAllButton: {
+    backgroundColor: COLORS.blue,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+  },
+  viewAllText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '800',
+  },
   dayCard: {
     flexDirection: 'row',
     backgroundColor: COLORS.white,
@@ -805,7 +862,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     paddingVertical: 8,
   },
-  placeName: {
+  placeNameAlt: {
     fontSize: 14,
     fontWeight: '600',
     color: COLORS.text,
@@ -817,7 +874,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
     marginLeft: 26,
   },
-  placeNotes: {
+  placeNotesAlt: {
     fontSize: 12,
     color: COLORS.secondary,
     marginTop: 4,
@@ -862,5 +919,69 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: 14,
     fontWeight: '800',
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  viewAllLinkAlt: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.blue,
+  },
+  viewAllButtonAlt: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  viewAllTextAlt: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.blue,
+  },
+  reviewSummary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginVertical: 4,
+  },
+  ratingSummaryBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: COLORS.white,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 1,
+  },
+  ratingValue: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: COLORS.text,
+  },
+  reviewCount: {
+    fontSize: 13,
+    color: COLORS.secondary,
+    fontWeight: '600',
+  },
+  addReviewButton: {
+    marginTop: 16,
+    backgroundColor: 'rgba(49, 82, 197, 0.08)',
+    paddingVertical: 14,
+    borderRadius: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(49, 82, 197, 0.2)',
+  },
+  addReviewText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.blue,
   },
 });

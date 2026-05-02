@@ -23,6 +23,12 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { API_BASE_URL } from '@/constants/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+type DestinationItem = {
+  _id?: string;
+  name: string;
+  location?: string;
+};
+
 const CATEGORY_OPTIONS = [
   { key: 'adventure', label: 'Adventure', icon: 'compass-outline', color: '#3152c5' },
   { key: 'cultural', label: 'Cultural', icon: 'business-outline', color: '#7c4dff' },
@@ -51,6 +57,7 @@ const TIMELINE_BG_RGBA = 'rgba(255,209,102,0.12)';
 type FormData = {
   name: string;
   location: string;
+  locations?: string[];
   meals: string[];
   included: string[];
   guide: string;
@@ -74,6 +81,7 @@ type FormData = {
 const INITIAL_STATE: FormData = {
   name: '',
   location: '',
+  locations: [],
   meals: [],
   included: [],
   guide: '',
@@ -110,6 +118,9 @@ export default function AddTourPackageScreen() {
   const [formData, setFormData] = useState(INITIAL_STATE);
   const [hotels, setHotels] = useState<any[]>([]);
   const [hotelsLoading, setHotelsLoading] = useState(false);
+  const [destinations, setDestinations] = useState<DestinationItem[]>([]);
+  const [destinationsLoading, setDestinationsLoading] = useState(false);
+  const [destinationSearch, setDestinationSearch] = useState('');
   const [durationError, setDurationError] = useState<string | null>(null);
   const [dateError, setDateError] = useState<string | null>(null);
   const [participantsError, setParticipantsError] = useState<string | null>(null);
@@ -138,6 +149,33 @@ export default function AddTourPackageScreen() {
       }
     };
     fetchHotels();
+  }, []);
+
+  // Filter hotels by selected package locations (if provided)
+  const filteredHotels = useMemo(() => {
+    const targets = Array.isArray(formData.locations) && formData.locations.length ? formData.locations.map((t) => t.trim().toLowerCase()) : [];
+    if (targets.length === 0) return hotels;
+    return hotels.filter((h) => {
+      const loc = String(h.location || h.address || h.city || h.name || '').toLowerCase();
+      return targets.some((t) => loc.includes(t) || (h.city && String(h.city).toLowerCase() === t));
+    });
+  }, [hotels, formData.locations]);
+
+  useEffect(() => {
+    const fetchDestinations = async () => {
+      try {
+        setDestinationsLoading(true);
+        const response = await fetch(`${API_BASE_URL}/destinations`);
+        const data = await response.json();
+        setDestinations(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error('Failed to fetch destinations:', err);
+      } finally {
+        setDestinationsLoading(false);
+      }
+    };
+
+    fetchDestinations();
   }, []);
   useEffect(() => {
     Animated.timing(progressAnim, {
@@ -257,6 +295,29 @@ export default function AddTourPackageScreen() {
   const selectPreset = (field: 'duration' | 'price' | 'maxParticipants', value: number) => {
     updateField(field, String(value));
   };
+
+  const selectDestination = (destination: DestinationItem) => {
+    const label = destination.location || destination.name;
+    setFormData(prev => {
+      const next = { ...prev } as FormData;
+      const existing = Array.isArray(next.locations) ? [...next.locations] : [];
+      if (existing.includes(label)) {
+        next.locations = existing.filter((l) => l !== label);
+      } else {
+        next.locations = [...existing, label];
+      }
+      return next;
+    });
+  };
+
+  const filteredDestinations = destinations.filter((destination) => {
+    const query = destinationSearch.trim().toLowerCase();
+    if (!query) return true;
+
+    const name = destination.name.toLowerCase();
+    const location = (destination.location || '').toLowerCase();
+    return name.includes(query) || location.includes(query);
+  });
 
   const formatDate = (date: Date) =>
     date.toLocaleDateString('en-US', {
@@ -431,10 +492,12 @@ export default function AddTourPackageScreen() {
 
       const payload = {
         name: formData.name,
-        description: `A curated ${formData.category} experience in ${formData.location}.`,
+        description: `A curated ${formData.category} experience in ${(Array.isArray(formData.locations) && formData.locations.length) ? formData.locations.join(', ') : formData.location}.`,
         category: formData.category,
 
-        destination: formData.location,
+        // Keep `destination` for backwards compatibility (first selected), and include `destinations` array
+        destination: Array.isArray(formData.locations) && formData.locations.length ? formData.locations[0] : formData.location,
+        destinations: Array.isArray(formData.locations) ? formData.locations : [],
         duration: Number(formData.duration),
         startDate: formData.startDate,
         endDate: formData.endDate,
@@ -550,7 +613,7 @@ export default function AddTourPackageScreen() {
             <MetaPill icon="time-outline" text={activeSummary.duration} />
             <MetaPill icon="people-outline" text={`${activeSummary.participants} pax`} />
           </View>
-          <Pressable style={styles.successPrimaryButton} onPress={() => router.replace('/admin/tour-packages')}>
+          <Pressable style={styles.successPrimaryButton} onPress={() => router.replace('/admin/tour-packages' as any)}>
             <Text style={styles.successPrimaryButtonText}>View Tour Packages</Text>
           </Pressable>
           <Pressable
@@ -682,18 +745,69 @@ export default function AddTourPackageScreen() {
               </Field>
 
               <Field label="Destination" required>
-                <Text style={styles.destinationHint}>Enter the location/place name. If it matches a destination in the system, the package will automatically appear under that destination.</Text>
+                <Text style={styles.destinationHint}>Search the destination table by location and pick one, or type a custom location for this package.</Text>
                 <View style={styles.iconInputWrap}>
+                  <Ionicons name="search-outline" size={18} color="#64748b" />
+                  <TextInput
+                    style={styles.iconInput}
+                    placeholder="Search destination locations"
+                    placeholderTextColor="#94a3b8"
+                    value={destinationSearch}
+                    onChangeText={setDestinationSearch}
+                  />
+                </View>
+                {destinationsLoading ? (
+                  <View style={styles.destinationLoadingPill}>
+                    <ActivityIndicator size="small" color={ACCENT} />
+                    <Text style={styles.destinationLoadingText}>Loading destinations...</Text>
+                  </View>
+                ) : filteredDestinations.length > 0 ? (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.destinationScroll} contentContainerStyle={styles.destinationScrollContent}>
+                    {filteredDestinations.map((destination) => {
+                      const locationLabel = destination.location || destination.name;
+                      const selected = Array.isArray(formData.locations) && formData.locations.includes(locationLabel);
+
+                      return (
+                        <Pressable
+                          key={destination._id || destination.name}
+                          onPress={() => selectDestination(destination)}
+                          style={[styles.destinationChip, selected && styles.destinationChipSelected]}
+                        >
+                          <Text style={[styles.destinationChipTitle, selected && styles.destinationChipTitleSelected]} numberOfLines={2}>
+                            {locationLabel}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </ScrollView>
+                ) : (
+                  <View style={styles.destinationLoadingPill}>
+                    <Ionicons name="alert-circle-outline" size={18} color={ACCENT} />
+                    <Text style={styles.destinationLoadingText}>No matching destination locations found.</Text>
+                  </View>
+                )}
+                <View style={[styles.iconInputWrap, { marginTop: 10 }]}>
                   <Ionicons name="location-outline" size={18} color="#64748b" />
                   <TextInput
                     style={styles.iconInput}
-                    placeholder="Enter destination location"
+                    placeholder="Or enter custom location"
                     placeholderTextColor="#94a3b8"
                     value={formData.location}
-                    onChangeText={(value) => {
-                      updateField('location', value);
-                    }}
+                    onChangeText={(value) => updateField('location', value)}
                   />
+                </View>
+                <View style={{ flexDirection: 'row', marginTop: 8, gap: 8, alignItems: 'center' }}>
+                  <Pressable
+                    style={[styles.addDayButton]}
+                    onPress={() => {
+                      const val = (formData.location || '').trim();
+                      if (!val) return;
+                      setFormData(prev => ({ ...prev, locations: [...(prev.locations || []), val], location: '' } as FormData));
+                    }}
+                  >
+                    <Text style={{ color: SELECTED_TEXT, fontWeight: '700' }}>+ Add Location</Text>
+                  </Pressable>
+                  <Text style={{ color: '#6B7280', fontSize: 13 }}>{Array.isArray(formData.locations) && formData.locations.length ? `${formData.locations.length} selected` : 'No extra locations'}</Text>
                 </View>
               </Field>
               <Text style={[styles.sectionTitle, { marginTop: 8 }]}>What's Included</Text>
@@ -838,15 +952,21 @@ export default function AddTourPackageScreen() {
                         <View style={styles.hotelSelectorWrap}>
                           <Text style={styles.hotelLabel}>Select Hotel</Text>
                           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.hotelListScroll}>
-                            {hotels.length === 0 ? (
-                              <Text style={styles.noHotelsText}>No hotels available</Text>
+                            {hotelsLoading ? (
+                              <Text style={styles.noHotelsText}>Loading hotels...</Text>
+                            ) : filteredHotels.length === 0 ? (
+                              formData.location ? (
+                                <Text style={styles.noHotelsText}>No hotels found for this location.</Text>
+                              ) : (
+                                <Text style={styles.noHotelsText}>No hotels available</Text>
+                              )
                             ) : (
-                              hotels.map((hotel) => (
+                              filteredHotels.map((hotel) => (
                                 <Pressable
                                   key={hotel._id}
                                   style={[
                                     styles.hotelChip,
-                                    day.hotel === hotel._id && styles.hotelChipSelected
+                                    day.hotel === hotel._id && styles.hotelChipSelected,
                                   ]}
                                   onPress={() => {
                                     updateTimelineDay(idx, 'hotel', hotel._id);
@@ -856,7 +976,7 @@ export default function AddTourPackageScreen() {
                                 >
                                   <Text style={[
                                     styles.hotelChipText,
-                                    day.hotel === hotel._id && styles.hotelChipTextSelected
+                                    day.hotel === hotel._id && styles.hotelChipTextSelected,
                                   ]}>{hotel.hotelName || hotel.name}</Text>
                                 </Pressable>
                               ))

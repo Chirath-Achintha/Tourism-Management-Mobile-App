@@ -122,7 +122,7 @@ export default function MyHotelsScreen() {
 
         <View style={styles.actions}>
           {item.status !== 'declined' && (
-            <Pressable style={styles.actionBtn} onPress={() => router.push({ pathname: '/manager/edit-hotel', params: { id: item._id } })}>
+            <Pressable style={styles.actionBtn} onPress={() => router.push({ pathname: '/manager/edit-hotel' as any, params: { id: item._id } })}>
               <Ionicons name="pencil" size={16} color="#1A3B2F" />
               <Text style={styles.actionBtnText}>Edit</Text>
             </Pressable>
@@ -184,7 +184,7 @@ export default function MyHotelsScreen() {
         <View style={styles.centerContainer}>
           <Ionicons name="business-outline" size={64} color="rgba(26, 59, 47, 0.2)" />
           <Text style={styles.emptyText}>You haven't added any hotels yet.</Text>
-          <Pressable style={styles.addBtn} onPress={() => router.push('/(tabs)/explore')}>
+          <Pressable style={styles.addBtn} onPress={() => router.push('/(tabs)/explore' as any)}>
             <Text style={styles.addBtnText}>Add New Hotel</Text>
           </Pressable>
         </View>
