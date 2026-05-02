@@ -370,51 +370,14 @@ export default function DestinationDetailScreen() {
             </Pressable>
           </View>
 
-          {/* Traveler Feedback Section */}
-          <View style={styles.reviewsContainer}>
-            <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitle}>Traveler Feedback</Text>
-              <Pressable 
-                onPress={() => setModalVisible(true)}
-              >
-                <Text style={styles.writeReviewLink}>Write a Review</Text>
-              </Pressable>
-            </View>
-
-            <RatingSummary 
-              average={reviewStats.total > 0 ? reviewStats.average : 0}
-              total={reviewStats.total > 0 ? reviewStats.total : 0}
-              happyTravelers={reviewStats.total > 0 ? reviewStats.happyTravelers : 0}
-              satisfactionRate={reviewStats.total > 0 ? reviewStats.satisfaction : 0}
-            />
-
-
-            {reviews.length > 0 ? (
-              <ScrollView 
-                horizontal 
-                showsHorizontalScrollIndicator={false} 
-                snapToInterval={width * 0.85 + 16}
-                decelerationRate="fast"
-                contentContainerStyle={{ gap: 12, paddingBottom: 20 }}
-              >
-                {reviews.map((item: any) => {
-                  const isOwner = (item.userId?._id || item.userId) === userId;
-                  return (
-                    <ReviewCard 
-                      key={item._id} 
-                      review={item} 
-                      onEdit={isOwner ? () => handleEditReview(item) : undefined}
-                      onDelete={isOwner ? () => handleDeleteReview(item._id) : undefined}
-                    />
-                  );
-                })}
-              </ScrollView>
-            ) : (
-              <View style={styles.emptyDashedCard}>
-                <Ionicons name="chatbubble-outline" size={48} color="rgba(26, 59, 47, 0.15)" />
-                <Text style={styles.emptyCardText}>No reviews yet. Share your experience with others!</Text>
-              </View>
-            )}
+          <View style={styles.nearbyHotelsContainer}>
+            <Pressable 
+              style={styles.nearbyHotelsBtn}
+              onPress={() => router.push(`/tourist-hotels?district=${encodeURIComponent(destination.location)}` as any)}
+            >
+              <Ionicons name="bed-outline" size={24} color="#ffffff" />
+              <Text style={styles.nearbyHotelsText}>View Nearby Hotels</Text>
+            </Pressable>
           </View>
 
           <View style={{ height: 100 }} />
@@ -786,39 +749,27 @@ const styles = StyleSheet.create({
     color: '#1A3B2F',
     textTransform: 'uppercase',
   },
-  reviewsContainer: {
-    marginTop: 40,
-    paddingBottom: 100,
+  nearbyHotelsContainer: {
+    marginTop: 20,
   },
-  sectionHeaderRow: {
+  nearbyHotelsBtn: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  writeReviewLink: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#3B82F6',
-    textDecorationLine: 'underline',
-  },
-  emptyDashedCard: {
-    borderWidth: 2,
-    borderColor: 'rgba(26, 59, 47, 0.08)',
-    borderStyle: 'dashed',
-    borderRadius: 32,
-    padding: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 16,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#1A3B2F',
+    padding: 16,
+    borderRadius: 20,
+    gap: 12,
+    shadowColor: '#1A3B2F',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
   },
-  emptyCardText: {
-    fontSize: 14,
-    color: 'rgba(26, 59, 47, 0.6)',
-    textAlign: 'center',
-    fontWeight: '600',
-    lineHeight: 20,
+  nearbyHotelsText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '800',
   },
 });
 
