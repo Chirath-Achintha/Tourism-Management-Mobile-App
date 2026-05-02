@@ -216,9 +216,6 @@ export default function AddTourPackageScreen() {
         } else if (maxNum <= minNum) {
           setParticipantsError('Max participants must be greater than min participants.');
         } else {
-          setParticipantsError(null);
-        }
-      }
         }
       }
 
@@ -694,8 +691,6 @@ export default function AddTourPackageScreen() {
                   />
                 </View>
               </Field>
-<<<<<<< HEAD
-
               <Text style={[styles.sectionTitle, { marginTop: 8 }]}>What's Included</Text>
               <Text style={styles.sectionCopy}>Use quick selectors to define exactly what is included in this package.</Text>
 
@@ -728,8 +723,6 @@ export default function AddTourPackageScreen() {
                   required
                 />
               </View>
-=======
->>>>>>> Destination-Management
             </View>
           )}
 
@@ -765,10 +758,7 @@ export default function AddTourPackageScreen() {
                     keyboardType="number-pad"
                   />
                 </View>
-<<<<<<< HEAD
                   {durationError ? <Text style={{ color: '#ef4444', marginTop: 6 }}>{durationError}</Text> : null}
-=======
->>>>>>> Destination-Management
               </Field>
 
               <View style={styles.dateGrid}>
@@ -777,12 +767,9 @@ export default function AddTourPackageScreen() {
                     <Ionicons name="calendar-outline" size={18} color={ACCENT} />
                     <Text style={[styles.dateInputText, !formData.startDate && styles.placeholderText]}>{formData.startDate || 'mm/dd/yyyy'}</Text>
                   </Pressable>
-<<<<<<< HEAD
                   {!formData.startDate && durationError == null ? (
                     <Text style={{ color: '#ef4444', marginTop: 6 }}>{dateError || ''}</Text>
                   ) : null}
-=======
->>>>>>> Destination-Management
                 </Field>
 
                 <Field label="Return Date" required style={styles.halfField}>
@@ -843,8 +830,6 @@ export default function AddTourPackageScreen() {
                           multiline
                           numberOfLines={3}
                         />
-<<<<<<< HEAD
-
                         <View style={styles.hotelSelectorWrap}>
                           <Text style={styles.hotelLabel}>Select Hotel</Text>
                           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.hotelListScroll}>
@@ -919,8 +904,6 @@ export default function AddTourPackageScreen() {
                             </Pressable>
                           </View>
                         </View>
-=======
->>>>>>> Destination-Management
                       </View>
                     </View>
                   ))
@@ -948,7 +931,6 @@ export default function AddTourPackageScreen() {
                     onChangeText={(value) => updateField('price', value)}
                     keyboardType="decimal-pad"
                   />
-<<<<<<< HEAD
                   <Text style={styles.priceSuffix}>LKR</Text>
                 </View>
               </Field>
@@ -983,45 +965,6 @@ export default function AddTourPackageScreen() {
                 </Field>
               </View>
               {participantsError ? <Text style={{ color: '#ef4444', marginTop: 6 }}>{participantsError}</Text> : null}
-=======
-                  <Text style={styles.priceSuffix}>USD</Text>
-                </View>
-                <View style={styles.pillRowWrap}>
-                  {PRICE_PRESETS.map(price => {
-                    const selected = formData.price === String(price);
-                    return (
-                      <Pressable key={price} onPress={() => selectPreset('price', price)} style={[styles.pricePill, selected && styles.pillSelected]}>
-                        <Text style={[styles.pricePillText, selected && styles.pillTextSelected]}>${price}</Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              </Field>
-
-              <Field label="Max Participants" required>
-                <View style={styles.iconInputWrap}>
-                  <Ionicons name="people-outline" size={18} color="#64748b" />
-                  <TextInput
-                    style={styles.iconInput}
-                    placeholder="e.g., 12"
-                    placeholderTextColor="#94a3b8"
-                    value={formData.maxParticipants}
-                    onChangeText={(value) => updateField('maxParticipants', value)}
-                    keyboardType="number-pad"
-                  />
-                </View>
-                <View style={styles.pillRowWrap}>
-                  {PARTICIPANT_PRESETS.map(count => {
-                    const selected = formData.maxParticipants === String(count);
-                    return (
-                      <Pressable key={count} onPress={() => selectPreset('maxParticipants', count)} style={[styles.smallPill, selected && styles.pillSelected]}>
-                        <Text style={[styles.smallPillText, selected && styles.pillTextSelected]}>{count}</Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              </Field>
->>>>>>> Destination-Management
 
               <View style={styles.summaryCard}>
                 <View style={styles.summaryHeader}>
@@ -1030,17 +973,11 @@ export default function AddTourPackageScreen() {
                 </View>
                 <SummaryRow label="Destination" value={formData.location || '—'} />
                 <SummaryRow label="Category" value={activeSummary.category} />
-<<<<<<< HEAD
                 <SummaryRow label="Meals" value={includedSummary.meals} />
                 <SummaryRow label="Guide" value={includedSummary.guide} />
                 <SummaryRow label="Duration" value={activeSummary.duration} />
                 <SummaryRow label="Price" value={activeSummary.price} />
                 <SummaryRow label="Group Size" value={formData.minParticipants && formData.maxParticipants ? `${formData.minParticipants}-${formData.maxParticipants} guests` : '—'} />
-=======
-                <SummaryRow label="Duration" value={activeSummary.duration} />
-                <SummaryRow label="Price" value={activeSummary.price} />
-                <SummaryRow label="Group Size" value={formData.maxParticipants ? `${formData.maxParticipants} guests` : '—'} />
->>>>>>> Destination-Management
               </View>
             </View>
           )}
@@ -1094,7 +1031,6 @@ function Field({ label, required, children, style }: any) {
   );
 }
 
-<<<<<<< HEAD
 function SelectField({
   label,
   value,
@@ -1142,9 +1078,6 @@ function SelectField({
     </Field>
   );
 }
-
-=======
->>>>>>> Destination-Management
 function MetaPill({ icon, text }: { icon: any; text: string }) {
   return (
     <View style={styles.metaPill}>
@@ -1371,7 +1304,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(15, 23, 42, 0.06)',
   },
-<<<<<<< HEAD
   includedPanel: {
     backgroundColor: '#f6f9ff',
     borderRadius: 18,
@@ -1510,8 +1442,6 @@ const styles = StyleSheet.create({
     color: '#0f172a',
     fontWeight: '800',
   },
-=======
->>>>>>> Destination-Management
   iconInputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1926,7 +1856,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#0f172a',
   },
-<<<<<<< HEAD
   formInput: {
     backgroundColor: '#f8fbff',
     borderRadius: 10,
@@ -1937,13 +1866,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(15,23,42,0.06)',
   },
-=======
->>>>>>> Destination-Management
   dayDeleteButton: {
     marginLeft: 8,
     padding: 6,
   },
-<<<<<<< HEAD
   hotelSelectorWrap: {
     marginTop: 12,
     gap: 8,
@@ -2004,8 +1930,6 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     padding: 8,
   },
-=======
->>>>>>> Destination-Management
   successPrimaryButton: {
     height: 52,
     borderRadius: 16,
@@ -2031,7 +1955,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
   },
-<<<<<<< HEAD
   twoColRow: {
     flexDirection: 'row',
     gap: 12,
@@ -2039,6 +1962,4 @@ const styles = StyleSheet.create({
   col: {
     flex: 1,
   },
-=======
->>>>>>> Destination-Management
 });

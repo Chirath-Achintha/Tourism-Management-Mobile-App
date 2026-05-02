@@ -27,8 +27,6 @@ import { API_BASE_URL } from '@/constants/api';
 import { Colors } from '@/constants/theme';
 const AUTH_USER_KEY = "auth:user";
 
-const AUTH_USER_KEY = "auth:user";
-
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48 - 16) / 2;
 
