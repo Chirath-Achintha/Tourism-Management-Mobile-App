@@ -147,7 +147,10 @@ export default function TourPackageDetailScreen() {
           </View>
 
           {/* Rating Badge */}
-          <View style={styles.ratingBadge}>
+          <Pressable 
+            style={styles.ratingBadge}
+            onPress={() => router.push({ pathname: '/reviews', params: { destinationId: id } })}
+          >
             <View style={styles.ratingBox}>
               <Text style={styles.ratingText}>4.8</Text>
               <View style={styles.starsRow}>
@@ -169,7 +172,7 @@ export default function TourPackageDetailScreen() {
             >
               <Text style={styles.bookButtonSmallText}>BOOK NOW</Text>
             </Pressable>
-          </View>
+          </Pressable>
         </View>
 
         {/* Title */}
@@ -331,6 +334,33 @@ export default function TourPackageDetailScreen() {
               </View>
             </View>
           </Modal>
+        </View>
+
+        {/* Reviews Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>Reviews & Ratings</Text>
+            <Pressable 
+              onPress={() => router.push({ pathname: '/reviews', params: { destinationId: id } })}
+              style={styles.viewAllButton}
+            >
+              <Text style={styles.viewAllText}>VIEW ALL</Text>
+              <Ionicons name="chevron-forward" size={14} color={COLORS.blue} />
+            </Pressable>
+          </View>
+          <View style={styles.reviewSummary}>
+            <View style={styles.ratingSummaryBox}>
+              <Ionicons name="star" size={24} color={COLORS.accent} />
+              <Text style={styles.ratingValue}>4.8</Text>
+            </View>
+            <Text style={styles.reviewCount}>Based on 231 guest reviews</Text>
+          </View>
+          <Pressable 
+            style={styles.addReviewButton}
+            onPress={() => router.push({ pathname: '/reviews', params: { destinationId: id } })}
+          >
+            <Text style={styles.addReviewText}>Write a Review</Text>
+          </Pressable>
         </View>
 
         {/* Pricing Section */}
@@ -862,5 +892,69 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: 14,
     fontWeight: '800',
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  viewAllLink: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.blue,
+  },
+  viewAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  viewAllText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.blue,
+  },
+  reviewSummary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginVertical: 4,
+  },
+  ratingSummaryBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: COLORS.white,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 1,
+  },
+  ratingValue: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: COLORS.text,
+  },
+  reviewCount: {
+    fontSize: 13,
+    color: COLORS.secondary,
+    fontWeight: '600',
+  },
+  addReviewButton: {
+    marginTop: 16,
+    backgroundColor: 'rgba(49, 82, 197, 0.08)',
+    paddingVertical: 14,
+    borderRadius: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(49, 82, 197, 0.2)',
+  },
+  addReviewText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.blue,
   },
 });
