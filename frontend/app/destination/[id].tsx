@@ -202,7 +202,7 @@ export default function DestinationDetailScreen() {
     return packages.filter((item) => {
       const itemDestinationId = String(item?.destinationId?._id || item?.destinationId || '').trim();
       const selectedDestinations = Array.isArray(item?.destinations) ? item.destinations : [];
-      const matchedSelectedDestination = selectedDestinations.some((name) => normalize(name) === destinationName);
+      const matchedSelectedDestination = selectedDestinations.some((name: any) => normalize(name) === destinationName);
       const matchedDestinationName = normalize(item?.destination) === destinationName;
       return itemDestinationId === destinationId || matchedSelectedDestination || matchedDestinationName;
     });

@@ -653,12 +653,6 @@ const styles = StyleSheet.create({
     gap: 4,
     marginBottom: 8,
   },
-  categoryRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 8,
-  },
   cardLocation: {
     fontSize: 13,
     color: '#1A3B2F',

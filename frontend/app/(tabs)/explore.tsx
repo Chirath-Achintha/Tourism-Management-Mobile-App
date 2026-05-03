@@ -771,16 +771,24 @@ export default function SearchPlacesScreen() {
 
           <View style={styles.formContainer}>
             <Text style={styles.label}>Main Image (Thumbnail) *</Text>
-            <Pressable style={styles.imagePickerMain} onPress={pickMainImage}>
-              {mainImage ? (
+            {mainImage ? (
+              <View style={[styles.imagePickerMain, { position: 'relative' }]}>
                 <Image source={{ uri: mainImage }} style={styles.previewMain} />
-              ) : (
+                <Pressable 
+                  style={[styles.removeImage, { top: 12, right: 12, width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }]} 
+                  onPress={() => setMainImage(null)}
+                >
+                  <Ionicons name="close-circle" size={24} color="#ff4444" />
+                </Pressable>
+              </View>
+            ) : (
+              <Pressable style={styles.imagePickerMain} onPress={pickMainImage}>
                 <View style={styles.pickerPlaceholder}>
                   <Ionicons name="camera-outline" size={32} color="rgba(26, 59, 47, 0.4)" />
                   <Text style={styles.pickerText}>Upload Main Image</Text>
                 </View>
-              )}
-            </Pressable>
+              </Pressable>
+            )}
 
             <Text style={[styles.label, { marginTop: 16 }]}>Gallery Images (Up to 6)</Text>
             <View style={styles.galleryContainer}>

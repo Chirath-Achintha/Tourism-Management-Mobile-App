@@ -97,6 +97,53 @@ const TouristDashboardContent = ({ user, stats, onLogout, onExplore, onOpenSideb
         </ScrollView>
       </View>
     )}
+
+    {/* Featured Hotels Section */}
+    <View style={{ marginTop: 32 }}>
+      <View style={styles.sectionHeaderRow}>
+        <Text style={styles.sectionTitle}>Featured Hotels</Text>
+        <Pressable onPress={() => stats.onViewHotels()}>
+          <Text style={styles.viewAllText}>View All</Text>
+        </Pressable>
+      </View>
+      {stats.verifiedHotels && stats.verifiedHotels.length > 0 ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
+          {stats.verifiedHotels.map((hotel: any) => (
+            <Pressable 
+              key={hotel._id} 
+              style={styles.wishlistCard}
+              onPress={() => stats.onNavigateToHotel(hotel._id)}
+            >
+              <Image 
+                source={{ uri: hotel.mainImage?.startsWith('http') ? hotel.mainImage : `${API_BASE_URL}${hotel.mainImage}` }} 
+                style={styles.wishlistImage} 
+              />
+              <LinearGradient colors={['transparent', 'rgba(0,0,0,0.7)']} style={styles.wishlistGradient} />
+              <View style={styles.wishlistInfo}>
+                <Text style={styles.wishlistName} numberOfLines={1}>{hotel.hotelName}</Text>
+                <View style={styles.wishlistLocation}>
+                  <Ionicons name="location" size={10} color="#FFD166" />
+                  <Text style={styles.wishlistLocationText}>{hotel.location}</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 4 }}>
+                  <Ionicons name="star" size={10} color="#FFD166" />
+                  <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700' }}>
+                    {hotel.googleRating ? Number(hotel.googleRating).toFixed(1) : '4.8'}
+                  </Text>
+                </View>
+              </View>
+            </Pressable>
+          ))}
+        </ScrollView>
+      ) : (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyStateSub}>No hotels available yet.</Text>
+          <Pressable style={styles.actionButton} onPress={() => stats.onViewHotels()}>
+            <Text style={styles.actionButtonText}>View Hotels</Text>
+          </Pressable>
+        </View>
+      )}
+    </View>
   </ScrollView>
 );
 
@@ -290,24 +337,30 @@ export default function DashboardScreen() {
               setStats({ verified, pending, declined, firstHotelId } as any);
             }
           } else {
-            const [statsRes, destinationsRes] = await Promise.all([
+            const [statsRes, destinationsRes, hotelsRes] = await Promise.all([
               fetch(`${API_BASE_URL}/reservations/stats`, {
                 headers: { 'Authorization': `Bearer ${token}` }
               }),
-              fetch(`${API_BASE_URL}/destinations`)
+              fetch(`${API_BASE_URL}/destinations`),
+              fetch(`${API_BASE_URL}/hotels/all`)
             ]);
 
             const statsData = await statsRes.json();
             const destinationsData = await destinationsRes.json();
+            const hotelsData = await hotelsRes.json();
 
             if (statsRes.ok && Array.isArray(destinationsData)) {
               const wishlistItems = destinationsData.filter((d: any) => favoritesIds.includes(d._id));
+              const verifiedHotels = Array.isArray(hotelsData) ? hotelsData.filter((h: any) => h.isVerified !== false) : [];
               setStats({
                 ...statsData,
                 wishlistCount: wishlistItems.length,
                 wishlistItems: wishlistItems,
+                verifiedHotels: verifiedHotels.slice(0, 5),
                 onViewWishlist: () => router.push('/(tabs)/favorites' as any),
-                onNavigateToPlace: (id: string) => router.push(`/destination/${id}` as any)
+                onNavigateToPlace: (id: string) => router.push(`/destination/${id}` as any),
+                onViewHotels: () => router.push('/tourist-hotels' as any),
+                onNavigateToHotel: (id: string) => router.push(`/tourist-hotel-detail?id=${id}` as any)
               });
             }
           }
