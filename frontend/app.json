@@ -9,7 +9,11 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.sliit.tourismapp",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.sliit.tourismapp",
@@ -53,6 +57,7 @@
       "eas": {
         "projectId": "f85a6434-6803-444f-a0b8-1b25806f1bcb"
       }
-    }
+    },
+    "owner": "shan_2"
   }
 }
