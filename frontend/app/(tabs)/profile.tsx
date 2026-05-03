@@ -32,9 +32,16 @@ export default function ProfileScreen() {
   const [user, setUser] = useState<any>(null);
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const phonePattern = /^\+?[0-9]{7,15}$/;
   const router = useRouter();
 
-  const phonePattern = /^\+?[0-9]{7,15}$/;
+  const [touched, setTouched] = useState({ fullName: false, phoneNumber: false });
+
+  const errors = React.useMemo(() => {
+    const nameErr = !fullName.trim() ? "Full name is required" : fullName.trim().length < 3 ? "Minimum 3 characters" : null;
+    const phoneErr = !phoneNumber.trim() ? "Phone number is required" : !/^[0-9]{10}$/.test(phoneNumber.trim()) ? "Must be exactly 10 digits" : null;
+    return { fullName: nameErr, phoneNumber: phoneErr };
+  }, [fullName, phoneNumber]);
 
   useEffect(() => {
     const loadUser = async () => {
@@ -85,18 +92,16 @@ export default function ProfileScreen() {
   };
 
   const handleSaveProfile = async () => {
+    setTouched({ fullName: true, phoneNumber: true });
+
+    const hasErrors = Object.values(errors).some(err => err !== null);
+    if (hasErrors) {
+      Alert.alert('Validation Error', 'Please correct the highlighted errors.');
+      return;
+    }
+
     const normalizedName = fullName.trim();
     const normalizedPhone = phoneNumber.trim();
-
-    if (!normalizedName || !normalizedPhone) {
-      Alert.alert('Validation', 'Full name and phone number are required.');
-      return;
-    }
-
-    if (!phonePattern.test(normalizedPhone)) {
-      Alert.alert('Validation', 'Enter a valid phone number with 7-15 digits.');
-      return;
-    }
 
     if (!user?.id) {
       Alert.alert('Error', 'User ID is missing. Please log in again.');
@@ -183,21 +188,30 @@ export default function ProfileScreen() {
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Full Name</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, touched.fullName && errors.fullName && styles.errorInput]}
                     value={fullName}
-                    onChangeText={setFullName}
+                    onChangeText={(t) => { setFullName(t); setTouched(prev => ({ ...prev, fullName: true })); }}
+                    onBlur={() => setTouched(prev => ({ ...prev, fullName: true }))}
                     placeholder="Enter full name"
                   />
+                  {touched.fullName && errors.fullName && (
+                    <Text style={styles.errorText}>{errors.fullName}</Text>
+                  )}
                 </View>
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Phone Number</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, touched.phoneNumber && errors.phoneNumber && styles.errorInput]}
                     value={phoneNumber}
-                    onChangeText={setPhoneNumber}
+                    onChangeText={(t) => { setPhoneNumber(t); setTouched(prev => ({ ...prev, phoneNumber: true })); }}
+                    onBlur={() => setTouched(prev => ({ ...prev, phoneNumber: true }))}
                     keyboardType="phone-pad"
+                    maxLength={10}
                     placeholder="Enter phone number"
                   />
+                  {touched.phoneNumber && errors.phoneNumber && (
+                    <Text style={styles.errorText}>{errors.phoneNumber}</Text>
+                  )}
                 </View>
 
                 <View style={styles.actionRow}>
@@ -523,5 +537,15 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: 'rgba(26, 59, 47, 0.5)',
     fontWeight: '500',
+  },
+  errorInput: {
+    borderColor: '#ff4444',
+  },
+  errorText: {
+    color: '#ff4444',
+    fontSize: 12,
+    marginTop: 2,
+    marginLeft: 4,
+    fontWeight: '600',
   },
 });

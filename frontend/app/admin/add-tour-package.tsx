@@ -124,6 +124,7 @@ export default function AddTourPackageScreen() {
   const [durationError, setDurationError] = useState<string | null>(null);
   const [dateError, setDateError] = useState<string | null>(null);
   const [participantsError, setParticipantsError] = useState<string | null>(null);
+  const [priceError, setPriceError] = useState<string | null>(null);
 
   const progressValue = useMemo(() => {
     return step === 0 ? 0.16 : step === 1 ? 0.58 : 1;
@@ -255,6 +256,19 @@ export default function AddTourPackageScreen() {
           setParticipantsError('Max participants must be greater than min participants.');
         } else {
           setParticipantsError(null);
+        }
+      }
+
+      // validate price
+      if (field === 'price') {
+        const raw = String(value || '').trim();
+        const num = Number(raw);
+        if (!raw || Number.isNaN(num) || num <= 0) {
+          setPriceError('Enter a valid price greater than 0.');
+        } else if (num > 10000000) {
+          setPriceError('Price seems too large.');
+        } else {
+          setPriceError(null);
         }
       }
 
@@ -459,7 +473,8 @@ export default function AddTourPackageScreen() {
     }
 
     if (currentStep === 2) {
-      if (!formData.price.trim() || Number.isNaN(Number(formData.price))) return 'Please select a valid price.';
+      if (priceError) return priceError;
+      if (!formData.price.trim() || Number.isNaN(Number(formData.price)) || Number(formData.price) <= 0) return 'Please select a valid price.';
       if (participantsError) return participantsError;
       const minVal = Number(formData.minParticipants);
       const maxVal = Number(formData.maxParticipants);
@@ -774,7 +789,7 @@ export default function AddTourPackageScreen() {
                     <Text style={styles.destinationLoadingText}>Loading destinations...</Text>
                   </View>
                 ) : filteredDestinations.length > 0 ? (
-                  <ScrollView showsVerticalScrollIndicator={false} style={styles.destinationScroll} contentContainerStyle={styles.destinationScrollContent}>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.destinationScroll} contentContainerStyle={styles.destinationScrollContent}>
                     {filteredDestinations.map((destination) => {
                       const destinationLabel = String(destination.name || '').trim();
                       const selected = selectedDestinationNames.has(normalizeLocationLabel(destinationLabel));
@@ -893,11 +908,14 @@ export default function AddTourPackageScreen() {
                 <View style={styles.iconInputWrap}>
                   <Ionicons name="time-outline" size={18} color="#64748b" />
                   <TextInput
-                    style={styles.iconInput}
+                    style={[styles.iconInput, durationError ? styles.invalidInput : null]}
                     placeholder="Custom days"
                     placeholderTextColor="#94a3b8"
                     value={formData.duration}
-                    onChangeText={(value) => updateField('duration', value)}
+                    onChangeText={(value) => {
+                      const sanitized = String(value || '').replace(/\D+/g, '');
+                      updateField('duration', sanitized);
+                    }}
                     keyboardType="number-pad"
                   />
                 </View>
@@ -994,15 +1012,22 @@ export default function AddTourPackageScreen() {
                     <Text style={styles.pricePrefixText}>$</Text>
                   </View>
                   <TextInput
-                    style={styles.priceInput}
+                    style={[styles.priceInput, priceError ? styles.invalidInput : null]}
                     placeholder="0.00"
                     placeholderTextColor="#94a3b8"
                     value={formData.price}
-                    onChangeText={(value) => updateField('price', value)}
+                    onChangeText={(value) => {
+                      const sanitized = String(value || '').replace(/[^0-9.]/g, '');
+                      // allow only one decimal point
+                      const parts = sanitized.split('.');
+                      const normalized = parts.length > 2 ? parts.slice(0,2).join('.') : sanitized;
+                      updateField('price', normalized);
+                    }}
                     keyboardType="decimal-pad"
                   />
                   <Text style={styles.priceSuffix}>LKR</Text>
                 </View>
+                {priceError ? <Text style={{ color: '#ef4444', marginTop: 6 }}>{priceError}</Text> : null}
               </Field>
 
               <View style={styles.twoColRow}>
@@ -1010,11 +1035,11 @@ export default function AddTourPackageScreen() {
                   <View style={styles.iconInputWrap}>
                     <Ionicons name="people-outline" size={18} color="#64748b" />
                     <TextInput
-                      style={styles.iconInput}
+                      style={[styles.iconInput, participantsError ? styles.invalidInput : null]}
                       placeholder="e.g., 5"
                       placeholderTextColor="#94a3b8"
                       value={formData.minParticipants}
-                      onChangeText={(value) => updateField('minParticipants', value)}
+                      onChangeText={(value) => updateField('minParticipants', String(value || '').replace(/\D+/g, ''))}
                       keyboardType="number-pad"
                     />
                   </View>
@@ -1024,11 +1049,11 @@ export default function AddTourPackageScreen() {
                   <View style={styles.iconInputWrap}>
                     <Ionicons name="people-outline" size={18} color="#64748b" />
                     <TextInput
-                      style={styles.iconInput}
+                      style={[styles.iconInput, participantsError ? styles.invalidInput : null]}
                       placeholder="e.g., 20"
                       placeholderTextColor="#94a3b8"
                       value={formData.maxParticipants}
-                      onChangeText={(value) => updateField('maxParticipants', value)}
+                      onChangeText={(value) => updateField('maxParticipants', String(value || '').replace(/\D+/g, ''))}
                       keyboardType="number-pad"
                     />
                   </View>
@@ -1541,8 +1566,9 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   destinationScrollContent: {
-    gap: 10,
-    paddingRight: 4,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingRight: 8,
   },
   destinationLoadingPill: {
     flexDirection: 'row',
@@ -1568,6 +1594,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fbff',
     borderWidth: 1,
     borderColor: 'rgba(15, 23, 42, 0.06)',
+    marginRight: 10,
   },
   destinationChipSelected: {
     backgroundColor: '#fff7df',
@@ -1758,6 +1785,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     backgroundColor: TEXT_DARK,
+  },
+  invalidInput: {
+    borderColor: '#ef4444',
+    borderWidth: 1,
   },
   summaryHeaderText: {
     color: '#FFFFFF',

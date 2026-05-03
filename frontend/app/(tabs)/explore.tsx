@@ -301,7 +301,7 @@ export default function SearchPlacesScreen() {
     if (text.length > 2) {
       setIsSearchingAddress(true);
       try {
-        const response = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(text)}&limit=5`);
+        const response = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(text)}&limit=5&countrycode=lk`);
         const data = await response.json();
         if (data && data.features) {
           setAddressSuggestions(data.features);

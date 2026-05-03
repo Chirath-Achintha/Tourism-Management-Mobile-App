@@ -545,13 +545,13 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   bookButtonSmall: {
-    backgroundColor: COLORS.blue,
+    backgroundColor: COLORS.accent,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
   },
   bookButtonSmallText: {
-    color: COLORS.white,
+    color: COLORS.text,
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.5,
@@ -813,7 +813,7 @@ const styles = StyleSheet.create({
     color: COLORS.blue,
   },
   viewAllButton: {
-    backgroundColor: COLORS.blue,
+    backgroundColor: COLORS.text,
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 999,
@@ -973,13 +973,13 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   bookButton: {
-    backgroundColor: COLORS.blue,
+    backgroundColor: COLORS.accent,
     paddingHorizontal: 28,
     paddingVertical: 14,
     borderRadius: 12,
   },
   bookButtonText: {
-    color: COLORS.white,
+    color: COLORS.text,
     fontSize: 14,
     fontWeight: '800',
   },
@@ -998,11 +998,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    backgroundColor: COLORS.text,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
   },
   viewAllTextAlt: {
     fontSize: 12,
     fontWeight: '700',
-    color: COLORS.blue,
+    color: '#fff',
   },
   reviewSummary: {
     flexDirection: 'row',
@@ -1035,16 +1039,16 @@ const styles = StyleSheet.create({
   },
   addReviewButton: {
     marginTop: 16,
-    backgroundColor: 'rgba(49, 82, 197, 0.08)',
+    backgroundColor: COLORS.accent,
     paddingVertical: 14,
     borderRadius: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(49, 82, 197, 0.2)',
+    borderColor: 'rgba(0,0,0,0.06)',
   },
   addReviewText: {
     fontSize: 14,
     fontWeight: '700',
-    color: COLORS.blue,
+    color: COLORS.text,
   },
 });

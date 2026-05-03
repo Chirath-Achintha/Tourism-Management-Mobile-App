@@ -144,6 +144,46 @@ const TouristDashboardContent = ({ user, stats, onLogout, onExplore, onOpenSideb
         </View>
       )}
     </View>
+    {/* Upcoming Packages Section (like Featured Hotels) */}
+    <View style={{ marginTop: 32 }}>
+      <View style={styles.sectionHeaderRow}>
+        <Text style={styles.sectionTitle}>Upcoming Packages</Text>
+        <Pressable onPress={() => stats.onViewPackages && stats.onViewPackages()}>
+          <Text style={styles.viewAllText}>View All</Text>
+        </Pressable>
+      </View>
+      {stats.upcomingPackages && stats.upcomingPackages.length > 0 ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
+          {stats.upcomingPackages.map((pkg: any) => (
+            <Pressable
+              key={pkg._id}
+              style={styles.wishlistCard}
+              onPress={() => stats.onNavigateToPackage && stats.onNavigateToPackage(pkg._id)}
+            >
+              <Image source={{ uri: pkg.coverImageUri?.startsWith('http') ? pkg.coverImageUri : `${API_BASE_URL}${pkg.coverImageUri}` }} style={styles.wishlistImage} />
+              <LinearGradient colors={['transparent', 'rgba(0,0,0,0.7)']} style={styles.wishlistGradient} />
+              <View style={styles.wishlistInfo}>
+                <Text style={styles.wishlistName} numberOfLines={1}>{pkg.name}</Text>
+                <View style={styles.wishlistLocation}>
+                  <Ionicons name="location" size={10} color="#FFD166" />
+                  <Text style={styles.wishlistLocationText}>{pkg.destination}</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 4 }}>
+                  <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700' }}>LKR {pkg.price ? Number(pkg.price).toLocaleString() : '—'}</Text>
+                </View>
+              </View>
+            </Pressable>
+          ))}
+        </ScrollView>
+      ) : (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyStateSub}>No upcoming packages to show.</Text>
+          <Pressable style={styles.actionButton} onPress={onExplore}>
+            <Text style={styles.actionButtonText}>Explore Packages</Text>
+          </Pressable>
+        </View>
+      )}
+    </View>
   </ScrollView>
 );
 
@@ -337,17 +377,19 @@ export default function DashboardScreen() {
               setStats({ verified, pending, declined, firstHotelId } as any);
             }
           } else {
-            const [statsRes, destinationsRes, hotelsRes] = await Promise.all([
+            const [statsRes, destinationsRes, hotelsRes, packagesRes] = await Promise.all([
               fetch(`${API_BASE_URL}/reservations/stats`, {
                 headers: { 'Authorization': `Bearer ${token}` }
               }),
-              fetch(`${API_BASE_URL}/destinations`),
-              fetch(`${API_BASE_URL}/hotels/all`)
+                fetch(`${API_BASE_URL}/destinations`),
+                fetch(`${API_BASE_URL}/hotels/all`),
+                fetch(`${API_BASE_URL}/tour-packages`)
             ]);
 
             const statsData = await statsRes.json();
             const destinationsData = await destinationsRes.json();
             const hotelsData = await hotelsRes.json();
+            const packagesData = await packagesRes.json();
 
             if (statsRes.ok && Array.isArray(destinationsData)) {
               const wishlistItems = destinationsData.filter((d: any) => favoritesIds.includes(d._id));
@@ -357,10 +399,13 @@ export default function DashboardScreen() {
                 wishlistCount: wishlistItems.length,
                 wishlistItems: wishlistItems,
                 verifiedHotels: verifiedHotels.slice(0, 5),
+                upcomingPackages: Array.isArray(packagesData) ? packagesData.slice(0,5) : [],
                 onViewWishlist: () => router.push('/(tabs)/favorites' as any),
                 onNavigateToPlace: (id: string) => router.push(`/destination/${id}` as any),
                 onViewHotels: () => router.push('/tourist-hotels' as any),
-                onNavigateToHotel: (id: string) => router.push(`/tourist-hotel-detail?id=${id}` as any)
+                onNavigateToHotel: (id: string) => router.push(`/tourist-hotel-detail?id=${id}` as any),
+                onNavigateToPackage: (id: string) => router.push(`/tour-packages/${id}` as any),
+                onViewPackages: () => router.push('/tour-packages' as any),
               });
             }
           }

@@ -237,10 +237,19 @@ export const updateHotel = async (req, res) => {
       return res.status(404).json({ message: "Hotel not found or unauthorized" });
     }
 
-    // Update the hotel details and mark as verified (if applicable)
+    // Update the hotel details, retaining status/isVerified or reverting declined to pending
+    const updateData = { ...req.body };
+    if (hotel.status === "declined") {
+      updateData.status = "pending";
+      updateData.isVerified = false;
+    } else {
+      updateData.isVerified = hotel.isVerified;
+      updateData.status = hotel.status;
+    }
+
     const updatedHotel = await Hotel.findByIdAndUpdate(
       hotelId,
-      { $set: { ...req.body, isVerified: true } },
+      { $set: updateData },
       { new: true }
     );
     res.status(200).json({ message: "Hotel updated successfully", hotel: updatedHotel });

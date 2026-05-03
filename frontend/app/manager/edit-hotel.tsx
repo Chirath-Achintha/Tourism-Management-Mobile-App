@@ -322,7 +322,7 @@ export default function SearchPlacesScreen() {
     if (text.length > 2) {
       setIsSearchingAddress(true);
       try {
-        const response = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(text)}&limit=5`);
+        const response = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(text)}&limit=5&countrycode=lk`);
         const data = await response.json();
         if (data && data.features) {
           setAddressSuggestions(data.features);
@@ -519,7 +519,10 @@ export default function SearchPlacesScreen() {
         <Stack.Screen options={{ headerShown: false }} />
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.headerRow}>
-            <Text style={styles.title}>{id ? "Edit Hotel" : "Register Hotel"}</Text>
+            <Pressable onPress={() => router.back()} style={{ marginRight: 12 }}>
+              <Ionicons name="arrow-back" size={28} color="#1A3B2F" />
+            </Pressable>
+            <Text style={[styles.title, { flex: 1 }]}>{id ? "Edit Hotel" : "Register Hotel"}</Text>
             <IconSymbol name="plus.circle.fill" size={30} color="#1A3B2F" />
           </View>
           <Text style={styles.subtitle}>

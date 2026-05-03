@@ -71,6 +71,40 @@ export const createTourPackage = async (req, res) => {
       .map((item) => String(item || '').trim())
       .filter(Boolean);
 
+    // Validate duration
+    const durationNum = Number(duration);
+    if (!duration || Number.isNaN(durationNum) || !Number.isInteger(durationNum) || durationNum < 1) {
+      return res.status(400).json({ message: 'Duration must be an integer of 1 or more days.' });
+    }
+    if (durationNum > 365) {
+      return res.status(400).json({ message: 'Duration must be 365 days or less.' });
+    }
+
+    // Validate price
+    const priceNum = Number(price);
+    if (!price || Number.isNaN(priceNum) || priceNum <= 0) {
+      return res.status(400).json({ message: 'Price must be greater than 0.' });
+    }
+    if (priceNum > 10000000) {
+      return res.status(400).json({ message: 'Price seems too large.' });
+    }
+
+    // Validate participants
+    const minP = Number(minParticipants);
+    const maxP = Number(maxParticipants);
+    if (!minParticipants || Number.isNaN(minP) || !Number.isInteger(minP) || minP < 1) {
+      return res.status(400).json({ message: 'Min participants must be 1 or more.' });
+    }
+    if (!maxParticipants || Number.isNaN(maxP) || !Number.isInteger(maxP) || maxP < 1) {
+      return res.status(400).json({ message: 'Max participants must be 1 or more.' });
+    }
+    if (maxP <= minP) {
+      return res.status(400).json({ message: 'Max participants must be greater than min participants.' });
+    }
+    if (maxP > 500) {
+      return res.status(400).json({ message: 'Max participants cannot exceed 500.' });
+    }
+
     // Auto-detect destination by checking places in the itinerary
     if (Array.isArray(timelineData) && timelineData.length > 0) {
       for (const day of timelineData) {
@@ -287,12 +321,48 @@ export const updateTourPackage = async (req, res) => {
       }
     }
 
+    // Validate update numeric fields when present
+    const validationErrors = validateUpdateFields(updateData);
+    if (validationErrors.length > 0) {
+      return res.status(400).json({ message: validationErrors.join(' ') });
+    }
+
     const pkg = await TourPackage.findByIdAndUpdate(req.params.id, updateData, { new: true });
     if (!pkg) return res.status(404).json({ message: 'Tour package not found' });
     res.status(200).json({ message: 'Tour package updated', package: pkg });
   } catch (error) {
     res.status(500).json({ message: 'Failed to update package', error: error.message });
   }
+};
+
+// Server-side validation for updates: ensure numeric fields remain valid when provided
+export const validateUpdateFields = (updateData) => {
+  const errors = [];
+  if (updateData.duration !== undefined) {
+    const d = Number(updateData.duration);
+    if (Number.isNaN(d) || !Number.isInteger(d) || d < 1) errors.push('Duration must be an integer of 1 or more days.');
+    if (d > 365) errors.push('Duration must be 365 days or less.');
+  }
+  if (updateData.price !== undefined) {
+    const p = Number(updateData.price);
+    if (Number.isNaN(p) || p <= 0) errors.push('Price must be greater than 0.');
+    if (p > 10000000) errors.push('Price seems too large.');
+  }
+  if (updateData.minParticipants !== undefined) {
+    const m = Number(updateData.minParticipants);
+    if (Number.isNaN(m) || !Number.isInteger(m) || m < 1) errors.push('Min participants must be 1 or more.');
+  }
+  if (updateData.maxParticipants !== undefined) {
+    const M = Number(updateData.maxParticipants);
+    if (Number.isNaN(M) || !Number.isInteger(M) || M < 1) errors.push('Max participants must be 1 or more.');
+    if (M > 500) errors.push('Max participants cannot exceed 500.');
+  }
+  if (updateData.minParticipants !== undefined && updateData.maxParticipants !== undefined) {
+    const m = Number(updateData.minParticipants);
+    const M = Number(updateData.maxParticipants);
+    if (!Number.isNaN(m) && !Number.isNaN(M) && M <= m) errors.push('Max participants must be greater than min participants.');
+  }
+  return errors;
 };
 
 export const deleteTourPackage = async (req, res) => {
