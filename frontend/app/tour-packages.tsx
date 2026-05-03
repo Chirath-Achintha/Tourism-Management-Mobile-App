@@ -33,8 +33,9 @@ const CATEGORIES = [
 ];
 
 export default function TourPackagesScreen() {
-  const { destinationId, destinationName } = useLocalSearchParams<{ destinationId?: string; destinationName?: string }>();
+  const { destinationId, destinationName, location } = useLocalSearchParams<{ destinationId?: string; destinationName?: string; location?: string }>();
   const [packages, setPackages] = useState<any[]>([]);
+  const [destinations, setDestinations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [locationQuery, setLocationQuery] = useState('');
@@ -42,6 +43,7 @@ export default function TourPackagesScreen() {
 
   useEffect(() => {
     fetchPackages();
+    fetchDestinations();
   }, []);
 
   const fetchPackages = async () => {
@@ -57,18 +59,52 @@ export default function TourPackagesScreen() {
     }
   };
 
+  const fetchDestinations = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/destinations`);
+      const data = await res.json();
+      if (res.ok) setDestinations(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.warn('Failed to load destinations', err);
+    }
+  };
+
+  const normalize = (value: any) => String(value || '').trim().toLowerCase();
+
   const filteredPackages = useMemo(() => {
     let list = packages;
 
     const selectedDestinationId = String(destinationId || '').trim();
     const selectedDestinationName = String(destinationName || '').trim().toLowerCase();
+    const selectedLocation = String(location || '').trim().toLowerCase();
     if (selectedDestinationId || selectedDestinationName) {
       list = list.filter((item) => {
         const itemDestinationId = String(item?.destinationId?._id || item?.destinationId || '').trim();
         const itemDestinationName = String(item?.destination || '').trim().toLowerCase();
+        const itemSelectedDestinations = Array.isArray(item?.destinations) ? item.destinations : [];
+        const matchedByStoredNames = selectedDestinationName
+          ? itemSelectedDestinations.some((name) => normalize(name) === selectedDestinationName)
+          : false;
         if (selectedDestinationId && itemDestinationId === selectedDestinationId) return true;
-        if (selectedDestinationName && itemDestinationName === selectedDestinationName) return true;
+        if (selectedDestinationName && (itemDestinationName === selectedDestinationName || matchedByStoredNames)) return true;
+        if (selectedLocation) {
+          const matchedByLocation = itemSelectedDestinations.some((name) => {
+            const matchedDestination = destinations.find((dest) => normalize(dest.name) === normalize(name));
+            return normalize(matchedDestination?.location) === selectedLocation;
+          });
+          return matchedByLocation;
+        }
         return false;
+      });
+    }
+
+    if (selectedLocation) {
+      list = list.filter((item) => {
+        const itemSelectedDestinations = Array.isArray(item?.destinations) ? item.destinations : [];
+        return itemSelectedDestinations.some((name) => {
+          const matchedDestination = destinations.find((dest) => normalize(dest.name) === normalize(name));
+          return normalize(matchedDestination?.location) === selectedLocation;
+        });
       });
     }
 
@@ -80,7 +116,7 @@ export default function TourPackagesScreen() {
       list = list.filter((p) => (p.destination || '').toLowerCase().includes(q));
     }
     return list;
-  }, [packages, selectedCategory, locationQuery, destinationId, destinationName]);
+  }, [packages, selectedCategory, locationQuery, destinationId, destinationName, location, destinations]);
 
   const renderCategoryPill = ({ item }: any) => {
     const isSelected = selectedCategory === item.key;

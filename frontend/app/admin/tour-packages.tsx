@@ -55,7 +55,7 @@ export default function TourPackagesScreen() {
     const normalizedSearch = searchQuery.trim().toLowerCase();
 
     return publishedPackages.filter((item) => {
-      const searchable = `${item?.name || ''} ${item?.description || ''} ${item?.destination || ''} ${item?.category || ''}`.toLowerCase();
+      const searchable = `${item?.name || ''} ${item?.description || ''} ${item?.category || ''}`.toLowerCase();
 
       if (normalizedSearch && !searchable.includes(normalizedSearch)) {
         return false;
@@ -277,9 +277,11 @@ export default function TourPackagesScreen() {
       ) : (
         <FlatList
           data={filteredPackages}
-          renderItem={({ item }) => (
+          renderItem={({ item }) => {
+            const packageId = String(item?._id || item?.id || '').trim();
+            return (
             <View style={styles.packageCard}>
-              <Pressable style={styles.packageInfo} onPress={() => handleViewPackage(item._id)}>
+              <Pressable style={styles.packageInfo} onPress={() => packageId && handleViewPackage(packageId)}>
                 <Text style={styles.packageName}>{item.name || 'Unnamed Package'}</Text>
                 <Text style={styles.packageDescription} numberOfLines={2}>
                   {item.description || 'No description'}
@@ -304,7 +306,13 @@ export default function TourPackagesScreen() {
                     styles.editButton,
                     pressed && styles.actionButtonPressed
                   ]}
-                  onPress={() => handleEditPackage(item._id)}
+                  onPress={() => {
+                    if (!packageId) {
+                      Alert.alert('Error', 'Package ID is missing. Please refresh and try again.');
+                      return;
+                    }
+                    handleEditPackage(packageId);
+                  }}
                 >
                   <Ionicons name="pencil" size={18} color="#FFFFFF" />
                 </Pressable>
@@ -314,14 +322,21 @@ export default function TourPackagesScreen() {
                     styles.deleteButton,
                     pressed && styles.actionButtonPressed
                   ]}
-                  onPress={() => handleDeletePackage(item._id)}
+                  onPress={() => {
+                    if (!packageId) {
+                      Alert.alert('Error', 'Package ID is missing. Please refresh and try again.');
+                      return;
+                    }
+                    handleDeletePackage(packageId);
+                  }}
                 >
                   <Ionicons name="trash" size={18} color="#FFFFFF" />
                 </Pressable>
               </View>
             </View>
-          )}
-          keyExtractor={(item) => item._id}
+          );
+          }}
+          keyExtractor={(item, index) => String(item?._id || item?.id || `pkg-${index}`)}
           contentContainerStyle={styles.listContent}
           scrollEnabled={true}
         />
