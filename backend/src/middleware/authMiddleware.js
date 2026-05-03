@@ -43,3 +43,11 @@ export const hotelManagerOnly = (req, res, next) => {
     res.status(403).json({ message: "Not authorized as a hotel manager" });
   }
 };
+
+export const tourGuideOnly = (req, res, next) => {
+  if (req.user && req.user.role === "tour_guide") {
+    next();
+  } else {
+    res.status(403).json({ message: "Not authorized as a tour guide" });
+  }
+};

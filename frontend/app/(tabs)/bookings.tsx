@@ -41,13 +41,26 @@ export default function MyBookingsScreen() {
     try {
       setLoading(true);
       const token = await AsyncStorage.getItem('auth:token');
-      const response = await fetch(`${API_BASE_URL}/reservations/my`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      const data = await response.json();
-      if (response.ok) {
-        setBookings(data);
+      
+      const [packRes, guideRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/reservations/my`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_BASE_URL}/guide-reservations/my`, { headers: { 'Authorization': `Bearer ${token}` } })
+      ]);
+      
+      let allBookings: any[] = [];
+      
+      if (packRes.ok) {
+        const pData = await packRes.json();
+        allBookings = [...allBookings, ...pData.map((b: any) => ({ ...b, type: 'package' }))];
       }
+      if (guideRes.ok) {
+        const gData = await guideRes.json();
+        allBookings = [...allBookings, ...gData.map((b: any) => ({ ...b, type: 'guide' }))];
+      }
+
+      allBookings.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      
+      setBookings(allBookings);
     } catch (error) {
       console.error(error);
     } finally {
@@ -71,13 +84,17 @@ export default function MyBookingsScreen() {
     }, [])
   );
 
-  async function handleCancel(id: string) {
+  async function handleCancel(item: any) {
     Alert.alert('Cancel', 'Cancel this booking?', [
       { text: 'No' },
       { text: 'Yes', style: 'destructive', onPress: async () => {
         try {
           const token = await AsyncStorage.getItem('auth:token');
-          const res = await fetch(`${API_BASE_URL}/reservations/${id}/cancel`, {
+          const endpoint = item.type === 'guide' 
+            ? `${API_BASE_URL}/guide-reservations/${item._id}/cancel`
+            : `${API_BASE_URL}/reservations/${item._id}/cancel`;
+            
+          const res = await fetch(endpoint, {
             method: 'PUT',
             headers: { 'Authorization': `Bearer ${token}` },
           });
@@ -106,10 +123,13 @@ export default function MyBookingsScreen() {
   function renderItem({ item }: { item: any }) {
     const statusColor = item.status === 'Pending' ? COLORS.pending : item.status === 'Approved' ? COLORS.approved : item.status === 'Rejected' ? COLORS.rejected : COLORS.cancelled;
     
+    const isGuide = item.type === 'guide';
+    const title = isGuide ? `Guide: ${item.guideId?.name || 'Unknown'}` : (item.packageId?.name || 'Package');
+
     return (
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <Text style={styles.packageName} numberOfLines={1}>{item.packageId?.name || 'Package'}</Text>
+          <Text style={styles.packageName} numberOfLines={1}>{title}</Text>
           <View style={[styles.statusBadge, { backgroundColor: statusColor + '20' }]}>
             <Text style={[styles.statusText, { color: statusColor }]}>{item.status || 'Unknown'}</Text>
           </View>
@@ -118,8 +138,8 @@ export default function MyBookingsScreen() {
         <View style={styles.cardBody}>
           <InfoItem icon="calendar-outline" text={`Date: ${item.travelDate ? new Date(item.travelDate).toLocaleDateString() : 'N/A'}`} />
           <InfoItem icon="people-outline" text={`People: ${item.numberOfPeople || 0}`} />
-          <InfoItem icon="cash-outline" text={`Total: $${item.totalPrice || 0}`} />
-          <InfoItem icon="document-text-outline" text={`ID: ${item.documentType || 'N/A'}`} />
+          {!isGuide && <InfoItem icon="cash-outline" text={`Total: $${item.totalPrice || 0}`} />}
+          <InfoItem icon={isGuide ? "chatbubble-ellipses-outline" : "document-text-outline"} text={isGuide ? `Req: ${item.specialRequest || 'None'}` : `ID: ${item.documentType || 'N/A'}`} />
         </View>
 
         <View style={styles.actionRow}>
@@ -131,15 +151,17 @@ export default function MyBookingsScreen() {
           ) : null}
           {item.status === 'Pending' && (
             <View style={{ flex: 1, flexDirection: 'row', gap: 10 }}>
-              <Pressable 
-                style={[styles.btn, { backgroundColor: COLORS.pending }]} 
-                onPress={() => router.push({ pathname: '/edit-reservation', params: { id: item._id } } as any)}
-              >
-                <Ionicons name="pencil-outline" size={16} color="white" />
-                <Text style={styles.btnText}>Edit</Text>
-              </Pressable>
+              {!isGuide && (
+                <Pressable 
+                  style={[styles.btn, { backgroundColor: COLORS.pending }]} 
+                  onPress={() => router.push({ pathname: '/edit-reservation', params: { id: item._id } } as any)}
+                >
+                  <Ionicons name="pencil-outline" size={16} color="white" />
+                  <Text style={styles.btnText}>Edit</Text>
+                </Pressable>
+              )}
               
-              <Pressable style={[styles.btn, styles.btnRed]} onPress={() => handleCancel(item._id)}>
+              <Pressable style={[styles.btn, styles.btnRed]} onPress={() => handleCancel(item)}>
                 <Text style={styles.btnTextRed}>Cancel</Text>
               </Pressable>
             </View>
@@ -185,7 +207,7 @@ function InfoItem({ icon, text }: { icon: any, text: string }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
-  header: { padding: 20, backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#eee' },
+  header: { padding: 20, backgroundColor: 'transparent' },
   headerTitle: { fontSize: 24, fontWeight: '800' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   card: { backgroundColor: 'white', borderRadius: 16, padding: 16, marginBottom: 16 },
