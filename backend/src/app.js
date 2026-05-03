@@ -10,6 +10,7 @@ import path from "path";
 import tourRoutes from "./routes/tourRoutes.js";
 import reservationRoutes from "./routes/reservationRoutes.js";
 import guideRoutes from "./routes/guideRoutes.js";
+import guideReservationRoutes from "./routes/guideReservationRoutes.js";
 
 const app = express();
 
@@ -40,6 +41,7 @@ app.use("/api/upload", uploadRoutes);
 app.use("/api/tour-packages", tourRoutes);
 app.use("/api/reservations", reservationRoutes);
 app.use("/api/guides", guideRoutes);
+app.use("/api/guide-reservations", guideReservationRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {

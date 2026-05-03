@@ -27,6 +27,7 @@ const COLORS = {
   green: '#10B981',
   red: '#EF4444',
   amber: '#F59E0B',
+  forest: '#1A3B2F',
 };
 
 export default function AdminReservationsScreen() {
@@ -39,11 +40,10 @@ export default function AdminReservationsScreen() {
     try {
       setLoading(true);
       const token = await AsyncStorage.getItem('auth:token');
-      const response = await fetch(`${API_BASE_URL}/reservations`, {
+      const res = await fetch(`${API_BASE_URL}/reservations`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
-      const data = await response.json();
-      if (response.ok) setReservations(data);
+      if (res.ok) setReservations(await res.json());
     } catch (error) {
       Alert.alert('Error', 'Network error');
     } finally {
@@ -68,7 +68,7 @@ export default function AdminReservationsScreen() {
         body: JSON.stringify({ status }),
       });
       if (res.ok) {
-        Alert.alert('Success', 'Status updated');
+        Alert.alert('Success', `Booking ${status}`);
         fetchAll();
       }
     } catch (err) {
@@ -139,9 +139,12 @@ export default function AdminReservationsScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}><Ionicons name="arrow-back" size={24} /></Pressable>
-        <Text style={styles.headerTitle}>Reservations</Text>
+        <Pressable onPress={() => router.back()} style={styles.backBtn}>
+          <Ionicons name="arrow-back" size={24} />
+        </Pressable>
+        <Text style={styles.headerTitle}>Package Reservations</Text>
       </View>
+
       {loading && !refreshing ? (
         <View style={styles.center}><ActivityIndicator size="large" color={COLORS.blue} /></View>
       ) : (
@@ -195,3 +198,4 @@ const styles = StyleSheet.create({
   rejectBtn: { backgroundColor: COLORS.red },
   actionBtnText: { color: 'white', fontWeight: '700' },
 });
+

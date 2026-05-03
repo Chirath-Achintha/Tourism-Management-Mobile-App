@@ -14,9 +14,9 @@ router.put("/users/:id/toggle", protect, adminOnly, toggleUserStatus);
 
 // Admin: tour package routes
 router.get('/tour-packages', protect, adminOnly, getAllTourPackages);
-router.post('/tour-packages', protect, adminOnly, upload.single('cover'), createTourPackage);
+router.post('/tour-packages', protect, adminOnly, upload.array('covers', 6), createTourPackage);
 router.get('/tour-packages/:id', protect, adminOnly, getTourPackageById);
-router.put('/tour-packages/:id', protect, adminOnly, upload.single('cover'), updateTourPackage);
+router.put('/tour-packages/:id', protect, adminOnly, upload.array('covers', 6), updateTourPackage);
 router.delete('/tour-packages/:id', protect, adminOnly, deleteTourPackage);
 
 // Admin: hotel management routes

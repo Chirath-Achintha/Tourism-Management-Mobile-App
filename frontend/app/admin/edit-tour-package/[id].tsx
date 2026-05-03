@@ -65,6 +65,34 @@ export default function EditTourPackageScreen() {
   const [lockedDestinations, setLockedDestinations] = useState<string[]>([]);
   const filteredHotels = useMemo(() => hotels, [hotels]);
 
+  const isDateValid = (date: Date): { valid: boolean; message?: string } => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const selectedDate = new Date(date);
+    selectedDate.setHours(0, 0, 0, 0);
+    
+    if (selectedDate < today) {
+      return { valid: false, message: 'Cannot select a past date.' };
+    }
+    
+    const nextWeek = new Date(today);
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    
+    if (selectedDate <= nextWeek) {
+      return { valid: false, message: 'Departure date must be at least 8 days from today.' };
+    }
+    
+    return { valid: true };
+  };
+
+  const formatDate = (date: Date) =>
+    date.toLocaleDateString('en-US', {
+      month: '2-digit',
+      day: '2-digit',
+      year: 'numeric',
+    });
+
   useEffect(() => {
     const loadPackage = async () => {
       try {

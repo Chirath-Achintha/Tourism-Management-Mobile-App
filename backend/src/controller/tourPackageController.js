@@ -105,6 +105,31 @@ export const createTourPackage = async (req, res) => {
       return res.status(400).json({ message: 'Max participants cannot exceed 500.' });
     }
 
+    // Validate dates
+    if (startDate && startDate.trim()) {
+      const dateRegex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+      const match = String(startDate).trim().match(dateRegex);
+      if (match) {
+        const [, month, day, year] = match;
+        const startDateObj = new Date(Number(year), Number(month) - 1, Number(day));
+        startDateObj.setHours(0, 0, 0, 0);
+        
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        if (startDateObj < today) {
+          return res.status(400).json({ message: 'Cannot select a past date.' });
+        }
+        
+        const nextWeek = new Date(today);
+        nextWeek.setDate(nextWeek.getDate() + 7);
+        
+        if (startDateObj <= nextWeek) {
+          return res.status(400).json({ message: 'Departure date must be at least 8 days from today.' });
+        }
+      }
+    }
+
     // Auto-detect destination by checking places in the itinerary
     if (Array.isArray(timelineData) && timelineData.length > 0) {
       for (const day of timelineData) {
@@ -170,17 +195,28 @@ export const createTourPackage = async (req, res) => {
       createdBy: req.user ? req.user._id : undefined,
     });
 
-    // If a file was uploaded under the field 'cover', upload it to Cloudinary
-    if (req.file && req.file.buffer) {
+    // If files were uploaded under the field 'covers', upload them to Cloudinary
+    if (req.files && Array.isArray(req.files) && req.files.length > 0) {
       try {
-        const dataUri = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
-        const uploadRes = await cloudinary.v2.uploader.upload(dataUri, { folder: 'tour-packages' });
-        if (uploadRes && uploadRes.secure_url) {
-          pkg.coverImageUri = uploadRes.secure_url;
+        const uploaded = [];
+        for (const f of req.files) {
+          if (f && f.buffer) {
+            const dataUri = `data:${f.mimetype};base64,${f.buffer.toString('base64')}`;
+            const uploadRes = await cloudinary.v2.uploader.upload(dataUri, { folder: 'tour-packages' });
+            if (uploadRes && uploadRes.secure_url) uploaded.push(uploadRes.secure_url);
+          }
+        }
+        if (uploaded.length > 0) {
+          pkg.coverImageUris = uploaded;
+          pkg.coverImageUri = uploaded[0];
         }
       } catch (uploadErr) {
         console.error('Cloudinary upload failed:', uploadErr.message || uploadErr);
       }
+    } else if (coverImageUri) {
+      // fallback single-image string
+      pkg.coverImageUri = coverImageUri || '';
+      pkg.coverImageUris = coverImageUri ? [coverImageUri] : [];
     }
 
     await pkg.save();
@@ -308,13 +344,32 @@ export const updateTourPackage = async (req, res) => {
       delete updateData.included; // Remove the array from updateData
     }
 
-    // If a new cover file was uploaded, upload to Cloudinary and set coverImageUri
-    if (req.file && req.file.buffer) {
+    // If new files were uploaded under 'covers', upload them and set coverImageUris
+    if (req.files && Array.isArray(req.files) && req.files.length > 0) {
       try {
-        const dataUri = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
-        const uploadRes = await cloudinary.v2.uploader.upload(dataUri, { folder: 'tour-packages' });
-        if (uploadRes && uploadRes.secure_url) {
-          updateData.coverImageUri = uploadRes.secure_url;
+        const uploaded = [];
+        for (const f of req.files) {
+          if (f && f.buffer) {
+            const dataUri = `data:${f.mimetype};base64,${f.buffer.toString('base64')}`;
+            const uploadRes = await cloudinary.v2.uploader.upload(dataUri, { folder: 'tour-packages' });
+            if (uploadRes && uploadRes.secure_url) uploaded.push(uploadRes.secure_url);
+          }
+        }
+        // optionally keep existing remote images specified by client
+        let keepExisting = [];
+        if (updateData.keepExisting) {
+          try {
+            keepExisting = JSON.parse(String(updateData.keepExisting));
+          } catch {
+            keepExisting = Array.isArray(updateData.keepExisting) ? updateData.keepExisting : [];
+          }
+          delete updateData.keepExisting;
+        }
+
+        const finalUris = [...keepExisting.filter(Boolean), ...uploaded];
+        if (finalUris.length > 0) {
+          updateData.coverImageUris = finalUris;
+          updateData.coverImageUri = finalUris[0];
         }
       } catch (uploadErr) {
         console.error('Cloudinary upload failed on update:', uploadErr.message || uploadErr);
@@ -362,6 +417,31 @@ export const validateUpdateFields = (updateData) => {
     const M = Number(updateData.maxParticipants);
     if (!Number.isNaN(m) && !Number.isNaN(M) && M <= m) errors.push('Max participants must be greater than min participants.');
   }
+  
+  // Validate dates if provided
+  if (updateData.startDate !== undefined && updateData.startDate && String(updateData.startDate).trim()) {
+    const dateRegex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+    const match = String(updateData.startDate).trim().match(dateRegex);
+    if (match) {
+      const [, month, day, year] = match;
+      const startDateObj = new Date(Number(year), Number(month) - 1, Number(day));
+      startDateObj.setHours(0, 0, 0, 0);
+      
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      if (startDateObj < today) {
+        errors.push('Cannot select a past date.');
+      } else {
+        const nextWeek = new Date(today);
+        nextWeek.setDate(nextWeek.getDate() + 7);
+        if (startDateObj <= nextWeek) {
+          errors.push('Departure date must be at least 8 days from today.');
+        }
+      }
+    }
+  }
+  
   return errors;
 };
 

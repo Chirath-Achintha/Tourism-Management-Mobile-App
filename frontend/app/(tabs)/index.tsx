@@ -17,9 +17,7 @@ const ONBOARDING_SEEN_KEY = "onboarding:seen";
 
 // --- Components ---
 
-//const TouristDashboardContent = ({ user, onLogout, onExplore, onOpenSidebar }: any) => (
-const TouristDashboardContent = ({ user, stats, onLogout, onExplore, onOpenSidebar }: any) => (
-
+const TouristDashboardContent = ({ user, stats, onLogout, onExplore, onOpenReviews, onOpenSidebar }: any) => (
   <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
     <View style={styles.header}>
       <View style={styles.headerLeft}>
@@ -183,6 +181,57 @@ const TouristDashboardContent = ({ user, stats, onLogout, onExplore, onOpenSideb
           </Pressable>
         </View>
       )}
+    </View>
+  </ScrollView>
+);
+
+const TourGuideDashboardContent = ({ user, onLogout, onViewBookings, onOpenSidebar }: any) => (
+  <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+    <View style={styles.header}>
+      <View style={styles.headerLeft}>
+        <Pressable onPress={onOpenSidebar} style={styles.menuButton} hitSlop={15}>
+          <Ionicons name="menu-outline" size={28} color="#1A3B2F" />
+        </Pressable>
+        <View>
+          <Text style={styles.welcomeText}>Guide Portal,</Text>
+          <Text style={styles.userName}>{user?.fullName || 'Guide'}</Text>
+        </View>
+      </View>
+      <Pressable style={styles.logoutButton} onPress={onLogout} hitSlop={10}>
+        <Ionicons name="log-out-outline" size={18} color="#1A3B2F" />
+        <Text style={styles.logoutButtonText}>Logout</Text>
+      </Pressable>
+    </View>
+
+    <View style={[styles.roleBadge, { backgroundColor: 'rgba(16, 185, 129, 0.1)' }]}>
+      <Text style={[styles.roleText, { color: '#059669' }]}>TOUR GUIDE</Text>
+    </View>
+
+    <Pressable style={styles.guideActionCard} onPress={onViewBookings}>
+      <View style={styles.guideActionIconBox}>
+        <Ionicons name="calendar" size={32} color="#1A3B2F" />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.guideActionTitle}>My Bookings</Text>
+        <Text style={styles.guideActionSub}>View all tourists who have booked you</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={22} color="rgba(26,59,47,0.4)" />
+    </Pressable>
+
+    <View style={styles.managerCard}>
+      <View style={styles.cardHeader}>
+        <Text style={styles.cardTitle}>Your Profile Info</Text>
+      </View>
+      <View style={{ gap: 8 }}>
+        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+          <Ionicons name="person-circle-outline" size={18} color="rgba(26,59,47,0.5)" />
+          <Text style={{ color: '#1A3B2F', fontWeight: '600' }}>{user?.fullName}</Text>
+        </View>
+        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+          <Ionicons name="mail-outline" size={18} color="rgba(26,59,47,0.5)" />
+          <Text style={{ color: '#1A3B2F', fontWeight: '600' }}>{user?.email}</Text>
+        </View>
+      </View>
     </View>
   </ScrollView>
 );
@@ -495,8 +544,13 @@ export default function DashboardScreen() {
             }}
             onOpenSidebar={() => setSidebarVisible(true)}
           />
-
-
+        ) : user?.role === 'tour_guide' ? (
+          <TourGuideDashboardContent
+            user={user}
+            onLogout={handleLogout}
+            onViewBookings={() => router.push('/guide-bookings')}
+            onOpenSidebar={() => setSidebarVisible(true)}
+          />
         ) : (
          <TouristDashboardContent 
   user={user} 
@@ -824,5 +878,39 @@ reviewButtonText: {
     fontWeight: '800',
     color: '#FFD166',
     textTransform: 'uppercase',
+  },
+  guideActionCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(26, 59, 47, 0.08)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+    marginBottom: 20,
+  },
+  guideActionIconBox: {
+    width: 60,
+    height: 60,
+    borderRadius: 18,
+    backgroundColor: '#F0FAF5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  guideActionTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#1A3B2F',
+  },
+  guideActionSub: {
+    fontSize: 13,
+    color: 'rgba(26, 59, 47, 0.5)',
+    marginTop: 4,
   },
 });

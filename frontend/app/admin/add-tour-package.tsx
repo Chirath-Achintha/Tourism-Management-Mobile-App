@@ -113,7 +113,7 @@ export default function AddTourPackageScreen() {
   const [step, setStep] = useState<Step>(0);
   const [loading, setLoading] = useState(false);
   const [publishingSuccess, setPublishingSuccess] = useState(false);
-  const [coverImageUri, setCoverImageUri] = useState<string | null>(null);
+  const [coverImageUris, setCoverImageUris] = useState<string[]>([]);
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [formData, setFormData] = useState(INITIAL_STATE);
   const [hotels, setHotels] = useState<any[]>([]);
@@ -207,6 +207,13 @@ export default function AddTourPackageScreen() {
     if (parts.length !== 3) return null;
     const [m, d, y] = parts.map(Number);
     return new Date(y, m - 1, d);
+  };
+
+  const getMinSelectableStartDate = () => {
+    const minDate = new Date();
+    minDate.setHours(0, 0, 0, 0);
+    minDate.setDate(minDate.getDate() + 8);
+    return minDate;
   };
 
   const updateField = <K extends keyof FormData>(field: K, value: FormData[K]) => {
@@ -350,9 +357,37 @@ export default function AddTourPackageScreen() {
       year: 'numeric',
     });
 
+  const isDateValid = (date: Date): { valid: boolean; message?: string } => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const selectedDate = new Date(date);
+    selectedDate.setHours(0, 0, 0, 0);
+    
+    if (selectedDate < today) {
+      return { valid: false, message: 'Cannot select a past date.' };
+    }
+    
+    const nextWeek = new Date(today);
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    
+    if (selectedDate <= nextWeek) {
+      return { valid: false, message: 'Departure date must be at least 8 days from today.' };
+    }
+    
+    return { valid: true };
+  };
+
   const handleStartDateSelected = (date?: Date) => {
     setShowStartDatePicker(false);
     if (!date) return;
+    
+    const validation = isDateValid(date);
+    if (!validation.valid) {
+      setDateError(validation.message || 'Invalid date selected.');
+      return;
+    }
+    
     const start = formatDate(date);
     setFormData(prev => {
       const next = { ...prev, startDate: start } as typeof prev;
@@ -370,7 +405,7 @@ export default function AddTourPackageScreen() {
   const pickCoverPhoto = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert('Permission needed', 'Please allow access to your photo library to upload a cover image.');
+      Alert.alert('Permission needed', 'Please allow access to your photo library to upload images.');
       return;
     }
 
@@ -382,12 +417,19 @@ export default function AddTourPackageScreen() {
     });
 
     if (!result.canceled && result.assets[0]?.uri) {
-      setCoverImageUri(result.assets[0].uri);
+      setCoverImageUris((prev) => {
+        if (prev.length >= 6) return prev;
+        return [...prev, result.assets[0].uri];
+      });
     }
   };
 
-  const clearCoverPhoto = () => {
-    setCoverImageUri(null);
+  const clearCoverPhotos = () => {
+    setCoverImageUris([]);
+  };
+
+  const removeCoverAt = (index: number) => {
+    setCoverImageUris((prev) => prev.filter((_, i) => i !== index));
   };
 
   // Timeline helpers
@@ -538,7 +580,7 @@ export default function AddTourPackageScreen() {
       };
       let response;
       // If a cover image is selected, upload as multipart/form-data so server can handle Cloudinary upload
-      if (coverImageUri) {
+      if (coverImageUris && coverImageUris.length > 0) {
         const form = new FormData();
         // append fields
         Object.entries({ ...payload }).forEach(([k, v]) => {
@@ -551,20 +593,22 @@ export default function AddTourPackageScreen() {
           }
         });
 
-        // append image
-        if (Platform.OS === 'web') {
-          const res = await fetch(coverImageUri);
-          const blob = await res.blob();
-          form.append('cover', blob, 'cover.jpg');
-        } else {
-          // react native: provide file object with uri
-          const uriParts = coverImageUri.split('.');
-          const fileType = uriParts[uriParts.length - 1] || 'jpg';
-          form.append('cover', {
-            uri: coverImageUri,
-            name: `cover.${fileType}`,
-            type: `image/${fileType}`,
-          } as any);
+        // append images under field name 'covers'
+        for (let i = 0; i < coverImageUris.length; i++) {
+          const uri = coverImageUris[i];
+          if (Platform.OS === 'web') {
+            const res = await fetch(uri);
+            const blob = await res.blob();
+            form.append('covers', blob, `cover-${i}.jpg`);
+          } else {
+            const uriParts = uri.split('.');
+            const fileType = uriParts[uriParts.length - 1] || 'jpg';
+            form.append('covers', {
+              uri,
+              name: `cover-${i}.${fileType}`,
+              type: `image/${fileType}`,
+            } as any);
+          }
         }
 
         response = await fetch(`${API_BASE_URL}/admin/tour-packages`, {
@@ -648,7 +692,7 @@ export default function AddTourPackageScreen() {
             onPress={() => {
               setPublishingSuccess(false);
               setStep(0);
-              setCoverImageUri(null);
+              setCoverImageUris([]);
               setFormData(INITIAL_STATE);
             }}
           >
@@ -716,27 +760,36 @@ export default function AddTourPackageScreen() {
               <Text style={styles.sectionTitle}>Create the package identity</Text>
               <Text style={styles.sectionCopy}>Start with the destination story, then add a visual hook and a category people can scan quickly.</Text>
 
-              <Pressable style={styles.coverUploadCard} onPress={pickCoverPhoto}>
-                {coverImageUri ? (
-                  <>
-                    <Image source={{ uri: coverImageUri }} style={styles.coverPreview} />
-                    <LinearGradient colors={['rgba(11,47,83,0.15)', 'rgba(11,47,83,0.45)']} style={styles.coverOverlay}>
-                      <Pressable style={styles.removeCoverButton} onPress={clearCoverPhoto}>
-                        <Ionicons name="close" size={16} color="#FFFFFF" />
-                        <Text style={styles.removeCoverText}>Remove</Text>
-                      </Pressable>
-                    </LinearGradient>
-                  </>
+              <View style={styles.coverUploadCard}>
+                {coverImageUris && coverImageUris.length > 0 ? (
+                  <View>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ gap: 10 }}>
+                      {coverImageUris.map((uri, idx) => (
+                        <View key={`${uri}-${idx}`} style={styles.coverThumbWrap}>
+                          <Image source={{ uri }} style={styles.coverThumb} />
+                          <Pressable style={styles.removeThumbButton} onPress={() => removeCoverAt(idx)}>
+                            <Ionicons name="close" size={14} color="#fff" />
+                          </Pressable>
+                        </View>
+                      ))}
+                      {coverImageUris.length < 6 ? (
+                        <Pressable style={styles.addMoreThumb} onPress={pickCoverPhoto}>
+                          <Ionicons name="add" size={28} color={ACCENT} />
+                        </Pressable>
+                      ) : null}
+                    </ScrollView>
+                    <Text style={{ marginTop: 8, color: '#6B7280' }}>{`${coverImageUris.length} / 6 images`}</Text>
+                  </View>
                 ) : (
-                  <View style={styles.uploadPlaceholder}>
+                  <Pressable onPress={pickCoverPhoto} style={styles.uploadPlaceholder}>
                     <View style={styles.uploadIconWrap}>
                       <Ionicons name="image-outline" size={30} color={ACCENT} />
                     </View>
-                    <Text style={styles.uploadTitle}>Upload Cover Photo</Text>
-                    <Text style={styles.uploadSubtitle}>JPG, PNG or WebP · Max 10 MB</Text>
-                  </View>
+                    <Text style={styles.uploadTitle}>Upload Cover Photos</Text>
+                    <Text style={styles.uploadSubtitle}>Add up to 6 images · JPG, PNG or WebP · Max 10 MB each</Text>
+                  </Pressable>
                 )}
-              </Pressable>
+              </View>
 
               <Field label="Package Name" required>
                 <TextInput
@@ -924,12 +977,12 @@ export default function AddTourPackageScreen() {
 
               <View style={styles.dateGrid}>
                 <Field label="Departure Date" required style={styles.halfField}>
-                  <Pressable style={styles.dateInput} onPress={() => setShowStartDatePicker(true)}>
+                  <Pressable style={[styles.dateInput, dateError ? styles.invalidInput : null]} onPress={() => setShowStartDatePicker(true)}>
                     <Ionicons name="calendar-outline" size={18} color={ACCENT} />
                     <Text style={[styles.dateInputText, !formData.startDate && styles.placeholderText]}>{formData.startDate || 'mm/dd/yyyy'}</Text>
                   </Pressable>
-                  {!formData.startDate && durationError == null ? (
-                    <Text style={{ color: '#ef4444', marginTop: 6 }}>{dateError || ''}</Text>
+                  {dateError ? (
+                    <Text style={{ color: '#ef4444', marginTop: 6 }}>{dateError}</Text>
                   ) : null}
                 </Field>
 
@@ -1108,9 +1161,10 @@ export default function AddTourPackageScreen() {
 
       {showStartDatePicker && (
         <DateTimePicker
-          value={new Date()}
+          value={parseMMDDYYYY(formData.startDate) || getMinSelectableStartDate()}
           mode="date"
           display="default"
+          minimumDate={getMinSelectableStartDate()}
           onChange={(event, date) => handleStartDateSelected(date)}
         />
       )}
@@ -2124,5 +2178,36 @@ const styles = StyleSheet.create({
   },
   col: {
     flex: 1,
+  },
+  coverThumbWrap: {
+    position: 'relative',
+    marginRight: 10,
+  },
+  coverThumb: {
+    width: 160,
+    height: 110,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+  },
+  removeThumbButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addMoreThumb: {
+    width: 160,
+    height: 110,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(15,23,42,0.06)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
   },
 });
