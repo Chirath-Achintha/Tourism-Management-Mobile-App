@@ -26,7 +26,7 @@ export default function TourPackagesScreen() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedPriceFilter, setSelectedPriceFilter] = useState<'all' | 'under100' | '100to300' | '300to700' | '700plus'>('all');
+  const [selectedPriceFilter, setSelectedPriceFilter] = useState<'all' | 'under1000' | '1500to2500' | '2500to5000' | '5000plus'>('all');
   const [selectedDurationFilter, setSelectedDurationFilter] = useState<'all' | '1to3' | '4to7' | '8plus'>('all');
   const router = useRouter();
 
@@ -69,10 +69,11 @@ export default function TourPackagesScreen() {
       }
 
       const price = Number(item?.price);
-      if (selectedPriceFilter === 'under100' && !(price < 100)) return false;
-      if (selectedPriceFilter === '100to300' && !(price >= 100 && price <= 300)) return false;
-      if (selectedPriceFilter === '300to700' && !(price > 300 && price <= 700)) return false;
-      if (selectedPriceFilter === '700plus' && !(price > 700)) return false;
+      // Price filters are in LKR ranges
+      if (selectedPriceFilter === 'under1000' && !(price < 1000)) return false;
+      if (selectedPriceFilter === '1500to2500' && !(price >= 1500 && price <= 2500)) return false;
+      if (selectedPriceFilter === '2500to5000' && !(price > 2500 && price <= 5000)) return false;
+      if (selectedPriceFilter === '5000plus' && !(price > 5000)) return false;
 
       const duration = Number(item?.duration);
       if (selectedDurationFilter === '1to3' && !(duration >= 1 && duration <= 3)) return false;
@@ -242,10 +243,10 @@ export default function TourPackagesScreen() {
         <Text style={styles.filterHeading}>Price</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
           <FilterChip label="All" selected={selectedPriceFilter === 'all'} onPress={() => setSelectedPriceFilter('all')} />
-          <FilterChip label="Under $100" selected={selectedPriceFilter === 'under100'} onPress={() => setSelectedPriceFilter('under100')} />
-          <FilterChip label="$100-$300" selected={selectedPriceFilter === '100to300'} onPress={() => setSelectedPriceFilter('100to300')} />
-          <FilterChip label="$301-$700" selected={selectedPriceFilter === '300to700'} onPress={() => setSelectedPriceFilter('300to700')} />
-          <FilterChip label="$701+" selected={selectedPriceFilter === '700plus'} onPress={() => setSelectedPriceFilter('700plus')} />
+          <FilterChip label="Under LKR 1,000" selected={selectedPriceFilter === 'under1000'} onPress={() => setSelectedPriceFilter('under1000')} />
+          <FilterChip label="LKR 1,500 - 2,500" selected={selectedPriceFilter === '1500to2500'} onPress={() => setSelectedPriceFilter('1500to2500')} />
+          <FilterChip label="LKR 2,500 - 5,000" selected={selectedPriceFilter === '2500to5000'} onPress={() => setSelectedPriceFilter('2500to5000')} />
+          <FilterChip label="LKR 5,000+" selected={selectedPriceFilter === '5000plus'} onPress={() => setSelectedPriceFilter('5000plus')} />
         </ScrollView>
 
         <Text style={styles.filterHeading}>Duration</Text>
