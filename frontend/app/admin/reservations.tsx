@@ -103,7 +103,6 @@ export default function AdminReservationsScreen() {
         </View>
 
         <View style={styles.grid}>
-          <GridItem icon="calendar-outline" label="Date" val={item.travelDate ? new Date(item.travelDate).toLocaleDateString() : 'N/A'} />
           <GridItem icon="people-outline" label="People" val={item.numberOfPeople || 0} />
           <GridItem icon="cash-outline" label="Total" val={`$${item.totalPrice || 0}`} />
           <GridItem icon="document-text-outline" label="ID" val={item.documentType || 'N/A'} />

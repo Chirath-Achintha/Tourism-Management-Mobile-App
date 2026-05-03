@@ -12,10 +12,6 @@ const reservationSchema = new mongoose.Schema(
       ref: 'TourPackage',
       required: true,
     },
-    travelDate: {
-      type: Date,
-      required: true,
-    },
     numberOfPeople: {
       type: Number,
       required: true,

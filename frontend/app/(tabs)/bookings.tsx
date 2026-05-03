@@ -138,7 +138,6 @@ export default function MyBookingsScreen() {
 
         <View style={styles.cardBody}>
           <View style={styles.infoGrid}>
-            <InfoItem icon="calendar-outline" label="Date" text={item.travelDate ? new Date(item.travelDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'} />
             <InfoItem icon="people-outline" label="Travelers" text={`${item.numberOfPeople || 0} People`} />
             <InfoItem icon="cash-outline" label="Investment" text={`LKR ${item.totalPrice || 0}`} />
             <InfoItem icon="document-text-outline" label="ID Verified" text={item.documentType || 'N/A'} />

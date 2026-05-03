@@ -6,20 +6,16 @@ import TourPackage from '../models/TourPackage.js';
 // @access  Private
 export const createReservation = async (req, res) => {
   try {
-    const { packageId, travelDate, numberOfPeople, specialRequest, documentType } = req.body;
+    const { packageId, numberOfPeople, specialRequest, documentType } = req.body;
     const documentPath = req.file ? `/uploads/${req.file.filename}` : '';
 
     // 1. Basic Validation
-    if (!packageId || !travelDate || !numberOfPeople) {
+    if (!packageId || !numberOfPeople) {
       return res.status(400).json({ message: 'Please provide all required fields' });
     }
 
     if (numberOfPeople <= 0) {
       return res.status(400).json({ message: 'Number of people must be at least 1' });
-    }
-
-    if (new Date(travelDate) < new Date().setHours(0,0,0,0)) {
-      return res.status(400).json({ message: 'Travel date cannot be in the past' });
     }
 
     if (!documentPath) {
@@ -38,7 +34,6 @@ export const createReservation = async (req, res) => {
     const reservation = new Reservation({
       userId: req.user._id,
       packageId,
-      travelDate,
       numberOfPeople,
       totalPrice,
       specialRequest,
@@ -191,7 +186,7 @@ export const getReservationById = async (req, res) => {
 // @access  Private
 export const updateReservation = async (req, res) => {
   try {
-    const { travelDate, numberOfPeople, specialRequest, documentType } = req.body;
+    const { numberOfPeople, specialRequest, documentType } = req.body;
     
     const reservation = await Reservation.findById(req.params.id);
 
@@ -211,13 +206,7 @@ export const updateReservation = async (req, res) => {
       });
     }
 
-    // 3. Date Validation
-    if (travelDate && new Date(travelDate) < new Date().setHours(0,0,0,0)) {
-      return res.status(400).json({ message: 'New travel date cannot be in the past' });
-    }
-
-    // 4. Update basic fields
-    if (travelDate) reservation.travelDate = travelDate;
+    // 3. Update basic fields
     if (specialRequest !== undefined) reservation.specialRequest = specialRequest;
     if (documentType) reservation.documentType = documentType;
 
@@ -225,7 +214,7 @@ export const updateReservation = async (req, res) => {
       reservation.documentPath = `/uploads/${req.file.filename}`;
     }
 
-    // 5. Number of people and price recalculation
+    // 4. Number of people and price recalculation
     if (numberOfPeople) {
       if (numberOfPeople <= 0) {
         return res.status(400).json({ message: 'Number of people must be at least 1' });

@@ -10,8 +10,6 @@ import {
   Alert,
   ActivityIndicator,
   Dimensions,
-  Platform,
-  Modal,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -20,8 +18,6 @@ import { API_BASE_URL } from '@/constants/api';
 import * as DocumentPicker from 'expo-document-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
-import DateTimePicker from '@react-native-community/datetimepicker';
-
 
 const { width } = Dimensions.get('window');
 
@@ -43,9 +39,6 @@ export default function EditReservationScreen() {
   const { id } = useLocalSearchParams();
   
   const [reservation, setReservation] = useState<any>(null);
-  const [date, setDate] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [travelDate, setTravelDate] = useState('');
   const [numberOfPeople, setNumberOfPeople] = useState('1');
   const [specialRequest, setSpecialRequest] = useState('');
   const [documentType, setDocumentType] = useState('NIC');
@@ -65,28 +58,6 @@ export default function EditReservationScreen() {
     }
   }, [numberOfPeople, reservation]);
 
-  const onDateChange = (event: any, selectedDate?: Date) => {
-    if (Platform.OS === 'android') {
-      setShowDatePicker(false);
-    }
-    
-    if (event.type === 'set' && selectedDate) {
-      const currentDate = selectedDate;
-      setDate(currentDate);
-      
-      const year = currentDate.getFullYear();
-      const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-      const day = String(currentDate.getDate()).padStart(2, '0');
-      setTravelDate(`${year}-${month}-${day}`);
-      
-      if (Platform.OS === 'ios') {
-        setShowDatePicker(false);
-      }
-    } else if (event.type === 'dismissed') {
-      setShowDatePicker(false);
-    }
-  };
-
   const handlePeopleChange = (text: string) => {
     // Only allow numbers
     const numericValue = text.replace(/[^0-9]/g, '');
@@ -102,9 +73,6 @@ export default function EditReservationScreen() {
       const data = await res.json();
       if (res.ok) {
         setReservation(data);
-        const rDate = data.travelDate ? new Date(data.travelDate) : new Date();
-        setDate(rDate);
-        setTravelDate(data.travelDate ? rDate.toISOString().split('T')[0] : '');
         setNumberOfPeople(data.numberOfPeople?.toString() || '1');
         setSpecialRequest(data.specialRequest || '');
         setDocumentType(data.documentType || 'NIC');
@@ -133,8 +101,8 @@ export default function EditReservationScreen() {
   }
 
   async function handleUpdate() {
-    if (!travelDate || !numberOfPeople) {
-      Alert.alert('Missing Fields', 'Please provide travel date and people count.');
+    if (!numberOfPeople) {
+      Alert.alert('Missing Fields', 'Please provide people count.');
       return;
     }
 
@@ -143,20 +111,10 @@ export default function EditReservationScreen() {
       return;
     }
 
-    const selectedDate = new Date(travelDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    if (isNaN(selectedDate.getTime()) || selectedDate < today) {
-      Alert.alert('Invalid Date', 'Please enter a valid future travel date (YYYY-MM-DD).');
-      return;
-    }
-
     try {
       setUpdating(true);
       const token = await AsyncStorage.getItem('auth:token');
       const formData = new FormData();
-      formData.append('travelDate', travelDate);
       formData.append('numberOfPeople', numberOfPeople);
       formData.append('specialRequest', specialRequest);
       formData.append('documentType', documentType);
@@ -248,52 +206,6 @@ export default function EditReservationScreen() {
 
         <View style={[styles.formSection, !isEditable && { opacity: 0.7 }]}>
           <Text style={styles.sectionTitle}>Update Details</Text>
-          
-          <Pressable onPress={() => isEditable && setShowDatePicker(true)}>
-            <View pointerEvents="none">
-              <CustomInput 
-                label="Travel Date" 
-                val={travelDate} 
-                placeholder="Select Date" 
-                icon="calendar-outline" 
-                editable={false} 
-              />
-            </View>
-          </Pressable>
-
-          {showDatePicker && (
-            Platform.OS === 'ios' ? (
-              <Modal transparent animationType="fade" visible={showDatePicker}>
-                <View style={styles.modalOverlay}>
-                  <View style={styles.modalContent}>
-                    <View style={styles.modalHeader}>
-                      <Text style={styles.modalTitle}>Select Travel Date</Text>
-                      <Pressable onPress={() => setShowDatePicker(false)}>
-                        <Text style={styles.doneBtn}>Done</Text>
-                      </Pressable>
-                    </View>
-                    <DateTimePicker
-                      value={date}
-                      mode="date"
-                      display="inline"
-                      onChange={onDateChange}
-                      minimumDate={new Date()}
-                      accentColor={COLORS.primary}
-                      themeVariant="light"
-                    />
-                  </View>
-                </View>
-              </Modal>
-            ) : (
-              <DateTimePicker
-                value={date}
-                mode="date"
-                display="default"
-                onChange={onDateChange}
-                minimumDate={new Date()}
-              />
-            )
-          )}
           
           <CustomInput 
             label="Number of People" 
@@ -522,41 +434,4 @@ const styles = StyleSheet.create({
   mainBtn: { height: 60, alignItems: 'center', justifyContent: 'center' },
   btnContent: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   mainBtnText: { color: 'white', fontSize: 16, fontWeight: '800' },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  modalContent: {
-    backgroundColor: 'white',
-    borderRadius: 24,
-    padding: 20,
-    width: '100%',
-    maxWidth: 400,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.2,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-    paddingHorizontal: 10,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: COLORS.text,
-  },
-  doneBtn: {
-    color: COLORS.primary,
-    fontSize: 16,
-    fontWeight: '700',
-  },
 });
-
