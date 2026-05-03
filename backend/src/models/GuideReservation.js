@@ -12,10 +12,6 @@ const guideReservationSchema = new mongoose.Schema(
       ref: 'Guide',
       required: true,
     },
-    travelDate: {
-      type: Date,
-      required: true,
-    },
     numberOfPeople: {
       type: Number,
       required: true,

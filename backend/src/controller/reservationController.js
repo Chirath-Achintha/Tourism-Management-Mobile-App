@@ -28,6 +28,13 @@ export const createReservation = async (req, res) => {
       return res.status(404).json({ message: 'Tour package not found' });
     }
 
+    // New: Participant limit validation
+    if (tourPackage.maxParticipants > 0 && numberOfPeople > tourPackage.maxParticipants) {
+      return res.status(400).json({ 
+        message: `This package only allows up to ${tourPackage.maxParticipants} people.` 
+      });
+    }
+
     // 3. Price Calculation
     const totalPrice = tourPackage.price * numberOfPeople;
 

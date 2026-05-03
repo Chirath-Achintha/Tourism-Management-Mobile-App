@@ -73,7 +73,8 @@ export default function TourPackageDetailScreen() {
       params: { 
         packageId: pkg._id,
         packageName: pkg.name,
-        packagePrice: pkg.price
+        packagePrice: pkg.price,
+        maxParticipants: pkg.maxParticipants || 0
       }
     } as any);
   };

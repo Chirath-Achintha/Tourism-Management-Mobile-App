@@ -10,14 +10,12 @@ import {
   ActivityIndicator,
   Alert,
   TextInput,
-  Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '@/constants/api';
-import DateTimePicker from '@react-native-community/datetimepicker';
 
 export default function TouristGuideDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -27,8 +25,6 @@ export default function TouristGuideDetailScreen() {
   const [loading, setLoading] = useState(true);
   
   // Booking Form State
-  const [travelDate, setTravelDate] = useState<Date>(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [numberOfPeople, setNumberOfPeople] = useState('1');
   const [specialRequest, setSpecialRequest] = useState('');
   const [bookingLoading, setBookingLoading] = useState(false);
@@ -70,7 +66,6 @@ export default function TouristGuideDetailScreen() {
       
       const payload = {
         guideId: guide._id,
-        travelDate: travelDate.toISOString(),
         numberOfPeople: parseInt(numberOfPeople),
         specialRequest,
       };
@@ -87,7 +82,7 @@ export default function TouristGuideDetailScreen() {
       const data = await response.json();
       if (response.ok) {
         Alert.alert("Success", "Tour guide booked successfully!", [
-          { text: "OK", onPress: () => router.replace('/bookings') }
+          { text: "OK", onPress: () => router.replace('/(tabs)/bookings' as any) }
         ]);
       } else {
         throw new Error(data.message || "Failed to book guide.");
@@ -97,14 +92,6 @@ export default function TouristGuideDetailScreen() {
     } finally {
       setBookingLoading(false);
     }
-  };
-
-  const onDateChange = (event: any, selectedDate?: Date) => {
-    const currentDate = selectedDate || travelDate;
-    if (Platform.OS === 'android') {
-      setShowDatePicker(false);
-    }
-    setTravelDate(currentDate);
   };
 
   if (loading) {
@@ -169,34 +156,6 @@ export default function TouristGuideDetailScreen() {
 
           <View style={styles.bookingSection}>
             <Text style={styles.sectionTitle}>Book this Guide</Text>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Tour Date</Text>
-              {Platform.OS === 'android' ? (
-                <Pressable style={styles.datePickerBtn} onPress={() => setShowDatePicker(true)}>
-                  <Ionicons name="calendar-outline" size={20} color="#1A3B2F" />
-                  <Text style={styles.datePickerText}>{travelDate.toLocaleDateString()}</Text>
-                </Pressable>
-              ) : (
-                <DateTimePicker
-                  value={travelDate}
-                  mode="date"
-                  display="default"
-                  onChange={onDateChange}
-                  minimumDate={new Date()}
-                  style={{ alignSelf: 'flex-start' }}
-                />
-              )}
-              {showDatePicker && Platform.OS === 'android' && (
-                <DateTimePicker
-                  value={travelDate}
-                  mode="date"
-                  display="default"
-                  onChange={onDateChange}
-                  minimumDate={new Date()}
-                />
-              )}
-            </View>
 
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Number of People</Text>
@@ -368,22 +327,6 @@ const styles = StyleSheet.create({
   },
   textArea: {
     minHeight: 100,
-  },
-  datePickerBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8F9FA',
-    borderWidth: 1,
-    borderColor: 'rgba(26, 59, 47, 0.1)',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 12,
-  },
-  datePickerText: {
-    fontSize: 15,
-    color: '#1A3B2F',
-    fontWeight: '500',
   },
   submitButton: {
     backgroundColor: '#1A3B2F',

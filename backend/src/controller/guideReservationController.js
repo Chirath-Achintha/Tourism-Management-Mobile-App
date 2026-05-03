@@ -27,19 +27,15 @@ export const getMyGuideAssignments = async (req, res) => {
 // @access  Private
 export const createGuideReservation = async (req, res) => {
   try {
-    const { guideId, travelDate, numberOfPeople, specialRequest } = req.body;
+    const { guideId, numberOfPeople, specialRequest } = req.body;
 
     // 1. Basic Validation
-    if (!guideId || !travelDate || !numberOfPeople) {
+    if (!guideId || !numberOfPeople) {
       return res.status(400).json({ message: 'Please provide all required fields' });
     }
 
     if (numberOfPeople <= 0) {
       return res.status(400).json({ message: 'Number of people must be at least 1' });
-    }
-
-    if (new Date(travelDate) < new Date().setHours(0,0,0,0)) {
-      return res.status(400).json({ message: 'Travel date cannot be in the past' });
     }
 
     // 2. Resource Validation
@@ -51,7 +47,6 @@ export const createGuideReservation = async (req, res) => {
     const reservation = new GuideReservation({
       userId: req.user._id,
       guideId,
-      travelDate,
       numberOfPeople,
       specialRequest,
       status: 'Pending',

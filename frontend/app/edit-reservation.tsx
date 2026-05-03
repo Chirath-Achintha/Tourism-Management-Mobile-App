@@ -111,6 +111,12 @@ export default function EditReservationScreen() {
       return;
     }
 
+    const maxParticipants = reservation?.packageId?.maxParticipants || 0;
+    if (maxParticipants > 0 && parseInt(numberOfPeople) > maxParticipants) {
+      Alert.alert('Limit Exceeded', `This package only allows up to ${maxParticipants} people.`);
+      return;
+    }
+
     try {
       setUpdating(true);
       const token = await AsyncStorage.getItem('auth:token');
@@ -215,6 +221,7 @@ export default function EditReservationScreen() {
             keyboard="numeric" 
             icon="people-outline" 
             editable={isEditable} 
+            helper={reservation?.packageId?.maxParticipants > 0 ? `Maximum ${reservation.packageId.maxParticipants} people allowed` : undefined}
           />
           
           <CustomInput 
@@ -301,7 +308,7 @@ export default function EditReservationScreen() {
   );
 }
 
-function CustomInput({ label, val, setVal, placeholder, keyboard, multiline, icon, editable = true }: any) {
+function CustomInput({ label, val, setVal, placeholder, keyboard, multiline, icon, editable = true, helper }: any) {
   const [isFocused, setIsFocused] = useState(false);
 
   return (
@@ -327,6 +334,7 @@ function CustomInput({ label, val, setVal, placeholder, keyboard, multiline, ico
           editable={editable}
         />
       </View>
+      {helper && <Text style={styles.helperText}>{helper}</Text>}
     </View>
   );
 }
@@ -389,6 +397,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 18, fontWeight: '800', color: COLORS.text, marginBottom: 4 },
   inputContainer: { gap: 8 },
   inputLabel: { fontSize: 15, fontWeight: '700', color: COLORS.text },
+  helperText: { fontSize: 12, color: COLORS.secondary, marginTop: -4, fontStyle: 'italic' },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',

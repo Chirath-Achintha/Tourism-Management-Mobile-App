@@ -131,7 +131,6 @@ export default function GuideBookingsScreen() {
 
         {/* Booking info */}
         <View style={styles.infoGrid}>
-          <InfoRow icon="calendar-outline" label="Tour Date" value={item.travelDate ? new Date(item.travelDate).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A'} />
           <InfoRow icon="people-outline" label="People" value={`${item.numberOfPeople || 0} person${item.numberOfPeople > 1 ? 's' : ''}`} />
           {item.specialRequest ? (
             <InfoRow icon="chatbubble-ellipses-outline" label="Special Request" value={item.specialRequest} />

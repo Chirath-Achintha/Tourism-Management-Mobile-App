@@ -40,6 +40,7 @@ export default function ReservationFormScreen() {
   const packageId = params.packageId as string;
   const packageName = params.packageName as string;
   const packagePrice = Number(params.packagePrice) || 0;
+  const maxParticipants = Number(params.maxParticipants) || 0;
   
   const [numberOfPeople, setNumberOfPeople] = useState('1');
   const [specialRequest, setSpecialRequest] = useState('');
@@ -79,6 +80,11 @@ export default function ReservationFormScreen() {
 
     if (parseInt(numberOfPeople) <= 0) {
       Alert.alert('Invalid Input', 'Number of people must be at least 1.');
+      return;
+    }
+
+    if (maxParticipants > 0 && parseInt(numberOfPeople) > maxParticipants) {
+      Alert.alert('Limit Exceeded', `This package only allows up to ${maxParticipants} people.`);
       return;
     }
 
@@ -157,6 +163,7 @@ export default function ReservationFormScreen() {
             placeholder="1" 
             keyboard="numeric" 
             icon="people-outline" 
+            helper={maxParticipants > 0 ? `Maximum ${maxParticipants} people allowed` : undefined}
           />
           
           <CustomInput 
@@ -241,7 +248,7 @@ export default function ReservationFormScreen() {
   );
 }
 
-function CustomInput({ label, val, setVal, placeholder, keyboard, multiline, icon, editable = true }: any) {
+function CustomInput({ label, val, setVal, placeholder, keyboard, multiline, icon, editable = true, helper }: any) {
   const [isFocused, setIsFocused] = useState(false);
 
   return (
@@ -267,6 +274,7 @@ function CustomInput({ label, val, setVal, placeholder, keyboard, multiline, ico
           editable={editable}
         />
       </View>
+      {helper && <Text style={styles.helperText}>{helper}</Text>}
     </View>
   );
 }
@@ -309,6 +317,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 18, fontWeight: '800', color: COLORS.text, marginBottom: 4 },
   inputContainer: { gap: 8 },
   inputLabel: { fontSize: 15, fontWeight: '700', color: COLORS.text },
+  helperText: { fontSize: 12, color: COLORS.secondary, marginTop: -4, fontStyle: 'italic' },
   inputSubLabel: { fontSize: 13, color: COLORS.secondary, marginTop: -4 },
   inputWrapper: {
     flexDirection: 'row',
