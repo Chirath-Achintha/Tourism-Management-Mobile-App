@@ -789,7 +789,7 @@ export default function AddTourPackageScreen() {
                     <Text style={styles.destinationLoadingText}>Loading destinations...</Text>
                   </View>
                 ) : filteredDestinations.length > 0 ? (
-                  <ScrollView showsVerticalScrollIndicator={false} style={styles.destinationScroll} contentContainerStyle={styles.destinationScrollContent}>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.destinationScroll} contentContainerStyle={styles.destinationScrollContent}>
                     {filteredDestinations.map((destination) => {
                       const destinationLabel = String(destination.name || '').trim();
                       const selected = selectedDestinationNames.has(normalizeLocationLabel(destinationLabel));
@@ -1566,8 +1566,9 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   destinationScrollContent: {
-    gap: 10,
-    paddingRight: 4,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingRight: 8,
   },
   destinationLoadingPill: {
     flexDirection: 'row',
@@ -1593,6 +1594,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fbff',
     borderWidth: 1,
     borderColor: 'rgba(15, 23, 42, 0.06)',
+    marginRight: 10,
   },
   destinationChipSelected: {
     backgroundColor: '#fff7df',

@@ -25,6 +25,7 @@ type FormState = {
   destinations: string[];
   duration: string;
   price: string;
+  minParticipants: string;
   maxParticipants: string;
   meals: string[];
   guide: string;
@@ -47,6 +48,7 @@ export default function EditTourPackageScreen() {
     destinations: [],
     duration: '',
     price: '',
+    minParticipants: '',
     maxParticipants: '',
     meals: [],
     guide: '',
@@ -100,6 +102,7 @@ export default function EditTourPackageScreen() {
           destinations: existingDestinations,
           duration: data?.duration ? String(data.duration) : '',
           price: data?.price ? String(data.price) : '',
+          minParticipants: data?.minParticipants ? String(data.minParticipants) : '',
           maxParticipants: data?.maxParticipants ? String(data.maxParticipants) : '',
           meals: String(data?.meals || '')
             .split(',')
@@ -165,7 +168,15 @@ export default function EditTourPackageScreen() {
     if (!form.category.trim()) return 'Category is required.';
     if (!form.duration.trim() || Number.isNaN(Number(form.duration))) return 'Duration must be a valid number.';
     if (!form.price.trim() || Number.isNaN(Number(form.price))) return 'Price must be a valid number.';
+    if (!form.minParticipants.trim() || Number.isNaN(Number(form.minParticipants))) return 'Min participants must be a valid number.';
     if (!form.maxParticipants.trim() || Number.isNaN(Number(form.maxParticipants))) return 'Max participants must be a valid number.';
+
+    const min = Number(form.minParticipants);
+    const max = Number(form.maxParticipants);
+    if (!Number.isInteger(min) || min < 1) return 'Min participants must be 1 or more.';
+    if (!Number.isInteger(max) || max < 1) return 'Max participants must be 1 or more.';
+    if (max <= min) return 'Max participants must be greater than min participants.';
+    if (max > 500) return 'Max participants cannot exceed 500.';
     return null;
   };
 
@@ -192,6 +203,7 @@ export default function EditTourPackageScreen() {
         destination: lockedDestinations.length ? lockedDestinations[0] : form.destination.trim(),
         destinations: lockedDestinations,
         duration: Number(form.duration),
+        minParticipants: Number(form.minParticipants),
         price: Number(form.price),
         maxParticipants: Number(form.maxParticipants),
         meals: form.meals.join(', '),
@@ -325,16 +337,29 @@ export default function EditTourPackageScreen() {
           </Field>
         </View>
 
-        <Field label="Max Participants" required>
-          <TextInput
-            style={styles.input}
-            value={form.maxParticipants}
-            onChangeText={(value) => updateField('maxParticipants', value)}
-            keyboardType="number-pad"
-            placeholder="e.g. 12"
-            placeholderTextColor="#9CA3AF"
-          />
-        </Field>
+        <View style={styles.twoColRow}>
+          <Field label="Min Participants" required style={styles.col}>
+            <TextInput
+              style={styles.input}
+              value={form.minParticipants}
+              onChangeText={(value) => updateField('minParticipants', value)}
+              keyboardType="number-pad"
+              placeholder="e.g. 2"
+              placeholderTextColor="#9CA3AF"
+            />
+          </Field>
+
+          <Field label="Max Participants" required style={styles.col}>
+            <TextInput
+              style={styles.input}
+              value={form.maxParticipants}
+              onChangeText={(value) => updateField('maxParticipants', value)}
+              keyboardType="number-pad"
+              placeholder="e.g. 12"
+              placeholderTextColor="#9CA3AF"
+            />
+          </Field>
+        </View>
 
         <Field label="Guide">
           <SelectField
