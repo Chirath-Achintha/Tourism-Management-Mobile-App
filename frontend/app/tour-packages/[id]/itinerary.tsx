@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, ActivityIndicator, Image } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { API_BASE_URL } from '@/constants/api';
@@ -19,9 +20,22 @@ export default function ItineraryScreen() {
   const { id } = useLocalSearchParams();
   const [pkg, setPkg] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     if (id) fetchPackage();
+    const checkRole = async () => {
+      try {
+        const userData = await AsyncStorage.getItem('auth:user');
+        if (userData) {
+          const user = JSON.parse(userData);
+          setIsAdmin(user?.role === 'admin');
+        }
+      } catch (err) {
+        console.warn('Role check failed', err);
+      }
+    };
+    checkRole();
   }, [id]);
 
   const fetchPackage = async () => {
@@ -62,8 +76,8 @@ export default function ItineraryScreen() {
                   <Text style={styles.dayTitle}>{day.title || 'Untitled'}</Text>
                   <Text style={styles.dayText}>{day.notes || 'No description provided.'}</Text>
 
-                  {/* Display Hotel if available */}
-                  {day.hotelName && (
+                  {/* Display Hotel if available (admin only) */}
+                  {isAdmin && day.hotelName && (
                     <View style={styles.hotelSection}>
                       <View style={styles.hotelRow}>
                         <Ionicons name="bed-outline" size={16} color={COLORS.accent} />
@@ -76,8 +90,8 @@ export default function ItineraryScreen() {
                     </View>
                   )}
 
-                  {/* Display Places */}
-                  {day.places && day.places.length > 0 && (
+                  {/* Display Places (admin only) */}
+                  {isAdmin && day.places && day.places.length > 0 && (
                     <View style={styles.placesSection}>
                       <Text style={styles.placesTitle}>Places to Visit</Text>
                       {day.places.map((place: any, pidx: number) => (

@@ -251,22 +251,26 @@ export const AddReviewModal: React.FC<AddReviewModalProps> = ({
               onChangeText={setComment}
             />
 
-            <Text style={styles.label}>Add a Photo (Optional)</Text>
-            <TouchableOpacity onPress={pickImage} style={styles.imagePicker}>
-              {image ? (
-                <View style={styles.imageWrapper}>
-                  <Image source={{ uri: image }} style={styles.previewImage} />
-                  <Pressable style={styles.removeImage} onPress={() => setImage(null)}>
-                    <Ionicons name="close-circle" size={24} color="#FF4A4A" />
-                  </Pressable>
-                </View>
-              ) : (
-                <View style={styles.pickerPlaceholder}>
-                  <Ionicons name="camera-outline" size={32} color="rgba(26, 59, 47, 0.4)" />
-                  <Text style={styles.pickerText}>Capture your moment</Text>
-                </View>
-              )}
-            </TouchableOpacity>
+            {targetType === 'hotel' && (
+              <>
+                <Text style={styles.label}>Add a Photo (Optional)</Text>
+                <TouchableOpacity onPress={pickImage} style={styles.imagePicker}>
+                  {image ? (
+                    <View style={styles.imageWrapper}>
+                      <Image source={{ uri: image }} style={styles.previewImage} />
+                      <Pressable style={styles.removeImage} onPress={() => setImage(null)}>
+                        <Ionicons name="close-circle" size={24} color="#FF4A4A" />
+                      </Pressable>
+                    </View>
+                  ) : (
+                    <View style={styles.pickerPlaceholder}>
+                      <Ionicons name="camera-outline" size={32} color="rgba(26, 59, 47, 0.4)" />
+                      <Text style={styles.pickerText}>Capture your moment</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </>
+            )}
 
             <TouchableOpacity 
               style={[styles.submitButton, loading && styles.disabledButton]} 

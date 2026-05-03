@@ -92,6 +92,31 @@ export default function TourPackageDetailScreen() {
     return raw || 'Not specified';
   };
 
+  const participantRange = React.useMemo(() => {
+    const min = Number(pkg?.minParticipants);
+    const max = Number(pkg?.maxParticipants);
+
+    const hasMin = Number.isFinite(min) && min > 0;
+    const hasMax = Number.isFinite(max) && max > 0;
+
+    if (hasMin && hasMax) return `${min}-${max}`;
+    if (hasMax) return String(max);
+    if (hasMin) return String(min);
+    return 'N/A';
+  }, [pkg]);
+
+  const visitLocations = React.useMemo(() => {
+    const names = Array.isArray(pkg?.destinations) ? pkg.destinations : [];
+    const uniqueNames = Array.from(new Set(names.map((name: string) => String(name || '').trim()).filter(Boolean)));
+    if (uniqueNames.length > 0) return uniqueNames;
+    if (pkg?.destination) return [String(pkg.destination).trim()].filter(Boolean);
+
+    const timelineNames = Array.isArray(pkg?.timeline)
+      ? pkg.timeline.flatMap((day: any) => Array.isArray(day.places) ? day.places.map((place: any) => String(place?.name || '').trim()).filter(Boolean) : [])
+      : [];
+    return Array.from(new Set(timelineNames));
+  }, [pkg]);
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -195,7 +220,7 @@ export default function TourPackageDetailScreen() {
           />
           <StatCard
             icon="people-outline"
-            label={`Max ${pkg.maxParticipants || 'N/A'}`}
+            label={`${participantRange} pax`}
           />
           <StatCard
             icon="bar-chart-outline"
@@ -210,6 +235,22 @@ export default function TourPackageDetailScreen() {
             {pkg.description ||
               'Embark on a journey through the heart of adventure. Explore pristine landscapes and immerse yourself in local culture.'}
           </Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Visit Locations</Text>
+          {visitLocations.length > 0 ? (
+            <View style={styles.locationChipsWrap}>
+              {visitLocations.map((location: string, index: number) => (
+                <View key={`${location}-${index}`} style={styles.locationChip}>
+                  <Ionicons name="location-outline" size={14} color={COLORS.blue} />
+                  <Text style={styles.locationChipText} numberOfLines={1}>{location}</Text>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <Text style={styles.noDataText}>No visit locations listed for this package.</Text>
+          )}
         </View>
 
         {/* What's Included */}
@@ -234,7 +275,8 @@ export default function TourPackageDetailScreen() {
             <DetailRow label="Start Date" value={normalizeValue(pkg.startDate)} />
             <DetailRow label="End Date" value={normalizeValue(pkg.endDate)} />
             <DetailRow label="Duration" value={`${pkg.duration || 'N/A'} day(s)`} />
-            <DetailRow label="Max Participants" value={String(pkg.maxParticipants || 'N/A')} />
+            <DetailRow label="Participants" value={participantRange} />
+            <DetailRow label="Guide" value={normalizeValue(pkg.guide)} />
           </View>
         </View>
 
@@ -675,6 +717,27 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.secondary,
     lineHeight: 20,
+  },
+  locationChipsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  locationChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 999,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceDim,
+  },
+  locationChipText: {
+    color: COLORS.text,
+    fontSize: 13,
+    fontWeight: '600',
   },
 
   // Included Items

@@ -23,6 +23,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { API_BASE_URL } from '@/constants/api';
 import * as WebBrowser from 'expo-web-browser';
+import { Animated } from 'react-native';
 
 // Import Premium Components
 import { ReviewCard } from '@/components/reviews/ReviewCard';
@@ -41,24 +42,53 @@ export default function DestinationDetailScreen() {
   const [packages, setPackages] = useState<any[]>([]);
   const [isFavorite, setIsFavorite] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const scrollY = React.useRef(new Animated.Value(0)).current;
+  const HEADER_HEIGHT = height * 0.5;
   const [modalVisible, setModalVisible] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [editingReview, setEditingReview] = useState<any | null>(null);
 
+  const FAVORITES_KEY = "wishlist:favorites";
+
   const fetchUserData = async () => {
     try {
-      const userData = await AsyncStorage.getItem('auth:user');
+      const [userData, favData] = await Promise.all([
+        AsyncStorage.getItem('auth:user'),
+        AsyncStorage.getItem(FAVORITES_KEY)
+      ]);
+      
       if (userData) {
         const user = JSON.parse(userData);
         setUserId(user._id || user.id);
+      }
+
+      if (favData) {
+        const favs = JSON.parse(favData);
+        setIsFavorite(favs.includes(id));
       }
     } catch (error) {
       console.error("Failed to load user data", error);
     }
   };
 
-
-
+  const toggleFavorite = async () => {
+    try {
+      const stored = await AsyncStorage.getItem(FAVORITES_KEY);
+      let favs = stored ? JSON.parse(stored) : [];
+      
+      if (favs.includes(id)) {
+        favs = favs.filter((f: string) => f !== id);
+        setIsFavorite(false);
+      } else {
+        favs.push(id);
+        setIsFavorite(true);
+      }
+      
+      await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(favs));
+    } catch (error) {
+      console.error("Failed to update favorite", error);
+    }
+  };
 
   const fetchDestination = async (silent = false) => {
     try {
@@ -79,7 +109,6 @@ export default function DestinationDetailScreen() {
       setLoading(false);
     }
   };
-
 
   useEffect(() => {
     if (id) {
@@ -140,7 +169,7 @@ export default function DestinationDetailScreen() {
     return { 
       average, 
       total, 
-      happyTravelers: total, // Show total reviewers as travelers
+      happyTravelers: happy, // Correctly show count of satisfied travelers (3+ stars)
       satisfaction 
     };
   }, [reviews]);
@@ -168,11 +197,14 @@ export default function DestinationDetailScreen() {
 
     const destinationId = String(id);
     const destinationName = String(destination.name || '').trim().toLowerCase();
+    const normalize = (value: any) => String(value || '').trim().toLowerCase();
 
     return packages.filter((item) => {
       const itemDestinationId = String(item?.destinationId?._id || item?.destinationId || '').trim();
-      const itemDestinationName = String(item?.destination || '').trim().toLowerCase();
-      return itemDestinationId === destinationId || (destinationName && itemDestinationName === destinationName);
+      const selectedDestinations = Array.isArray(item?.destinations) ? item.destinations : [];
+      const matchedSelectedDestination = selectedDestinations.some((name) => normalize(name) === destinationName);
+      const matchedDestinationName = normalize(item?.destination) === destinationName;
+      return itemDestinationId === destinationId || matchedSelectedDestination || matchedDestinationName;
     });
   }, [destination, id, packages]);
 
@@ -181,6 +213,24 @@ export default function DestinationDetailScreen() {
     const index = event.nativeEvent.contentOffset.x / slideSize;
     setActiveIndex(Math.round(index));
   };
+
+  const headerTranslate = scrollY.interpolate({
+    inputRange: [0, HEADER_HEIGHT],
+    outputRange: [0, -HEADER_HEIGHT / 3],
+    extrapolate: 'clamp',
+  });
+
+  const headerScale = scrollY.interpolate({
+    inputRange: [-HEADER_HEIGHT, 0],
+    outputRange: [2, 1],
+    extrapolate: 'clamp',
+  });
+
+  const headerOpacity = scrollY.interpolate({
+    inputRange: [0, HEADER_HEIGHT / 2, HEADER_HEIGHT],
+    outputRange: [1, 1, 0],
+    extrapolate: 'clamp',
+  });
 
   if (loading) {
     return (
@@ -205,9 +255,47 @@ export default function DestinationDetailScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
       
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* Header Image Section */}
-        <View style={styles.headerContainer}>
+      {/* Sticky Header Actions */}
+      <SafeAreaView style={styles.headerActions} pointerEvents="box-none">
+        <Pressable style={styles.iconCircle} onPress={() => router.back()}>
+          <Ionicons name="chevron-back" size={24} color="#1A3B2F" />
+        </Pressable>
+        <Pressable style={styles.iconCircle} onPress={toggleFavorite}>
+          <Ionicons 
+            name={isFavorite ? "heart" : "heart-outline"} 
+            size={24} 
+            color={isFavorite ? "#FF4D4D" : "#1A3B2F"} 
+          />
+        </Pressable>
+      </SafeAreaView>
+      
+      <Animated.ScrollView 
+        showsVerticalScrollIndicator={false} 
+        contentContainerStyle={styles.scrollContent}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
+        scrollEventThrottle={16}
+      >
+        {/* Parallax Header Carousel */}
+        <Animated.View style={[
+          styles.headerContainer, 
+          { 
+            height: HEADER_HEIGHT,
+            transform: [
+              { 
+                translateY: scrollY.interpolate({
+                  inputRange: [0, HEADER_HEIGHT],
+                  outputRange: [0, HEADER_HEIGHT * 0.6],
+                  extrapolate: 'clamp'
+                }) 
+              },
+              { scale: headerScale }
+            ],
+            opacity: headerOpacity
+          }
+        ]}>
           <FlatList
             data={destination.images}
             horizontal
@@ -216,56 +304,20 @@ export default function DestinationDetailScreen() {
             onScroll={handleScroll}
             scrollEventThrottle={16}
             keyExtractor={(item, index) => index.toString()}
+            nestedScrollEnabled={true}
             renderItem={({ item }) => (
               <Image 
                 source={{ uri: item.url }} 
-                style={styles.carouselImage}
+                style={[styles.carouselImage, { height: HEADER_HEIGHT }]}
                 contentFit="cover"
               />
             )}
           />
           <LinearGradient
-            colors={['rgba(0,0,0,0.4)', 'transparent', 'rgba(0,0,0,0.8)']}
+            colors={['rgba(0,0,0,0.3)', 'transparent', 'rgba(0,0,0,0.6)']}
             style={styles.headerGradient}
             pointerEvents="none"
           />
-          
-          <SafeAreaView style={styles.headerActions}>
-            <Pressable style={styles.iconCircle} onPress={() => router.back()}>
-              <Ionicons name="chevron-back" size={24} color="#1A3B2F" />
-            </Pressable>
-            <Pressable style={styles.iconCircle} onPress={() => setIsFavorite(!isFavorite)}>
-              <Ionicons 
-                name={isFavorite ? "heart" : "heart-outline"} 
-                size={24} 
-                color={isFavorite ? "#FF4D4D" : "#1A3B2F"} 
-              />
-            </Pressable>
-          </SafeAreaView>
-
-          <View style={styles.headerTitleContainer} pointerEvents="none">
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <Text 
-                style={[
-                  styles.destinationName, 
-                  destination.name.length > 20 && { fontSize: 24 }
-                ]}
-                numberOfLines={3}
-              >
-                {destination.name}
-              </Text>
-              {destination.isFeatured && (
-                <View style={styles.featuredBadge}>
-                  <Ionicons name="star" size={12} color="#1A3B2F" />
-                  <Text style={styles.featuredText}>Featured</Text>
-                </View>
-              )}
-            </View>
-            <View style={styles.locationTag}>
-              <Ionicons name="location" size={14} color="#FFD166" />
-              <Text style={styles.locationText}>{destination.location}</Text>
-            </View>
-          </View>
 
           {/* Pagination Dots */}
           <View style={styles.pagination}>
@@ -279,11 +331,32 @@ export default function DestinationDetailScreen() {
               />
             ))}
           </View>
-        </View>
+        </Animated.View>
 
-        {/* Details Section */}
-        <View style={styles.detailsContainer}>
-          <View style={styles.statsRow}>
+        {/* Floating Title Area (Consistently aligned to card top) */}
+        <View style={styles.parallaxHeaderContent}>
+          <View style={styles.floatingTitleContainer}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <Text 
+                style={[
+                  styles.parallaxName,
+                  destination.name.length > 15 && { fontSize: 35, lineHeight: 40 },
+                  destination.name.length > 25 && { fontSize: 32, lineHeight: 36 }
+                ]}
+                numberOfLines={3}
+              >
+                {destination.name}
+              </Text>
+            </View>
+            <View style={styles.parallaxLocationRow}>
+              <Ionicons name="location" size={16} color="#FFD166" />
+              <Text style={styles.parallaxLocationText}>{destination.location}</Text>
+            </View>
+          </View>
+
+          {/* Details Section (White Card) */}
+          <View style={styles.detailsContainer}>
+            <View style={styles.statsRow}>
             <View style={styles.statItem}>
               <View style={[styles.statIcon, { backgroundColor: '#FFF9E6' }]}>
                 <Ionicons name="star" size={20} color="#FFD166" />
@@ -314,42 +387,10 @@ export default function DestinationDetailScreen() {
             </View>
           </View>
 
-          <Text style={styles.sectionTitle}>About this place</Text>
-          <Text style={styles.description}>{destination.description}</Text>
-
-          <View style={styles.packageSection}>
-            <Text style={styles.sectionTitle}>Tour Packages</Text>
-            {relatedPackages.length > 0 ? (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.packageScroll}>
-                {relatedPackages.map((item) => (
-                  <Pressable key={item._id} style={styles.packageCard} onPress={() => router.push(`/tour-packages/${item._id}` as any)}>
-                    <Text style={styles.packageCardTitle} numberOfLines={2}>{item.name}</Text>
-                    <Text style={styles.packageCardMeta} numberOfLines={1}>LKR {item.price ? Number(item.price).toLocaleString() : 'N/A'}</Text>
-                    <Text style={styles.packageCardMeta} numberOfLines={1}>{item.duration ? `${item.duration} days` : 'Duration TBA'}</Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-            ) : (
-              <Text style={styles.packageEmptyText}>No packages are linked to this destination yet.</Text>
-            )}
-          </View>
-
-          <View style={styles.categoryInfo}>
-            <Text style={styles.categoryLabel}>{"Categories"}</Text>
-            <View style={styles.categoryRowList}>
-              {(destination.categories || []).map((cat: string, index: number) => (
-                <View key={index} style={styles.categoryBadge}>
-                  <Text style={styles.categoryText}>{cat}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-
-          {/* Map Section - Simplified */}
-          <View style={styles.mapContainer}>
-            <Text style={styles.sectionTitle}>Location</Text>
+          <View style={styles.aboutHeader}>
+            <Text style={styles.sectionTitle}>About this place</Text>
             <Pressable 
-              style={styles.simpleMapBtn} 
+              style={styles.locationBadge}
               onPress={async () => {
                 const query = encodeURIComponent(`${destination.name}, ${destination.location}`);
                 const url = `https://www.google.com/maps/search/?api=1&query=${query}`;
@@ -361,28 +402,96 @@ export default function DestinationDetailScreen() {
                 }
               }}
             >
-              <Ionicons name="map-outline" size={24} color="#1A3B2F" />
+              <Ionicons name="location" size={14} color="#FFD166" />
+              <Text style={styles.locationBadgeText}>VIEW ON MAP</Text>
+            </Pressable>
+          </View>
+          <View style={styles.categoryInfo}>
+            <View style={styles.categoryRowList}>
+              {(destination.categories || []).map((cat: string, index: number) => (
+                <View key={index} style={styles.categoryBadge}>
+                  <Text style={styles.categoryText}>{cat}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+          <Text style={styles.description}>{destination.description}</Text>
+
+
+          <View style={styles.mapContainer}>
+            <Pressable 
+              style={styles.simpleMapBtn}
+              onPress={() => router.push(`/tourist-hotels?district=${encodeURIComponent(destination.location)}` as any)}
+            >
+              <Ionicons name="bed-outline" size={24} color="#1A3B2F" />
               <View style={{ flex: 1 }}>
-                <Text style={styles.mapBtnTitle}>View on Maps</Text>
-                <Text style={styles.mapBtnSub}>{destination.location}</Text>
+                <Text style={styles.mapBtnTitle}>Nearby Hotels</Text>
+                <Text style={styles.mapBtnSub}>Explore stays in {destination.location}</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color="#1A3B2F" />
             </Pressable>
           </View>
 
-          <View style={styles.nearbyHotelsContainer}>
-            <Pressable 
-              style={styles.nearbyHotelsBtn}
-              onPress={() => router.push(`/tourist-hotels?district=${encodeURIComponent(destination.location)}` as any)}
+          {/* Reviews Section */}
+          <View style={styles.reviewsContainer}>
+            <View style={styles.reviewHeaderRow}>
+              <Text style={styles.sectionTitle}>Reviews</Text>
+              <Pressable 
+                style={styles.addReviewBtn}
+                onPress={() => setModalVisible(true)}
+              >
+                <Ionicons name="add" size={20} color="#1A3B2F" />
+                <Text style={styles.addReviewText}>Write a Review</Text>
+              </Pressable>
+            </View>
+
+            <RatingSummary 
+              average={reviewStats.average} 
+              total={reviewStats.total} 
+              happyTravelers={reviewStats.happyTravelers}
+              satisfactionRate={reviewStats.satisfaction}
+            />
+
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false} 
+              contentContainerStyle={styles.reviewsHorizontalList}
+              snapToInterval={Dimensions.get('window').width * 0.75 + 16}
+              decelerationRate="fast"
+              snapToAlignment="center"
+              scrollEventThrottle={16}
             >
-              <Ionicons name="bed-outline" size={24} color="#ffffff" />
-              <Text style={styles.nearbyHotelsText}>View Nearby Hotels</Text>
-            </Pressable>
+              {/* Spacer to center the first item */}
+              <View style={{ width: Dimensions.get('window').width * 0.125 - 16 }} />
+              
+              {reviews.length > 0 ? (
+                reviews.map((review) => (
+                  <View key={review._id} style={styles.horizontalReviewWrapper}>
+                    <ReviewCard 
+                      review={review} 
+                      currentUserId={userId}
+                      onDelete={() => handleDeleteReview(review._id)}
+                      onEdit={() => handleEditReview(review)}
+                    />
+                  </View>
+                ))
+              ) : (
+                <View style={styles.emptyReviews}>
+                  <Ionicons name="chatbox-outline" size={48} color="rgba(26, 59, 47, 0.1)" />
+                  <Text style={styles.emptyReviewsText}>No reviews yet. Be the first to share your experience!</Text>
+                </View>
+              )}
+
+              {/* Spacer to center the last item */}
+              <View style={{ width: Dimensions.get('window').width * 0.125 - 16 }} />
+            </ScrollView>
           </View>
 
-          <View style={{ height: 100 }} />
+          <View style={{ height: 120 }} />
         </View>
-      </ScrollView>
+      </View>
+      </Animated.ScrollView>
+
       {/* Submission Modal */}
       <AddReviewModal 
         visible={modalVisible}
@@ -396,16 +505,18 @@ export default function DestinationDetailScreen() {
         targetName={destination?.name}
         initialData={editingReview}
       />
-
       <BlurView intensity={90} tint="light" style={styles.footer}>
         <View style={styles.footerContent}>
 
-          <View>
-            <Text style={styles.priceLabel}>Starting from</Text>
-            <Text style={styles.priceValue}>${destination.startingPrice || "150"}<Text style={styles.perPerson}>/person</Text></Text>
-          </View>
-          <Pressable style={styles.bookBtn} onPress={() => router.push('/tour-packages' as any)}>
-            <Text style={styles.bookBtnText}>Packages</Text>
+          <Pressable
+            style={styles.bookBtn}
+            onPress={() =>
+              router.push(
+                `/tour-packages?destinationId=${encodeURIComponent(String(id))}&destinationName=${encodeURIComponent(destination?.name || '')}&location=${encodeURIComponent(destination?.location || '')}` as any
+              )
+            }
+          >
+            <Text style={styles.bookBtnText}>Explore Tour Packages</Text>
           </Pressable>
         </View>
 
@@ -419,7 +530,7 @@ export default function DestinationDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: 'transparent',
   },
   loadingContainer: {
     flex: 1,
@@ -431,8 +542,8 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   headerContainer: {
-    height: height * 0.55,
     width: '100%',
+    overflow: 'hidden',
   },
   headerImage: {
     ...StyleSheet.absoluteFillObject,
@@ -488,16 +599,42 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
-  destinationName: {
+  parallaxHeaderContent: {
+    marginTop: -160, // Adjust this to control how much title space you want on the image
+    zIndex: 10,
+  },
+  floatingTitleContainer: {
+    paddingHorizontal: 24,
+    marginBottom: 24,
+    minHeight: 100,
+    justifyContent: 'flex-end',
+  },
+  parallaxName: {
     color: '#ffffff',
-    fontSize: 32,
+    fontSize: 38,
     fontWeight: '900',
     letterSpacing: -0.5,
-    lineHeight: 38,
+    lineHeight: 44,
+    textShadowColor: 'rgba(0, 0, 0, 0.4)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 12,
+  },
+  parallaxLocationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 4,
+  },
+  parallaxLocationText: {
+    fontSize: 16,
+    color: '#FFD166',
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   pagination: {
     position: 'absolute',
-    bottom: 50,
+    bottom: 80,
     right: 24,
     flexDirection: 'row',
     gap: 6,
@@ -518,7 +655,6 @@ const styles = StyleSheet.create({
   detailsContainer: {
     padding: 24,
     paddingTop: 36,
-    marginTop: -30,
     backgroundColor: '#ffffff',
     borderTopLeftRadius: 36,
     borderTopRightRadius: 36,
@@ -550,18 +686,42 @@ const styles = StyleSheet.create({
     color: 'rgba(26, 59, 47, 0.4)',
     fontWeight: '700',
   },
+  aboutHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  locationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 209, 102, 0.1)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 209, 102, 0.3)',
+  },
+  locationBadgeText: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#1A3B2F',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '900',
     color: '#1A3B2F',
-    marginBottom: 12,
   },
   description: {
     fontSize: 15,
     color: 'rgba(26, 59, 47, 0.7)',
-    lineHeight: 24,
+    lineHeight: 22,
     fontWeight: '600',
-    marginBottom: 32,
+    marginBottom: 16,
+    textAlign: 'justify',
   },
   packageSection: {
     marginBottom: 8,
@@ -596,7 +756,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   categoryInfo: {
-    marginTop: 24,
+    marginTop: 8,
+    marginBottom: 20,
   },
   categoryRowList: {
     flexDirection: 'row',
@@ -634,7 +795,7 @@ const styles = StyleSheet.create({
   },
   footerContent: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
   },
   priceLabel: {
@@ -654,14 +815,16 @@ const styles = StyleSheet.create({
   },
   bookBtn: {
     backgroundColor: '#1A3B2F',
-    paddingHorizontal: 28,
-    paddingVertical: 16,
-    borderRadius: 20,
+    paddingHorizontal: 40,
+    paddingVertical: 18,
+    borderRadius: 24,
     shadowColor: '#1A3B2F',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+    width: '100%',
+    alignItems: 'center',
   },
   bookBtnText: {
     color: '#ffffff',
@@ -717,59 +880,51 @@ const styles = StyleSheet.create({
   titleSection: {
     marginBottom: 24,
   },
-  name: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: '#1A3B2F',
-    letterSpacing: -0.5,
+  reviewsContainer: {
+    marginTop: 32,
   },
-  locationRowMain: {
+  reviewHeaderRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 8,
-    gap: 4,
+    marginBottom: 20,
   },
-  location: {
-    fontSize: 16,
-    color: 'rgba(26, 59, 47, 0.6)',
-    fontWeight: '600',
-  },
-  featuredBadge: {
+  addReviewBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFD166',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
     gap: 4,
   },
-  featuredText: {
-    fontSize: 10,
-    fontWeight: '900',
-    color: '#1A3B2F',
-    textTransform: 'uppercase',
-  },
-  nearbyHotelsContainer: {
-    marginTop: 20,
-  },
-  nearbyHotelsBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#1A3B2F',
-    padding: 16,
-    borderRadius: 20,
-    gap: 12,
-    shadowColor: '#1A3B2F',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
-  },
-  nearbyHotelsText: {
-    color: '#ffffff',
-    fontSize: 16,
+  addReviewText: {
+    fontSize: 12,
     fontWeight: '800',
+    color: '#1A3B2F',
+  },
+  reviewsHorizontalList: {
+    marginTop: 16,
+    gap: 16,
+  },
+  horizontalReviewWrapper: {
+    // Width is handled by the ReviewCard component
+  },
+  emptyReviews: {
+    alignItems: 'center',
+    paddingVertical: 40,
+    backgroundColor: '#F7F9F4',
+    borderRadius: 24,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(26, 59, 47, 0.05)',
+  },
+  emptyReviewsText: {
+    fontSize: 14,
+    color: 'rgba(26, 59, 47, 0.4)',
+    fontWeight: '600',
+    textAlign: 'center',
+    paddingHorizontal: 40,
   },
 });
 

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, ActivityIndicator, Image, Pressable } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { API_BASE_URL } from '@/constants/api';
@@ -20,9 +21,22 @@ export default function ItineraryScreen() {
   const router = useRouter();
   const [pkg, setPkg] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     if (id) fetchPackage();
+    const checkRole = async () => {
+      try {
+        const userData = await AsyncStorage.getItem('auth:user');
+        if (userData) {
+          const user = JSON.parse(userData);
+          setIsAdmin(user?.role === 'admin');
+        }
+      } catch (err) {
+        console.warn('Role check failed', err);
+      }
+    };
+    checkRole();
   }, [id]);
 
   const fetchPackage = async () => {
@@ -64,7 +78,7 @@ export default function ItineraryScreen() {
                   <Text style={styles.dayTitle}>{`Day ${idx + 1}: ${day.title || ''}`}</Text>
                   <Text style={styles.dayDesc}>{day.notes || 'No description provided.'}</Text>
 
-                  {day.places && day.places.length > 0 && (
+                  {isAdmin && day.places && day.places.length > 0 && (
                     <ScrollView
                       horizontal
                       showsHorizontalScrollIndicator={false}
@@ -82,7 +96,7 @@ export default function ItineraryScreen() {
                     </ScrollView>
                   )}
 
-                  {day.hotelName ? (
+                  {isAdmin && day.hotelName ? (
                     <View style={styles.hotelRow}>
                       <Ionicons name="bed-outline" size={18} color={COLORS.secondary} />
                       <View style={{ marginLeft: 8 }}>

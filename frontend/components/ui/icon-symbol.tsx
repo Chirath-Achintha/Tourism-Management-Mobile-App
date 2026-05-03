@@ -23,7 +23,8 @@ const MAPPING: IconMapping = {
   'person.crop.circle.fill': 'account-circle',
   'square.and.pencil': 'edit',
   'plus.circle.fill': 'add-circle',
-  'calendar.fill': 'event-note',
+  'calendar.fill': 'event',
+  'heart.fill': 'favorite',
 } as IconMapping;
 
 /**

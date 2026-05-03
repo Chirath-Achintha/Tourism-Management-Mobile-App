@@ -15,131 +15,57 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '@/constants/api';
 
-type DestinationItem = {
-  _id?: string;
-  name: string;
-  location?: string;
-};
-
 const DASHBOARD_PRIMARY = '#1A3B2F';
-const MEAL_OPTIONS = ['Breakfast', 'Lunch', 'Dinner', 'All Inclusive'];
-const GUIDE_OPTIONS = ['No guide', 'English-speaking guide', 'Multi-language guide'];
-const TRANSPORT_OPTIONS = [
-  'Car (Sedan/Hatchback)',
-  'Van',
-  'Mini bus / Coach',
-  'Luxury SUV',
-  'Three-wheeler (Tuk-tuk)',
-  'Tourist bus',
-  'Local bus',
-  'Air-conditioned coach',
-  'Luxury bus',
-];
 
 type FormState = {
   name: string;
   description: string;
   category: string;
   destination: string;
-  destinations?: string[];
+  destinations: string[];
   duration: string;
   price: string;
   maxParticipants: string;
   meals: string[];
   guide: string;
   transport: string;
-  timeline?: any[];
 };
 
-const INITIAL_FORM: FormState = {
-  name: '',
-  description: '',
-  category: '',
-  destination: '',
-  destinations: [],
-  duration: '',
-  price: '',
-  maxParticipants: '',
-  meals: [],
-  guide: '',
-  transport: '',
-  timeline: [],
-};
+const MEAL_OPTIONS = ['Breakfast', 'Lunch', 'Dinner', 'All Inclusive'];
+const GUIDE_OPTIONS = ['No guide', 'English-speaking guide', 'Multi-language guide'];
+const TRANSPORT_OPTIONS = ['Car', 'Van', 'Bus', 'Private'];
 
 export default function EditTourPackageScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { id: packageId } = useLocalSearchParams() as any;
 
-  const [form, setForm] = useState<FormState>(INITIAL_FORM);
+  const [form, setForm] = useState<any>({
+    name: '',
+    description: '',
+    category: '',
+    destination: '',
+    destinations: [],
+    duration: '',
+    price: '',
+    maxParticipants: '',
+    meals: [],
+    guide: '',
+    transport: '',
+  });
+
+  const [timeline, setTimeline] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [hotels, setHotels] = useState<any[]>([]);
   const [hotelsLoading, setHotelsLoading] = useState(false);
-  const [timeline, setTimeline] = useState<any[]>([]);
-  const [destinations, setDestinations] = useState<DestinationItem[]>([]);
+  const [hotels, setHotels] = useState<any[]>([]);
+  const [destinations, setDestinations] = useState<any[]>([]);
   const [destinationsLoading, setDestinationsLoading] = useState(false);
-
-  const packageId = useMemo(() => String(id || '').trim(), [id]);
-
-  // Fetch hotels
-  useEffect(() => {
-    const fetchHotels = async () => {
-      try {
-        setHotelsLoading(true);
-        const token = await AsyncStorage.getItem('auth:token');
-        if (!token) return;
-        
-        const response = await fetch(`${API_BASE_URL}/admin/hotels`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const data = await response.json();
-        setHotels(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error('Failed to fetch hotels:', err);
-      } finally {
-        setHotelsLoading(false);
-      }
-    };
-    fetchHotels();
-  }, []);
-
-  // Filter hotels based on selected package destinations
-  const filteredHotels = useMemo(() => {
-    const targets = Array.isArray(form.destinations) && form.destinations.length ? form.destinations.map((t) => t.trim().toLowerCase()) : [];
-    if (targets.length === 0) return hotels;
-    return hotels.filter((h) => {
-      const loc = String(h.location || h.address || h.city || h.name || '').toLowerCase();
-      return targets.some((t) => loc.includes(t) || (h.city && String(h.city).toLowerCase() === t));
-    });
-  }, [hotels, form.destinations]);
-
-  useEffect(() => {
-    const fetchDestinations = async () => {
-      try {
-        setDestinationsLoading(true);
-        const response = await fetch(`${API_BASE_URL}/destinations`);
-        const data = await response.json();
-        setDestinations(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error('Failed to fetch destinations:', err);
-      } finally {
-        setDestinationsLoading(false);
-      }
-    };
-
-    fetchDestinations();
-  }, []);
-
+  const [lockedDestinations, setLockedDestinations] = useState<string[]>([]);
+  const filteredHotels = useMemo(() => hotels, [hotels]);
 
   useEffect(() => {
     const loadPackage = async () => {
       try {
-        if (!packageId) {
-          Alert.alert('Invalid package', 'Package ID is missing.');
-          router.back();
-          return;
-        }
-
         const token = await AsyncStorage.getItem('auth:token');
         if (!token) {
           Alert.alert('Session expired', 'Please log in again.');
@@ -162,12 +88,16 @@ export default function EditTourPackageScreen() {
           return;
         }
 
+        const existingDestinations = Array.isArray(data?.destinations) && data.destinations.length
+          ? data.destinations
+          : (data?.destination ? [data.destination] : []);
+
         setForm({
           name: data?.name || '',
           description: data?.description || '',
           category: data?.category || '',
           destination: data?.destination || '',
-          destinations: Array.isArray(data?.destinations) && data.destinations.length ? data.destinations : (data?.destination ? [data.destination] : []),
+          destinations: existingDestinations,
           duration: data?.duration ? String(data.duration) : '',
           price: data?.price ? String(data.price) : '',
           maxParticipants: data?.maxParticipants ? String(data.maxParticipants) : '',
@@ -178,6 +108,7 @@ export default function EditTourPackageScreen() {
           guide: data?.guide || '',
           transport: data?.transport || '',
         });
+        setLockedDestinations(existingDestinations.map((item: any) => String(item || '').trim()).filter(Boolean));
 
         setTimeline(Array.isArray(data?.timeline) ? data.timeline : []);
       } catch (error: any) {
@@ -230,7 +161,7 @@ export default function EditTourPackageScreen() {
 
   const validate = () => {
     if (!form.name.trim()) return 'Package name is required.';
-    if ((!form.destination || !form.destination.trim()) && (!Array.isArray(form.destinations) || form.destinations.length === 0)) return 'Destination is required.';
+    if ((!form.destination || !form.destination.trim()) && lockedDestinations.length === 0) return 'Destination is required and cannot be edited. Please recreate this package with a destination.';
     if (!form.category.trim()) return 'Category is required.';
     if (!form.duration.trim() || Number.isNaN(Number(form.duration))) return 'Duration must be a valid number.';
     if (!form.price.trim() || Number.isNaN(Number(form.price))) return 'Price must be a valid number.';
@@ -258,8 +189,8 @@ export default function EditTourPackageScreen() {
         name: form.name.trim(),
         description: form.description.trim(),
         category: form.category.trim().toLowerCase(),
-        destination: Array.isArray(form.destinations) && form.destinations.length ? form.destinations[0] : form.destination.trim(),
-        destinations: Array.isArray(form.destinations) ? form.destinations : [],
+        destination: lockedDestinations.length ? lockedDestinations[0] : form.destination.trim(),
+        destinations: lockedDestinations,
         duration: Number(form.duration),
         price: Number(form.price),
         maxParticipants: Number(form.maxParticipants),
@@ -351,33 +282,21 @@ export default function EditTourPackageScreen() {
         </Field>
 
         <Field label="Destination" required>
-          <SelectField
-            value={''}
-            options={destinations.map((destination) => destination.name)}
-            placeholder={
-              destinationsLoading
-                ? 'Loading destinations...'
-                : destinations.length > 0
-                  ? 'Add destination from system'
-                  : 'No destinations found'
-            }
-            onChange={(value) => {
-              setForm((prev) => ({ ...prev, destinations: Array.isArray(prev.destinations) ? (prev.destinations.includes(value) ? prev.destinations : [...prev.destinations, value]) : [value] }));
-            }}
-          />
-          <Text style={styles.helperText}>
-            Pick one or more destinations from the system, or keep a primary destination.
-          </Text>
+          <View style={styles.selectTrigger}>
+            <Text style={styles.selectValueText}>Destination cannot be edited</Text>
+            <Ionicons name="lock-closed-outline" size={16} color="#6B7280" />
+          </View>
+          <Text style={styles.helperText}>Selected destinations are locked for existing packages.</Text>
 
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
-            {Array.isArray(form.destinations) && form.destinations.length > 0 ? (
-              form.destinations.map((d, i) => (
-                <Pressable key={`${d}-${i}`} onPress={() => setForm((prev) => ({ ...prev, destinations: prev.destinations?.filter((x) => x !== d) } as FormState))} style={{ backgroundColor: '#F3F4F6', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 16, marginRight: 8 }}>
-                  <Text style={{ color: '#374151', fontWeight: '700' }}>{d} ×</Text>
-                </Pressable>
+            {lockedDestinations.length > 0 ? (
+              lockedDestinations.map((d, i) => (
+                <View key={`${d}-${i}`} style={{ backgroundColor: '#F3F4F6', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 16, marginRight: 8 }}>
+                  <Text style={{ color: '#374151', fontWeight: '700' }}>{d}</Text>
+                </View>
               ))
             ) : (
-              <Text style={styles.helperText}>No extra destinations selected.</Text>
+              <Text style={styles.helperText}>No destinations found for this package.</Text>
             )}
           </View>
         </Field>
@@ -417,15 +336,6 @@ export default function EditTourPackageScreen() {
           />
         </Field>
 
-        <Field label="Meals">
-          <MultiSelectField
-            value={form.meals}
-            options={MEAL_OPTIONS}
-            placeholder="Select meals"
-            onChange={(value) => updateField('meals', value)}
-          />
-        </Field>
-
         <Field label="Guide">
           <SelectField
             value={form.guide}
@@ -435,20 +345,9 @@ export default function EditTourPackageScreen() {
           />
         </Field>
 
-        <Field label="Transport">
-          <SelectField
-            value={form.transport}
-            options={TRANSPORT_OPTIONS}
-            placeholder="Select transport"
-            onChange={(value) => updateField('transport', value)}
-          />
-        </Field>
-
         <Field label="Itinerary (Days)">
           <View style={styles.itineraryWrap}>
             {timeline.map((day, dIdx) => {
-              const dayPlaces = Array.isArray(day.places) ? day.places : [];
-
               return (
                 <View key={dIdx} style={styles.dayCard}>
                   <View style={styles.dayHeader}>
@@ -473,134 +372,6 @@ export default function EditTourPackageScreen() {
                     numberOfLines={3}
                     onChangeText={(text) => setTimeline((prev) => prev.map((it, i) => (i === dIdx ? { ...it, notes: text } : it)))}
                   />
-
-                  <View style={{ marginTop: 8 }}>
-                    <Text style={{ marginBottom: 6, fontWeight: '700' }}>Select Hotel</Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.hotelListScroll}>
-                      {hotelsLoading ? (
-                        <Text style={styles.noHotelsText}>Loading hotels...</Text>
-                      ) : filteredHotels.length === 0 ? (
-                        form.destination ? (
-                          <Text style={styles.noHotelsText}>No hotels found for this destination.</Text>
-                        ) : (
-                          <Text style={styles.noHotelsText}>No hotels available</Text>
-                        )
-                      ) : (
-                        filteredHotels.map((hotel) => (
-                          <Pressable
-                            key={hotel._id}
-                            style={[
-                              styles.hotelChip,
-                              day.hotel === hotel._id && styles.hotelChipSelected,
-                            ]}
-                            onPress={() => {
-                              setTimeline((prev) => prev.map((it, i) => (i === dIdx ? { ...it, hotel: hotel._id, hotelName: hotel.hotelName || hotel.name || '', hotelLocation: hotel.location || hotel.address || '' } : it)));
-                            }}
-                          >
-                            <Text style={[styles.hotelChipText, day.hotel === hotel._id && styles.hotelChipTextSelected]}>{hotel.hotelName || hotel.name}</Text>
-                          </Pressable>
-                        ))
-                      )}
-                    </ScrollView>
-
-                    <TextInput
-                      placeholder="Hotel name (type to override or enter new)"
-                      placeholderTextColor="#9CA3AF"
-                      value={(day.hotelName || '')}
-                      onChangeText={(text) => setTimeline((prev) => prev.map((it, i) => (i === dIdx ? { ...it, hotelName: text } : it)))}
-                      style={[styles.input, { marginTop: 8 }]}
-                    />
-                    <TextInput
-                      placeholder="Hotel location (city/address)"
-                      placeholderTextColor="#9CA3AF"
-                      value={(day.hotelLocation || '')}
-                      onChangeText={(text) => setTimeline((prev) => prev.map((it, i) => (i === dIdx ? { ...it, hotelLocation: text } : it)))}
-                      style={[styles.input, { marginTop: 8 }]}
-                    />
-                  </View>
-
-                  <Text style={{ marginTop: 8, marginBottom: 6, fontWeight: '700' }}>Places</Text>
-                  {dayPlaces.map((p: any, pIdx: number) => {
-                    const placeMode = p.sourceType || (destinations.length > 0 ? 'system' : 'custom');
-
-                    return (
-                      <View key={pIdx} style={styles.placeCard}>
-                        <View style={styles.placeModeRow}>
-                          <Pressable style={[styles.modeChip, placeMode === 'system' && styles.modeChipActive]} onPress={() => setPlaceMode(dIdx, pIdx, 'system')}>
-                            <Text style={[styles.modeChipText, placeMode === 'system' && styles.modeChipTextActive]}>System destination</Text>
-                          </Pressable>
-                          <Pressable style={[styles.modeChip, placeMode !== 'system' && styles.modeChipActive]} onPress={() => setPlaceMode(dIdx, pIdx, 'custom')}>
-                            <Text style={[styles.modeChipText, placeMode !== 'system' && styles.modeChipTextActive]}>Custom place</Text>
-                          </Pressable>
-                        </View>
-
-                        {placeMode === 'system' ? (
-                          <SelectField
-                            value={p.name || ''}
-                            options={destinations.map((destination) => destination.name)}
-                            placeholder={destinationsLoading ? 'Loading destinations...' : 'Select destination from system'}
-                            onChange={(value) => applyDestinationToPlace(dIdx, pIdx, value)}
-                          />
-                        ) : (
-                          <TextInput
-                            style={styles.input}
-                            value={p.name || ''}
-                            placeholder="Custom place name"
-                            onChangeText={(text) =>
-                              setTimeline((prev) => prev.map((it, i) => (i === dIdx ? { ...it, places: it.places.map((pl: any, pi: number) => (pi === pIdx ? { ...pl, name: text } : pl)) } : it)))
-                            }
-                          />
-                        )}
-
-                        <TextInput
-                          style={styles.input}
-                          value={p.location || ''}
-                          placeholder="Place location"
-                          onChangeText={(text) =>
-                            setTimeline((prev) => prev.map((it, i) => (i === dIdx ? { ...it, places: it.places.map((pl: any, pi: number) => (pi === pIdx ? { ...pl, location: text } : pl)) } : it)))
-                          }
-                        />
-
-                        <TextInput
-                          style={[styles.input, styles.inputMultiline]}
-                          value={p.notes || ''}
-                          placeholder="Place notes"
-                          multiline
-                          numberOfLines={2}
-                          onChangeText={(text) =>
-                            setTimeline((prev) => prev.map((it, i) => (i === dIdx ? { ...it, places: it.places.map((pl: any, pi: number) => (pi === pIdx ? { ...pl, notes: text } : pl)) } : it)))
-                          }
-                        />
-
-                        <Pressable
-                          onPress={() => {
-                            setTimeline((prev) => prev.map((it, i) => (i === dIdx ? { ...it, places: it.places.filter((_: any, pi: number) => pi !== pIdx) } : it)));
-                          }}
-                          style={styles.removePlaceButton}
-                        >
-                          <Ionicons name="close-circle" size={20} color="#EF4444" />
-                        </Pressable>
-                      </View>
-                    );
-                  })}
-
-                  <Pressable
-                    style={styles.addPlaceBtn}
-                    onPress={() =>
-                      setTimeline((prev) =>
-                        prev.map((it, i) =>
-                          i === dIdx
-                            ? {
-                                ...it,
-                                places: [...(it.places || []), { name: '', notes: '', location: '', sourceType: destinations.length > 0 ? 'system' : 'custom' }],
-                              }
-                            : it
-                        )
-                      )
-                    }
-                  >
-                    <Text style={{ color: '#065F46', fontWeight: '700' }}>+ Add place</Text>
-                  </Pressable>
                 </View>
               );
             })}
