@@ -366,4 +366,5 @@ const styles = StyleSheet.create({
   mainBtn: { height: 64, alignItems: 'center', justifyContent: 'center' },
   btnContent: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   mainBtnText: { color: 'white', fontSize: 18, fontWeight: '800' },
+  mainBtnText: { color: 'white', fontSize: 18, fontWeight: '800' },
 });

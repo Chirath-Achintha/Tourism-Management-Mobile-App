@@ -434,4 +434,5 @@ const styles = StyleSheet.create({
   mainBtn: { height: 60, alignItems: 'center', justifyContent: 'center' },
   btnContent: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   mainBtnText: { color: 'white', fontSize: 16, fontWeight: '800' },
+  mainBtnText: { color: 'white', fontSize: 16, fontWeight: '800' },
 });
