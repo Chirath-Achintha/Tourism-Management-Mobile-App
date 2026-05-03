@@ -6,7 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { API_BASE_URL } from '@/constants/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-type RoleFilter = 'all' | 'tourist' | 'hotel_manager' | 'admin';
+type RoleFilter = 'all' | 'tourist' | 'hotel_manager' | 'admin' | 'tour_guide';
 
 export default function UserManagementScreen() {
   const [users, setUsers] = useState<any[]>([]);
@@ -122,7 +122,7 @@ export default function UserManagementScreen() {
         <Text style={styles.userEmail}>{item.email}</Text>
         <View style={[
           styles.roleBadge, 
-          { backgroundColor: item.role === 'admin' ? '#FFD166' : item.role === 'hotel_manager' ? '#E3F2FD' : 'rgba(26, 59, 47, 0.05)' }
+          { backgroundColor: item.role === 'admin' ? '#FFD166' : item.role === 'tour_guide' ? '#D1FAE5' : item.role === 'hotel_manager' ? '#E3F2FD' : 'rgba(26, 59, 47, 0.05)' }
         ]}>
           <Text style={styles.roleText}>{item.role.replace('_', ' ').toUpperCase()}</Text>
         </View>
@@ -173,6 +173,12 @@ export default function UserManagementScreen() {
         onPress={() => setSelectedRole('admin')}
       >
         <Text style={[styles.filterText, selectedRole === 'admin' && styles.filterTextActive]}>Admins</Text>
+      </Pressable>
+      <Pressable 
+        style={[styles.filterPill, selectedRole === 'tour_guide' && styles.filterPillActive]} 
+        onPress={() => setSelectedRole('tour_guide')}
+      >
+        <Text style={[styles.filterText, selectedRole === 'tour_guide' && styles.filterTextActive]}>Guides</Text>
       </Pressable>
     </View>
   );

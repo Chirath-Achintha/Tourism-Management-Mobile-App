@@ -13,11 +13,12 @@ interface GuideCardProps {
   };
   onEdit?: (guide: any) => void;
   onDelete?: (id: string) => void;
+  onPress?: (guide: any) => void;
 }
 
-export const GuideCard = ({ guide, onEdit, onDelete }: GuideCardProps) => {
+export const GuideCard = ({ guide, onEdit, onDelete, onPress }: GuideCardProps) => {
   return (
-    <View style={styles.card}>
+    <Pressable style={styles.card} onPress={() => onPress?.(guide)}>
       <Image source={{ uri: guide.imageUrl }} style={styles.cardImage} />
       <View style={styles.cardContent}>
         <Text style={styles.cardName}>{guide.name}</Text>
@@ -54,7 +55,7 @@ export const GuideCard = ({ guide, onEdit, onDelete }: GuideCardProps) => {
           </View>
         )}
       </View>
-    </View>
+    </Pressable>
   );
 };
 

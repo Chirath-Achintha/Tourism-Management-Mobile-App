@@ -1,4 +1,6 @@
 import Guide from "../models/Guide.js";
+import User from "../models/User.js";
+import bcrypt from "bcryptjs";
 
 // @desc    Get all tour guides
 // @route   GET /api/guides
@@ -29,38 +31,68 @@ export const getGuideById = async (req, res) => {
 
 const phonePattern = /^[0-9]{10}$/;
 
-// @desc    Create a tour guide
+// @desc    Create a tour guide (also creates a linked login account)
 // @route   POST /api/guides
 // @access  Private/Admin
 export const createGuide = async (req, res) => {
   try {
-    const { name, experience, language, contact } = req.body;
+    const { name, experience, language, contact, email, password } = req.body;
 
-    if (!name || !experience || !language || !contact) {
-      return res.status(400).json({ message: "Please provide all required fields" });
+    // 1. Validate required fields
+    if (!name || !experience || !language || !contact || !email || !password) {
+      return res.status(400).json({ message: "Please provide all required fields including email and password" });
     }
 
     if (!phonePattern.test(contact)) {
       return res.status(400).json({ message: "Please provide a valid 10-digit phone number" });
     }
 
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ message: "Please provide a valid email address" });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters" });
+    }
+
+    // 2. Check if email already exists
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    if (existingUser) {
+      return res.status(400).json({ message: "An account with this email already exists" });
+    }
+
+    // 3. Get image URL
     let imageUrl = "";
     if (req.file) {
-      // Cloudinary storage returns the URL in req.file.path
       imageUrl = req.file.path;
     } else {
       return res.status(400).json({ message: "Please upload an image for the guide" });
     }
 
+    // 4. Create the User account
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = await User.create({
+      fullName: name,
+      email: email.toLowerCase(),
+      phoneNumber: contact,
+      password: hashedPassword,
+      role: "tour_guide",
+    });
+
+    // 5. Create the Guide profile linked to the user
     const guide = await Guide.create({
       name,
       experience,
       language,
       contact,
       imageUrl,
+      userId: user._id,
     });
 
-    res.status(201).json({ message: "Tour guide created successfully", guide });
+    res.status(201).json({
+      message: `Tour guide created successfully. Login email: ${email}`,
+      guide,
+    });
   } catch (error) {
     res.status(500).json({ message: "Failed to create tour guide", error: error.message });
   }
@@ -105,7 +137,7 @@ export const updateGuide = async (req, res) => {
   }
 };
 
-// @desc    Delete a tour guide
+// @desc    Delete a tour guide (also deletes the linked user account)
 // @route   DELETE /api/guides/:id
 // @access  Private/Admin
 export const deleteGuide = async (req, res) => {
@@ -116,8 +148,13 @@ export const deleteGuide = async (req, res) => {
       return res.status(404).json({ message: "Tour guide not found" });
     }
 
+    // Also delete the linked user account if exists
+    if (guide.userId) {
+      await User.findByIdAndDelete(guide.userId);
+    }
+
     await guide.deleteOne();
-    res.status(200).json({ message: "Tour guide removed successfully" });
+    res.status(200).json({ message: "Tour guide and linked account removed successfully" });
   } catch (error) {
     res.status(500).json({ message: "Failed to delete tour guide", error: error.message });
   }

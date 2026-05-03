@@ -47,7 +47,10 @@ export default function TouristTourGuidesScreen() {
   }, []);
 
   const renderGuideItem = ({ item }: { item: any }) => (
-    <GuideCard guide={item} />
+    <GuideCard 
+      guide={item} 
+      onPress={(guide) => router.push({ pathname: '/tourist-guide-detail', params: { id: guide._id } })}
+    />
   );
 
   return (
@@ -97,7 +100,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#ffffff',
+    backgroundColor: 'transparent',
   },
   backButton: {
     width: 44,

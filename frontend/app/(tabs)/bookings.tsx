@@ -48,13 +48,26 @@ export default function MyBookingsScreen() {
   const fetchBookings = async () => {
     try {
       const token = await AsyncStorage.getItem('auth:token');
-      const response = await fetch(`${API_BASE_URL}/reservations/my`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      const data = await response.json();
-      if (response.ok) {
-        setBookings(data);
+      
+      const [packRes, guideRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/reservations/my`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_BASE_URL}/guide-reservations/my`, { headers: { 'Authorization': `Bearer ${token}` } })
+      ]);
+      
+      let allBookings: any[] = [];
+      
+      if (packRes.ok) {
+        const pData = await packRes.json();
+        allBookings = [...allBookings, ...pData.map((b: any) => ({ ...b, type: 'package' }))];
       }
+      if (guideRes.ok) {
+        const gData = await guideRes.json();
+        allBookings = [...allBookings, ...gData.map((b: any) => ({ ...b, type: 'guide' }))];
+      }
+
+      allBookings.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      
+      setBookings(allBookings);
     } catch (error) {
       console.error(error);
     } finally {
@@ -121,6 +134,9 @@ export default function MyBookingsScreen() {
       item.status === 'Rejected' ? COLORS.rejected : 
       COLORS.cancelled;
     
+    const isGuide = item.type === 'guide';
+    const title = isGuide ? `Guide: ${item.guideId?.name || 'Unknown'}` : (item.packageId?.name || 'Package');
+
     return (
       <View style={styles.card}>
         <View style={styles.cardHeader}>
