@@ -519,7 +519,10 @@ export default function SearchPlacesScreen() {
         <Stack.Screen options={{ headerShown: false }} />
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.headerRow}>
-            <Text style={styles.title}>{id ? "Edit Hotel" : "Register Hotel"}</Text>
+            <Pressable onPress={() => router.back()} style={{ marginRight: 12 }}>
+              <Ionicons name="arrow-back" size={28} color="#1A3B2F" />
+            </Pressable>
+            <Text style={[styles.title, { flex: 1 }]}>{id ? "Edit Hotel" : "Register Hotel"}</Text>
             <IconSymbol name="plus.circle.fill" size={30} color="#1A3B2F" />
           </View>
           <Text style={styles.subtitle}>
@@ -563,58 +566,6 @@ export default function SearchPlacesScreen() {
 
             <View style={[styles.inputGroup, { zIndex: 10 }]}>
               <Text style={styles.label}>Full Address (Search to Pin) *</Text>
-              <View style={{ marginBottom: 12 }}>
-                <Text style={{ fontSize: 12, color: '#1A3B2F', opacity: 0.6, marginBottom: 6 }}>
-                  Popular Places (Click to auto-fill):
-                </Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 4 }}>
-                  {TOURIST_PLACES.map((p, idx) => (
-                    <Pressable
-                      key={idx}
-                      style={{
-                        backgroundColor: '#ffffff',
-                        borderWidth: 1,
-                        borderColor: 'rgba(26, 59, 47, 0.15)',
-                        borderRadius: 14,
-                        paddingVertical: 8,
-                        paddingHorizontal: 14,
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        gap: 6,
-                        marginRight: 6,
-                        shadowColor: '#000',
-                        shadowOffset: { width: 0, height: 1 },
-                        shadowOpacity: 0.04,
-                        shadowRadius: 3,
-                        elevation: 1,
-                      }}
-                      onPress={async () => {
-                        setAddress(`${p.name}, ${p.district}, Sri Lanka`);
-                        setLocation(p.district);
-                        try {
-                          const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(p.name + ', ' + p.district)}&limit=1&countrycode=lk`);
-                          const data = await res.json();
-                          if (data && data.features && data.features.length > 0) {
-                            const [lon, lat] = data.features[0].geometry.coordinates;
-                            setSelectedLocation({ latitude: lat, longitude: lon });
-                            setMapRegion({
-                              latitude: lat,
-                              longitude: lon,
-                              latitudeDelta: 0.05,
-                              longitudeDelta: 0.05,
-                            });
-                          }
-                        } catch (e) {
-                          console.error(e);
-                        }
-                      }}
-                    >
-                      <Ionicons name="location-outline" size={14} color="#1A3B2F" />
-                      <Text style={{ fontSize: 13, fontWeight: '700', color: '#1A3B2F' }}>{p.name}</Text>
-                    </Pressable>
-                  ))}
-                </ScrollView>
-              </View>
               <View style={{ position: 'relative' }}>
                 <TextInput
                   value={address}
