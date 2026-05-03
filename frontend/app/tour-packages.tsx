@@ -113,7 +113,22 @@ export default function TourPackagesScreen() {
     }
     if (locationQuery && locationQuery.trim()) {
       const q = locationQuery.trim().toLowerCase();
-      list = list.filter((p) => (p.destination || '').toLowerCase().includes(q));
+      list = list.filter((p) => {
+        const destName = String(p.destination || '').toLowerCase();
+        if (destName.includes(q)) return true;
+
+        const itemDests = Array.isArray(p.destinations) ? p.destinations : [];
+        // check if any destination name includes query
+        if (itemDests.some((name: any) => String(name || '').toLowerCase().includes(q))) return true;
+
+        // check destinations master list for matching location fields (e.g., city names)
+        if (itemDests.some((name: any) => {
+          const matched = destinations.find((d) => normalize(d.name) === normalize(name));
+          return normalize(matched?.location).includes(q);
+        })) return true;
+
+        return false;
+      });
     }
     return list;
   }, [packages, selectedCategory, locationQuery, destinationId, destinationName, location, destinations]);
