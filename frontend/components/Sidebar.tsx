@@ -234,8 +234,14 @@ export const Sidebar = ({ isVisible, onClose }: SidebarProps) => {
                   label="My Hotels"
                   onPress={() => handleNavigate('/manager/my-hotels')}
                 />
+                <SidebarItem
+                  icon="star-outline"
+                  label="My Reviews"
+                  onPress={() => handleNavigate('/reviews?manager=true')}
+                />
               </>
             )}
+
             <View style={styles.divider} />
             <SidebarItem
               icon="settings-outline"
@@ -250,13 +256,10 @@ export const Sidebar = ({ isVisible, onClose }: SidebarProps) => {
           </ScrollView>
 
           <View style={styles.footer}>
-            <Pressable style={styles.logoutBtn} onPress={handleLogout}>
-              <Ionicons name="log-out-outline" size={20} color="#1A3B2F" />
-              <Text style={styles.logoutBtnText}>Logout</Text>
-            </Pressable>
             <Text style={styles.versionText}>Version 1.0.0</Text>
           </View>
         </SafeAreaView>
+
       </Animated.View>
     </View>
   );

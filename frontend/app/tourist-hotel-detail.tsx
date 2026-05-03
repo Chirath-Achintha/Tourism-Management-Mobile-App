@@ -163,8 +163,10 @@ export default function TouristHotelDetailScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 30 }}>
+
+
         
         {/* Cover Hero Image & Overlays */}
         <View style={styles.imageContainer}>
@@ -235,7 +237,30 @@ export default function TouristHotelDetailScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>About this hotel</Text>
           <Text style={styles.description}>{hotel.description}</Text>
+          <Pressable 
+            style={[styles.contactOption, { width: '100%', marginTop: 6, flexDirection: 'row', alignItems: 'center' }]} 
+            onPress={() => {
+              const url = hotel.latitude && hotel.longitude 
+                ? `https://www.google.com/maps/search/?api=1&query=${hotel.latitude},${hotel.longitude}`
+                : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${hotel.hotelName}, ${hotel.address || hotel.location}`)}`;
+              Linking.openURL(url).catch(() => {
+                Alert.alert("Error", "Could not open map.");
+              });
+            }}
+          >
+            <View style={[styles.contactIconBox, { backgroundColor: '#FFD166', marginBottom: 0 }]}>
+              <Ionicons name="map" size={16} color={COLORS.text} />
+            </View>
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={[styles.contactLabel, { textAlign: 'left' }]}>Google Location</Text>
+              <Text style={[styles.contactValue, { textAlign: 'left', textDecorationLine: 'underline', color: '#1A3B2F' }]} numberOfLines={1}>
+                {hotel.address || hotel.location || 'View on Google Maps'}
+              </Text>
+            </View>
+          </Pressable>
         </View>
+
+
 
         {/* Room Types & Special Rates */}
         {(hotel.roomConfigs || hotel.rooms) && (hotel.roomConfigs || hotel.rooms).length > 0 && (
@@ -309,6 +334,51 @@ export default function TouristHotelDetailScreen() {
           </View>
         </View>
 
+        {/* Contact info with interactive links */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Contact Support & Enquiries</Text>
+          <View style={styles.contactGrid}>
+            <Pressable style={styles.contactOption} onPress={handleCall}>
+              <View style={styles.contactIconBox}>
+                <Ionicons name="call" size={16} color={COLORS.white} />
+              </View>
+              <Text style={styles.contactLabel}>Phone Number</Text>
+              <Text style={styles.contactValue} numberOfLines={1}>{hotel.contactPhone}</Text>
+            </Pressable>
+
+            <Pressable style={styles.contactOption} onPress={handleEmail}>
+              <View style={[styles.contactIconBox, { backgroundColor: '#44B681' }]}>
+                <Ionicons name="mail" size={16} color={COLORS.white} />
+              </View>
+              <Text style={styles.contactLabel}>Email Address</Text>
+              <Text style={styles.contactValue} numberOfLines={1}>{hotel.contactEmail}</Text>
+            </Pressable>
+
+            {hotel.websiteLink ? (
+              <Pressable 
+                style={[styles.contactOption, { width: '100%' }]} 
+                onPress={() => {
+                  if (hotel.websiteLink) {
+                    Linking.openURL(hotel.websiteLink).catch(() => {
+                      Alert.alert("Error", "Could not open the website.");
+                    });
+                  }
+                }}
+              >
+                <View style={[styles.contactIconBox, { backgroundColor: '#3b82f6' }]}>
+                  <Ionicons name="globe" size={16} color={COLORS.white} />
+                </View>
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={[styles.contactLabel, { textAlign: 'left' }]}>Official Website</Text>
+                  <Text style={[styles.contactValue, { textAlign: 'left', textDecorationLine: 'underline', color: '#1d4ed8' }]} numberOfLines={1}>
+                    {hotel.websiteLink}
+                  </Text>
+                </View>
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
+
         {/* Reviews Section */}
         <View style={[styles.section, { marginTop: 32 }]}>
           <View style={styles.sectionHeaderRow}>
@@ -353,7 +423,6 @@ export default function TouristHotelDetailScreen() {
             )}
           </ScrollView>
 
-
           <Pressable 
             style={styles.addReviewButton}
             onPress={() => setModalVisible(true)}
@@ -361,51 +430,6 @@ export default function TouristHotelDetailScreen() {
             <Text style={styles.addReviewText}>Write a Review</Text>
           </Pressable>
 
-        </View>
-
-        {/* Contact info with interactive links */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Contact Support & Enquiries</Text>
-          <View style={styles.contactGrid}>
-            <Pressable style={styles.contactOption} onPress={handleCall}>
-              <View style={styles.contactIconBox}>
-                <Ionicons name="call" size={16} color={COLORS.white} />
-              </View>
-              <Text style={styles.contactLabel}>Phone Number</Text>
-              <Text style={styles.contactValue} numberOfLines={1}>{hotel.contactPhone}</Text>
-            </Pressable>
-
-            <Pressable style={styles.contactOption} onPress={handleEmail}>
-              <View style={[styles.contactIconBox, { backgroundColor: '#44B681' }]}>
-                <Ionicons name="mail" size={16} color={COLORS.white} />
-              </View>
-              <Text style={styles.contactLabel}>Email Address</Text>
-              <Text style={styles.contactValue} numberOfLines={1}>{hotel.contactEmail}</Text>
-            </Pressable>
-
-            {hotel.websiteLink ? (
-              <Pressable 
-                style={[styles.contactOption, { width: '100%' }]} 
-                onPress={() => {
-                  if (hotel.websiteLink) {
-                    Linking.openURL(hotel.websiteLink).catch(() => {
-                      Alert.alert("Error", "Could not open the website.");
-                    });
-                  }
-                }}
-              >
-                <View style={[styles.contactIconBox, { backgroundColor: '#3b82f6' }]}>
-                  <Ionicons name="globe" size={16} color={COLORS.white} />
-                </View>
-                <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={[styles.contactLabel, { textAlign: 'left' }]}>Official Website</Text>
-                  <Text style={[styles.contactValue, { textAlign: 'left', textDecorationLine: 'underline', color: '#1d4ed8' }]} numberOfLines={1}>
-                    {hotel.websiteLink}
-                  </Text>
-                </View>
-              </Pressable>
-            ) : null}
-          </View>
         </View>
 
       </ScrollView>

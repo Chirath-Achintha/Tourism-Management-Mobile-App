@@ -210,8 +210,9 @@ export default function MyHotelsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f4f8fb',
+    backgroundColor: '#F0FAF5',
   },
+
   header: {
     flexDirection: 'row',
     alignItems: 'center',

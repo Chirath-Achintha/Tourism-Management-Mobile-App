@@ -10,7 +10,8 @@ import {
   Alert,
   Dimensions,
 } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter, Stack } from "expo-router";
+
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_BASE_URL } from "@/constants/api";
@@ -36,18 +37,22 @@ export default function ReviewsScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
   
-  // Identify the target (Hotel or Destination)
+  const isManager = params.manager === 'true';
   const hotelId = params.hotelId as string;
   const destinationId = params.destinationId as string;
-  const targetId = hotelId || destinationId;
-  const targetType = hotelId ? 'hotel' : 'destination';
 
   const [userId, setUserId] = useState<string | null>(null);
+  const [managerHotels, setManagerHotels] = useState<any[]>([]);
+  const [selectedHotelId, setSelectedHotelId] = useState<string | null>(hotelId || null);
   const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingReview, setEditingReview] = useState<any | null>(null);
+  const [isDropdownOpen, setDropdownOpen] = useState(false);
 
+
+  const targetId = selectedHotelId || hotelId || destinationId;
+  const targetType = selectedHotelId || hotelId ? 'hotel' : 'destination';
 
   const fetchUserData = async () => {
     try {
@@ -59,6 +64,27 @@ export default function ReviewsScreen() {
       }
     } catch (error) {
       console.error("Failed to load user data", error);
+    }
+  };
+
+  const fetchManagerHotels = async () => {
+    try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem('auth:token');
+      const response = await fetch(`${API_BASE_URL}/hotels/my-hotels`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (response.ok && Array.isArray(data)) {
+        setManagerHotels(data);
+        if (data.length > 0 && !selectedHotelId) {
+          setSelectedHotelId(data[0]._id);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching manager hotels:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -83,8 +109,17 @@ export default function ReviewsScreen() {
 
   useEffect(() => {
     fetchUserData();
-    getReviews();
+    if (isManager) {
+      fetchManagerHotels();
+    }
+  }, []);
+
+  useEffect(() => {
+    if (targetId) {
+      getReviews();
+    }
   }, [targetId]);
+
 
   // Calculate Statistics
   const stats = useMemo(() => {
@@ -151,10 +186,13 @@ export default function ReviewsScreen() {
 
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, isManager && { backgroundColor: '#F0FAF5' }]}>
+      <Stack.Screen options={{ headerShown: false }} />
+
       <StatusBar style="dark" />
       
       {/* Header */}
+
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="chevron-back" size={24} color={COLORS.text} />
@@ -170,6 +208,46 @@ export default function ReviewsScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {isManager && managerHotels.length > 0 && (
+          <View style={styles.managerHotelsContainer}>
+            <Text style={styles.managerHotelsTitle}>My Hotels</Text>
+            <Pressable 
+              style={styles.dropdownTrigger}
+              onPress={() => setDropdownOpen(!isDropdownOpen)}
+            >
+              <Ionicons name="business-outline" size={18} color={COLORS.text} />
+              <Text style={styles.dropdownValue}>
+                {managerHotels.find(h => h._id === selectedHotelId)?.hotelName || "Select Hotel"}
+              </Text>
+              <Ionicons name={isDropdownOpen ? "chevron-up" : "chevron-down"} size={18} color={COLORS.text} />
+            </Pressable>
+
+            {isDropdownOpen && (
+              <View style={styles.dropdownMenu}>
+                {managerHotels.map((h: any) => {
+                  const isSelected = h._id === selectedHotelId;
+                  return (
+                    <Pressable 
+                      key={h._id} 
+                      style={[styles.dropdownItem, isSelected && styles.dropdownItemActive]} 
+                      onPress={() => {
+                        setSelectedHotelId(h._id);
+                        setDropdownOpen(false);
+                      }}
+                    >
+                      <Ionicons name="business" size={16} color={isSelected ? COLORS.primary : COLORS.text} />
+                      <Text style={[styles.dropdownItemText, isSelected && styles.dropdownItemTextActive]}>
+                        {h.hotelName}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
+          </View>
+        )}
+
+
         {loading ? (
           <View style={styles.center}>
             <ActivityIndicator size="large" color={COLORS.primary} />
@@ -184,9 +262,11 @@ export default function ReviewsScreen() {
               satisfactionRate={stats.satisfaction}
             />
 
+
             {/* Write a Review Button (Conditional) */}
-            {!hasReviewed && userId && (
+            {!isManager && !hasReviewed && userId && (
               <Pressable 
+
                 style={styles.addReviewBtn} 
                 onPress={() => setModalVisible(true)}
               >
@@ -412,5 +492,76 @@ const styles = StyleSheet.create({
   verticalItem: {
     marginBottom: 16,
     width: '100%',
-  }
+  },
+  managerHotelsContainer: {
+    marginBottom: 24,
+    position: 'relative',
+    zIndex: 100,
+  },
+  managerHotelsTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: COLORS.text,
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  dropdownTrigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 16,
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: 'rgba(26, 59, 47, 0.08)',
+    shadowColor: 'rgba(0,0,0,0.03)',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  dropdownValue: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginLeft: 10,
+  },
+  dropdownMenu: {
+    marginTop: 6,
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(26, 59, 47, 0.08)',
+    overflow: 'hidden',
+    shadowColor: 'rgba(0,0,0,0.05)',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 1,
+    shadowRadius: 20,
+    elevation: 4,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.03)',
+  },
+  dropdownItemActive: {
+    backgroundColor: 'rgba(30, 136, 229, 0.05)',
+  },
+  dropdownItemText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  dropdownItemTextActive: {
+    fontWeight: '800',
+    color: COLORS.primary,
+  },
 });
+

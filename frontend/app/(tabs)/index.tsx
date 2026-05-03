@@ -69,7 +69,7 @@ const TouristDashboardContent = ({ user, stats, onLogout, onExplore, onOpenSideb
   </ScrollView>
 );
 
-const HotelManagerDashboardContent = ({ user, stats, onLogout, onAddHotel, onMyHotels, onOpenSidebar }: any) => (
+const HotelManagerDashboardContent = ({ user, stats, onLogout, onAddHotel, onMyHotels, onViewReviews, onOpenSidebar }: any) => (
   <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
     <View style={styles.header}>
       <View style={styles.headerLeft}>
@@ -120,9 +120,17 @@ const HotelManagerDashboardContent = ({ user, stats, onLogout, onAddHotel, onMyH
         </View>
         <Text style={styles.actionLabel}>My Hotels</Text>
       </Pressable>
+      <Pressable style={styles.quickActionItem} onPress={onViewReviews}>
+        <View style={[styles.actionIcon, { backgroundColor: 'rgba(255, 152, 0, 0.2)' }]}>
+          <Ionicons name="star-outline" size={24} color="#FFA726" />
+        </View>
+        <Text style={styles.actionLabel}>My Reviews</Text>
+      </Pressable>
     </View>
+
   </ScrollView>
 );
+
 
 const AdminDashboardContent = ({ 
   user, 
@@ -246,9 +254,11 @@ export default function DashboardScreen() {
               const verified = hotelsData.filter((h: any) => h.status === 'verified').length;
               const pending = hotelsData.filter((h: any) => h.status === 'pending').length;
               const declined = hotelsData.filter((h: any) => h.status === 'declined').length;
-              setStats({ verified, pending, declined } as any);
+              const firstHotelId = hotelsData[0]?._id;
+              setStats({ verified, pending, declined, firstHotelId } as any);
             }
-          } else {
+          }
+ else {
             const res = await fetch(`${API_BASE_URL}/reservations/stats`, {
               headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -326,8 +336,13 @@ export default function DashboardScreen() {
             onLogout={handleLogout} 
             onAddHotel={() => router.push('/(tabs)/explore' as any)}
             onMyHotels={() => router.push('/manager/my-hotels' as any)}
+            onViewReviews={() => {
+              router.push({ pathname: '/reviews' as any, params: { manager: 'true' } });
+            }}
             onOpenSidebar={() => setSidebarVisible(true)}
           />
+
+
         ) : (
          <TouristDashboardContent 
   user={user} 
@@ -527,7 +542,7 @@ reviewButtonText: {
   quickActionsGrid: {
     flexDirection: 'row',
     justifyContent: 'flex-start',
-    gap: 24,
+    gap: 12,
     marginBottom: 32,
     flexWrap: 'wrap',
   },
@@ -536,6 +551,7 @@ reviewButtonText: {
     gap: 8,
     width: '30%',
   },
+
   actionIcon: {
     width: 60,
     height: 60,
