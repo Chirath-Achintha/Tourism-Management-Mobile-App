@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -38,6 +38,7 @@ export default function DestinationDetailScreen() {
   const [destination, setDestination] = useState<any>(null);
   const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [packages, setPackages] = useState<any[]>([]);
   const [isFavorite, setIsFavorite] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [modalVisible, setModalVisible] = useState(false);
@@ -146,6 +147,35 @@ export default function DestinationDetailScreen() {
 
 
 
+  useEffect(() => {
+    const fetchPackages = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/tour-packages`);
+        const data = await response.json();
+        if (response.ok) {
+          setPackages(Array.isArray(data) ? data : []);
+        }
+      } catch (error) {
+        console.error('Fetch packages failed:', error);
+      }
+    };
+
+    fetchPackages();
+  }, []);
+
+  const relatedPackages = useMemo(() => {
+    if (!destination || !id) return [];
+
+    const destinationId = String(id);
+    const destinationName = String(destination.name || '').trim().toLowerCase();
+
+    return packages.filter((item) => {
+      const itemDestinationId = String(item?.destinationId?._id || item?.destinationId || '').trim();
+      const itemDestinationName = String(item?.destination || '').trim().toLowerCase();
+      return itemDestinationId === destinationId || (destinationName && itemDestinationName === destinationName);
+    });
+  }, [destination, id, packages]);
+
   const handleScroll = (event: any) => {
     const slideSize = event.nativeEvent.layoutMeasurement.width;
     const index = event.nativeEvent.contentOffset.x / slideSize;
@@ -215,7 +245,15 @@ export default function DestinationDetailScreen() {
 
           <View style={styles.headerTitleContainer} pointerEvents="none">
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <Text style={styles.destinationName}>{destination.name}</Text>
+              <Text 
+                style={[
+                  styles.destinationName, 
+                  destination.name.length > 20 && { fontSize: 24 }
+                ]}
+                numberOfLines={3}
+              >
+                {destination.name}
+              </Text>
               {destination.isFeatured && (
                 <View style={styles.featuredBadge}>
                   <Ionicons name="star" size={12} color="#1A3B2F" />
@@ -245,24 +283,9 @@ export default function DestinationDetailScreen() {
 
         {/* Details Section */}
         <View style={styles.detailsContainer}>
-          <View style={styles.titleSection}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <Text style={styles.name}>{destination.name}</Text>
-              {destination.isFeatured && (
-                <View style={styles.featuredBadge}>
-                  <Ionicons name="star" size={12} color="#1A3B2F" />
-                  <Text style={styles.featuredText}>Featured</Text>
-                </View>
-              )}
-            </View>
-            <View style={styles.locationRowMain}>
-              <Ionicons name="location" size={16} color="#FFD166" />
-              <Text style={styles.location}>{destination.location}</Text>
-            </View>
-          </View>
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
-              <View style={[styles.statIcon, { backgroundColor: '#F0FAF5' }]}>
+              <View style={[styles.statIcon, { backgroundColor: '#FFF9E6' }]}>
                 <Ionicons name="star" size={20} color="#FFD166" />
               </View>
               <View>
@@ -272,8 +295,8 @@ export default function DestinationDetailScreen() {
 
             </View>
             <View style={styles.statItem}>
-              <View style={[styles.statIcon, { backgroundColor: '#F0FAF5' }]}>
-                <Ionicons name="calendar-outline" size={20} color="#1A3B2F" />
+              <View style={[styles.statIcon, { backgroundColor: '#F0F7FF' }]}>
+                <Ionicons name="calendar-outline" size={20} color="#1565C0" />
               </View>
               <View>
                 <Text style={styles.statValue}>{destination.bestTimeToVisit || "Year-round"}</Text>
@@ -281,8 +304,8 @@ export default function DestinationDetailScreen() {
               </View>
             </View>
             <View style={styles.statItem}>
-              <View style={[styles.statIcon, { backgroundColor: '#F0FAF5' }]}>
-                <Ionicons name="thermometer-outline" size={20} color="#1A3B2F" />
+              <View style={[styles.statIcon, { backgroundColor: '#FFF0F0' }]}>
+                <Ionicons name="thermometer-outline" size={20} color="#FF4D4D" />
               </View>
               <View>
                 <Text style={styles.statValue}>{destination.averageTemp || "24°C"}</Text>
@@ -293,6 +316,23 @@ export default function DestinationDetailScreen() {
 
           <Text style={styles.sectionTitle}>About this place</Text>
           <Text style={styles.description}>{destination.description}</Text>
+
+          <View style={styles.packageSection}>
+            <Text style={styles.sectionTitle}>Tour Packages</Text>
+            {relatedPackages.length > 0 ? (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.packageScroll}>
+                {relatedPackages.map((item) => (
+                  <Pressable key={item._id} style={styles.packageCard} onPress={() => router.push(`/tour-packages/${item._id}` as any)}>
+                    <Text style={styles.packageCardTitle} numberOfLines={2}>{item.name}</Text>
+                    <Text style={styles.packageCardMeta} numberOfLines={1}>LKR {item.price ? Number(item.price).toLocaleString() : 'N/A'}</Text>
+                    <Text style={styles.packageCardMeta} numberOfLines={1}>{item.duration ? `${item.duration} days` : 'Duration TBA'}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            ) : (
+              <Text style={styles.packageEmptyText}>No packages are linked to this destination yet.</Text>
+            )}
+          </View>
 
           <View style={styles.categoryInfo}>
             <Text style={styles.categoryLabel}>{"Categories"}</Text>
@@ -487,9 +527,10 @@ const styles = StyleSheet.create({
   },
   destinationName: {
     color: '#ffffff',
-    fontSize: 36,
+    fontSize: 32,
     fontWeight: '900',
-    letterSpacing: -1,
+    letterSpacing: -0.5,
+    lineHeight: 38,
   },
   pagination: {
     position: 'absolute',
@@ -513,10 +554,11 @@ const styles = StyleSheet.create({
   },
   detailsContainer: {
     padding: 24,
-    marginTop: -20,
+    paddingTop: 36,
+    marginTop: -30,
     backgroundColor: '#ffffff',
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
+    borderTopLeftRadius: 36,
+    borderTopRightRadius: 36,
   },
   statsRow: {
     flexDirection: 'row',
@@ -553,10 +595,42 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: 15,
-    color: 'rgba(26, 59, 47, 0.6)',
+    color: 'rgba(26, 59, 47, 0.7)',
     lineHeight: 24,
-    fontWeight: '500',
-    marginBottom: 24,
+    fontWeight: '600',
+    marginBottom: 32,
+  },
+  packageSection: {
+    marginBottom: 8,
+  },
+  packageScroll: {
+    paddingTop: 6,
+    paddingBottom: 4,
+    gap: 12,
+  },
+  packageCard: {
+    width: 180,
+    borderRadius: 20,
+    backgroundColor: '#F7F9F4',
+    borderWidth: 1,
+    borderColor: 'rgba(26, 59, 47, 0.08)',
+    padding: 14,
+  },
+  packageCardTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#1A3B2F',
+    marginBottom: 8,
+  },
+  packageCardMeta: {
+    fontSize: 13,
+    color: '#64748b',
+    marginTop: 2,
+  },
+  packageEmptyText: {
+    color: '#64748b',
+    fontSize: 14,
+    marginTop: 4,
   },
   categoryInfo: {
     marginTop: 24,
@@ -584,7 +658,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     color: '#1A3B2F',
-    textTransform: 'uppercase',
+    textTransform: 'capitalize',
   },
   footer: {
     position: 'absolute',

@@ -32,6 +32,11 @@ export default function RegisterScreen() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [fullNameError, setFullNameError] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [phoneNumberError, setPhoneNumberError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [confirmPasswordError, setConfirmPasswordError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [role, setRole] = useState("tourist");
@@ -40,32 +45,83 @@ export default function RegisterScreen() {
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const phonePattern = /^[0-9]{10}$/;
 
+  const handleFullNameChange = (text: string) => {
+    setFullName(text);
+    if (!text.trim()) {
+      setFullNameError("Full name is required.");
+    } else if (text.trim().length < 3) {
+      setFullNameError("Name must be at least 3 characters.");
+    } else {
+      setFullNameError("");
+    }
+  };
+
+  const handleEmailChange = (text: string) => {
+    setEmail(text);
+    if (!text.trim()) {
+      setEmailError("Email address is required.");
+    } else if (!emailPattern.test(text.trim().toLowerCase())) {
+      setEmailError("Please enter a valid email address.");
+    } else {
+      setEmailError("");
+    }
+  };
+
+  const handlePhoneNumberChange = (text: string) => {
+    setPhoneNumber(text);
+    if (!text.trim()) {
+      setPhoneNumberError("Phone number is required.");
+    } else if (!phonePattern.test(text.trim())) {
+      setPhoneNumberError("Enter a valid 10-digit phone number.");
+    } else {
+      setPhoneNumberError("");
+    }
+  };
+
+  const handlePasswordChange = (text: string) => {
+    setPassword(text);
+    if (!text) {
+      setPasswordError("Password is required.");
+    } else if (text.length < 6) {
+      setPasswordError("Password must be at least 6 characters.");
+    } else {
+      setPasswordError("");
+    }
+    if (confirmPassword && text !== confirmPassword) {
+      setConfirmPasswordError("Passwords do not match.");
+    } else if (confirmPassword && text === confirmPassword) {
+      setConfirmPasswordError("");
+    }
+  };
+
+  const handleConfirmPasswordChange = (text: string) => {
+    setConfirmPassword(text);
+    if (!text) {
+      setConfirmPasswordError("Please repeat your password.");
+    } else if (text !== password) {
+      setConfirmPasswordError("Passwords do not match.");
+    } else {
+      setConfirmPasswordError("");
+    }
+  };
+
   const handleRegister = async () => {
     const normalizedEmail = email.trim().toLowerCase();
     const normalizedPhone = phoneNumber.trim();
 
-    if (!fullName.trim() || !normalizedEmail || !normalizedPhone || !password || !confirmPassword) {
-      Alert.alert("Validation", "All fields are required.");
-      return;
-    }
-
-    if (!emailPattern.test(normalizedEmail)) {
-      Alert.alert("Validation", "Please enter a valid email address.");
-      return;
-    }
-
-    if (!phonePattern.test(normalizedPhone)) {
-      Alert.alert("Validation", "Enter a valid 10-digit phone number.");
-      return;
-    }
-
-    if (password.length < 6) {
-      Alert.alert("Validation", "Password must be at least 6 characters.");
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      Alert.alert("Validation", "Passwords do not match.");
+    if (
+      !fullName.trim() ||
+      !normalizedEmail ||
+      !normalizedPhone ||
+      !password ||
+      !confirmPassword ||
+      fullNameError ||
+      emailError ||
+      phoneNumberError ||
+      passwordError ||
+      confirmPasswordError
+    ) {
+      Alert.alert("Validation", "Please correct the errors before registering.");
       return;
     }
 
@@ -160,8 +216,9 @@ export default function RegisterScreen() {
                     placeholder="Enter your name"
                     placeholderTextColor="rgba(26, 59, 47, 0.4)"
                     value={fullName}
-                    onChangeText={setFullName}
+                    onChangeText={handleFullNameChange}
                   />
+                  {fullNameError ? <Text style={styles.errorText}>{fullNameError}</Text> : null}
                 </View>
 
                 <View style={styles.inputContainer}>
@@ -171,10 +228,11 @@ export default function RegisterScreen() {
                     placeholder="name@example.com"
                     placeholderTextColor="rgba(26, 59, 47, 0.4)"
                     value={email}
-                    onChangeText={setEmail}
+                    onChangeText={handleEmailChange}
                     autoCapitalize="none"
                     keyboardType="email-address"
                   />
+                  {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
                 </View>
 
                 <View style={styles.inputContainer}>
@@ -186,8 +244,9 @@ export default function RegisterScreen() {
                     keyboardType="phone-pad"
                     maxLength={10}
                     value={phoneNumber}
-                    onChangeText={setPhoneNumber}
+                    onChangeText={handlePhoneNumberChange}
                   />
+                  {phoneNumberError ? <Text style={styles.errorText}>{phoneNumberError}</Text> : null}
                 </View>
 
                 <View style={styles.inputContainer}>
@@ -199,7 +258,7 @@ export default function RegisterScreen() {
                       placeholderTextColor="rgba(26, 59, 47, 0.4)"
                       secureTextEntry={!showPassword}
                       value={password}
-                      onChangeText={setPassword}
+                      onChangeText={handlePasswordChange}
                     />
                     <Pressable
                       style={styles.eyeButton}
@@ -212,6 +271,7 @@ export default function RegisterScreen() {
                       />
                     </Pressable>
                   </View>
+                  {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
                 </View>
 
                 <View style={styles.inputContainer}>
@@ -223,7 +283,7 @@ export default function RegisterScreen() {
                       placeholderTextColor="rgba(26, 59, 47, 0.4)"
                       secureTextEntry={!showConfirmPassword}
                       value={confirmPassword}
-                      onChangeText={setConfirmPassword}
+                      onChangeText={handleConfirmPasswordChange}
                     />
                     <Pressable
                       style={styles.eyeButton}
@@ -236,6 +296,7 @@ export default function RegisterScreen() {
                       />
                     </Pressable>
                   </View>
+                  {confirmPasswordError ? <Text style={styles.errorText}>{confirmPasswordError}</Text> : null}
                 </View>
 
                 <Pressable
@@ -415,5 +476,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "800",
     textDecorationLine: "underline",
+  },
+  errorText: {
+    color: "#D32F2F",
+    fontSize: 12,
+    fontWeight: "600",
+    marginLeft: 4,
+    marginTop: 2,
   },
 });

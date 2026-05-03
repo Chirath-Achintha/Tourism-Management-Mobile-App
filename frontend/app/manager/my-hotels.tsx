@@ -1,18 +1,21 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, SafeAreaView, Pressable, Image, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '@/constants/api';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter, Stack } from 'expo-router';
+import { useRouter, Stack, useFocusEffect } from 'expo-router';
 
 export default function MyHotelsScreen() {
   const [hotels, setHotels] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedFilter, setSelectedFilter] = useState<'all' | 'verified' | 'pending' | 'declined'>('all');
   const router = useRouter();
 
-  useEffect(() => {
-    fetchMyHotels();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchMyHotels();
+    }, [])
+  );
 
   const fetchMyHotels = async () => {
     try {
@@ -69,6 +72,20 @@ export default function MyHotelsScreen() {
       ]
     );
   };
+
+  const filteredHotels = React.useMemo(() => {
+    let list = hotels;
+    if (selectedFilter !== 'all') {
+      list = list.filter(h => {
+        if (selectedFilter === 'verified') return (h.isVerified === true || h.status === 'verified') && h.status !== 'declined';
+        if (selectedFilter === 'declined') return h.status === 'declined';
+        if (selectedFilter === 'pending') return h.isVerified !== true && h.status !== 'declined';
+        return true;
+      });
+    }
+    return list;
+  }, [hotels, selectedFilter]);
+
   const renderHotelItem = ({ item }: { item: any }) => (
     <View style={styles.card}>
       {item.mainImage ? (
@@ -81,21 +98,36 @@ export default function MyHotelsScreen() {
       <View style={styles.cardContent}>
         <View style={styles.headerRow}>
           <Text style={styles.hotelName}>{item.hotelName}</Text>
-          <View style={[styles.statusBadge, item.isVerified ? styles.verifiedBadge : styles.pendingBadge]}>
-            <Text style={[styles.statusText, item.isVerified ? styles.verifiedText : styles.pendingText]}>
-              {item.isVerified ? 'Verified' : 'Pending'}
+          <View style={[
+            styles.statusBadge, 
+            item.status === 'declined' ? styles.declinedBadge : (item.status === 'verified' || item.isVerified ? styles.verifiedBadge : styles.pendingBadge)
+          ]}>
+            <Text style={[
+              styles.statusText, 
+              item.status === 'declined' ? styles.declinedText : (item.status === 'verified' || item.isVerified ? styles.verifiedText : styles.pendingText)
+            ]}>
+              {item.status === 'declined' ? 'Declined' : (item.status === 'verified' || item.isVerified ? 'Verified' : 'Pending')}
             </Text>
           </View>
         </View>
         <Text style={styles.location}><Ionicons name="location-outline" size={14} /> {item.location}</Text>
         <Text style={styles.contact} numberOfLines={1}>{item.contactEmail} | {item.contactPhone}</Text>
-        
+
+        {item.status === 'declined' && item.declineReason ? (
+          <View style={styles.declineReasonBox}>
+            <Ionicons name="warning" size={14} color="#c62828" />
+            <Text style={styles.declineReasonText}><Text style={{ fontWeight: '800' }}>Reason:</Text> {item.declineReason}</Text>
+          </View>
+        ) : null}
+
         <View style={styles.actions}>
-          <Pressable style={styles.actionBtn} onPress={() => router.push({ pathname: '/manager/edit-hotel', params: { id: item._id } })}>
-            <Ionicons name="pencil" size={16} color="#1A3B2F" />
-            <Text style={styles.actionBtnText}>Edit</Text>
-          </Pressable>
-          <Pressable style={[styles.actionBtn, styles.deleteBtn]} onPress={() => handleDelete(item._id, item.hotelName)}>
+          {item.status !== 'declined' && (
+            <Pressable style={styles.actionBtn} onPress={() => router.push({ pathname: '/manager/edit-hotel', params: { id: item._id } })}>
+              <Ionicons name="pencil" size={16} color="#1A3B2F" />
+              <Text style={styles.actionBtnText}>Edit</Text>
+            </Pressable>
+          )}
+          <Pressable style={[styles.actionBtn, styles.deleteBtn, item.status === 'declined' && { flex: 1 }]} onPress={() => handleDelete(item._id, item.hotelName)}>
             <Ionicons name="trash" size={16} color="#ff4444" />
             <Text style={[styles.actionBtnText, { color: '#ff4444' }]}>Delete</Text>
           </Pressable>
@@ -115,6 +147,35 @@ export default function MyHotelsScreen() {
         <View style={{ width: 40 }} />
       </View>
 
+      {!loading && hotels.length > 0 && (
+        <View style={styles.filterContainer}>
+          <Pressable 
+            style={[styles.filterPill, selectedFilter === 'all' && styles.filterPillActive]} 
+            onPress={() => setSelectedFilter('all')}
+          >
+            <Text style={[styles.filterText, selectedFilter === 'all' && styles.filterTextActive]}>All</Text>
+          </Pressable>
+          <Pressable 
+            style={[styles.filterPill, selectedFilter === 'pending' && styles.filterPillActive]} 
+            onPress={() => setSelectedFilter('pending')}
+          >
+            <Text style={[styles.filterText, selectedFilter === 'pending' && styles.filterTextActive]}>Pending</Text>
+          </Pressable>
+          <Pressable 
+            style={[styles.filterPill, selectedFilter === 'verified' && styles.filterPillActive]} 
+            onPress={() => setSelectedFilter('verified')}
+          >
+            <Text style={[styles.filterText, selectedFilter === 'verified' && styles.filterTextActive]}>Verified</Text>
+          </Pressable>
+          <Pressable 
+            style={[styles.filterPill, selectedFilter === 'declined' && styles.filterPillActive]} 
+            onPress={() => setSelectedFilter('declined')}
+          >
+            <Text style={[styles.filterText, selectedFilter === 'declined' && styles.filterTextActive]}>Declined</Text>
+          </Pressable>
+        </View>
+      )}
+
       {loading ? (
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color="#FFD166" />
@@ -129,11 +190,17 @@ export default function MyHotelsScreen() {
         </View>
       ) : (
         <FlatList
-          data={hotels}
+          data={filteredHotels}
           keyExtractor={(item) => item._id}
           renderItem={renderHotelItem}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.centerContainer}>
+              <Ionicons name="business-outline" size={64} color="rgba(26, 59, 47, 0.2)" />
+              <Text style={styles.emptyText}>No hotels matched this filter.</Text>
+            </View>
+          }
         />
       )}
     </SafeAreaView>
@@ -247,6 +314,9 @@ const styles = StyleSheet.create({
   pendingBadge: {
     backgroundColor: '#fff3cd',
   },
+  declinedBadge: {
+    backgroundColor: '#ffebee',
+  },
   statusText: {
     fontSize: 12,
     fontWeight: '700',
@@ -256,6 +326,37 @@ const styles = StyleSheet.create({
   },
   pendingText: {
     color: '#856404',
+  },
+  declinedText: {
+    color: '#c62828',
+  },
+  filterContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 4,
+  },
+  filterPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: 'rgba(26, 59, 47, 0.08)',
+  },
+  filterPillActive: {
+    backgroundColor: '#FFD166',
+    borderColor: '#FFD166',
+  },
+  filterText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: 'rgba(26, 59, 47, 0.6)',
+  },
+  filterTextActive: {
+    color: '#1A3B2F',
   },
   location: {
     fontSize: 14,
@@ -292,5 +393,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#1A3B2F',
+  },
+  declineReasonBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FFEBEE',
+    borderWidth: 1,
+    borderColor: 'rgba(198, 40, 40, 0.1)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+  },
+  declineReasonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#c62828',
+    flex: 1,
   },
 });

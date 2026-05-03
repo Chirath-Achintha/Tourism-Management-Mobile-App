@@ -15,16 +15,12 @@ const destinationSchema = new mongoose.Schema(
     categories: [{
       type: String,
       required: true,
-      enum: ["Beach", "Mountain", "City", "Cultural"],
+      enum: ["Beach", "Mountain", "City", "Cultural", "Nature", "Landmark", "Adventure", "Wildlife", "Religious", "Historical"],
       trim: true,
     }],
     description: {
       type: String,
       required: true,
-    },
-    startingPrice: {
-      type: Number,
-      default: 0,
     },
     averageTemp: {
       type: String,
