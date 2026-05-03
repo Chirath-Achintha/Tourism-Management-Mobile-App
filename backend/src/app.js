@@ -28,6 +28,25 @@ app.use((req, res, next) => {
 // Serve static files from uploads directory
 app.use("/uploads", express.static("uploads"));
 
+// Welcome route
+app.get("/", (_req, res) => {
+  res.status(200).json({
+    welcome: "Tourism Management Mobile App - Backend API",
+    version: "1.0.0",
+    status: "operational",
+    endpoints: {
+      health: "/api/health",
+      auth: "/api/auth",
+      tours: "/api/tour-packages",
+      destinations: "/api/destinations",
+      hotels: "/api/hotels",
+      guides: "/api/guides",
+      reservations: "/api/reservations",
+      admin: "/api/admin"
+    }
+  });
+});
+
 app.get("/api/health", (_req, res) => {
   res.status(200).json({ message: "Backend is running" });
 });
