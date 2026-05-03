@@ -268,6 +268,7 @@ export default function DashboardScreen() {
       const userData = await AsyncStorage.getItem(AUTH_USER_KEY);
       const token = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
       const favData = await AsyncStorage.getItem("wishlist:favorites");
+      const favoritesIds = favData ? JSON.parse(favData) : [];
       
       let currentUser = null;
       if (userData) {
@@ -288,29 +289,29 @@ export default function DashboardScreen() {
               const firstHotelId = hotelsData[0]?._id;
               setStats({ verified, pending, declined, firstHotelId } as any);
             }
-          }
- else {
-            const res = await fetch(`${API_BASE_URL}/reservations/stats`, {
-              headers: { 'Authorization': `Bearer ${token}` }
-            }),
-            fetch(`${API_BASE_URL}/destinations`)
-          ]);
+          } else {
+            const [statsRes, destinationsRes] = await Promise.all([
+              fetch(`${API_BASE_URL}/reservations/stats`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              }),
+              fetch(`${API_BASE_URL}/destinations`)
+            ]);
 
-          const statsData = await statsRes.json();
-          const destinationsData = await destinationsRes.json();
+            const statsData = await statsRes.json();
+            const destinationsData = await destinationsRes.json();
 
-          if (statsRes.ok) {
-            const wishlistItems = destinationsData.filter((d: any) => favoritesIds.includes(d._id));
-            setStats({
-              ...statsData,
-              wishlistCount: wishlistItems.length,
-              wishlistItems: wishlistItems,
-              onViewWishlist: () => router.push('/(tabs)/favorites' as any),
-              onNavigateToPlace: (id: string) => router.push(`/destination/${id}` as any)
-            });
+            if (statsRes.ok && Array.isArray(destinationsData)) {
+              const wishlistItems = destinationsData.filter((d: any) => favoritesIds.includes(d._id));
+              setStats({
+                ...statsData,
+                wishlistCount: wishlistItems.length,
+                wishlistItems: wishlistItems,
+                onViewWishlist: () => router.push('/(tabs)/favorites' as any),
+                onNavigateToPlace: (id: string) => router.push(`/destination/${id}` as any)
+              });
+            }
           }
         }
-      }
     } catch (error) {
       console.error("Fetch dashboard data failed:", error);
     } finally {
