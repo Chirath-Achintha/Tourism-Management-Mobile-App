@@ -33,6 +33,7 @@ const tourPackageSchema = new mongoose.Schema(
     minParticipants: { type: Number, default: 0 },
     maxParticipants: { type: Number, default: 0 },
     coverImageUri: { type: String, default: '' },
+    coverImageUris: { type: [String], default: [] },
     timeline: { type: [daySchema], default: [] },
     meals: { type: String, default: '' },
     accommodation: { type: String, default: '' },
