@@ -83,12 +83,12 @@ export default function TourPackagesScreen() {
         const itemDestinationName = String(item?.destination || '').trim().toLowerCase();
         const itemSelectedDestinations = Array.isArray(item?.destinations) ? item.destinations : [];
         const matchedByStoredNames = selectedDestinationName
-          ? itemSelectedDestinations.some((name) => normalize(name) === selectedDestinationName)
+          ? itemSelectedDestinations.some((name: any) => normalize(name) === selectedDestinationName)
           : false;
         if (selectedDestinationId && itemDestinationId === selectedDestinationId) return true;
         if (selectedDestinationName && (itemDestinationName === selectedDestinationName || matchedByStoredNames)) return true;
         if (selectedLocation) {
-          const matchedByLocation = itemSelectedDestinations.some((name) => {
+          const matchedByLocation = itemSelectedDestinations.some((name: any) => {
             const matchedDestination = destinations.find((dest) => normalize(dest.name) === normalize(name));
             return normalize(matchedDestination?.location) === selectedLocation;
           });
@@ -101,7 +101,7 @@ export default function TourPackagesScreen() {
     if (selectedLocation) {
       list = list.filter((item) => {
         const itemSelectedDestinations = Array.isArray(item?.destinations) ? item.destinations : [];
-        return itemSelectedDestinations.some((name) => {
+        return itemSelectedDestinations.some((name: any) => {
           const matchedDestination = destinations.find((dest) => normalize(dest.name) === normalize(name));
           return normalize(matchedDestination?.location) === selectedLocation;
         });

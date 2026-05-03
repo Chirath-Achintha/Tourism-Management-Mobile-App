@@ -241,7 +241,7 @@ export default function TourPackageDetailScreen() {
           <Text style={styles.sectionTitle}>Visit Locations</Text>
           {visitLocations.length > 0 ? (
             <View style={styles.locationChipsWrap}>
-              {visitLocations.map((location: string, index: number) => (
+              {(visitLocations as any).map((location: string, index: number) => (
                 <View key={`${location}-${index}`} style={styles.locationChip}>
                   <Ionicons name="location-outline" size={14} color={COLORS.blue} />
                   <Text style={styles.locationChipText} numberOfLines={1}>{location}</Text>

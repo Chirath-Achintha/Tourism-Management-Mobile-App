@@ -122,7 +122,7 @@ export default function EditTourPackageScreen() {
   }, [packageId, router]);
 
   const updateField = <K extends keyof FormState>(field: K, value: FormState[K]) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    setForm((prev: any) => ({ ...prev, [field]: value }));
   };
 
   const setPlaceMode = (dayIndex: number, placeIndex: number, mode: 'system' | 'custom') => {
