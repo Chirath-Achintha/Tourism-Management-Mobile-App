@@ -470,6 +470,7 @@ export default function SearchPlacesScreen() {
 
   if (loading) return null;
 
+  // Hotel creation/registration page for managers starts here
   if (role === 'hotel_manager') {
     return (
       <SafeAreaView style={styles.container}>
