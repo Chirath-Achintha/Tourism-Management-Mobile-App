@@ -1,5 +1,10 @@
+import "dotenv/config";
 import mongoose from "mongoose";
-const MONGO_URI = "mongodb+srv://medhavi:EF8ciehEVbWLIzew@cluster3.c4rzjvh.mongodb.net/tourism-data?retryWrites=true&w=majority";
+import dns from "dns";
+
+dns.setServers(["8.8.8.8", "1.1.1.1"]);
+
+const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://uvindu:dDa9swyxl9VHzSg4@cluster3.c4rzjvh.mongodb.net/tourism-data?retryWrites=true&w=majority";
 
 console.log("Attempting to connect to:", MONGO_URI);
 

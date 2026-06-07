@@ -1,6 +1,11 @@
+require('dotenv').config();
 const mongoose = require('mongoose');
+const dns = require('dns');
 
-const mongoURI = "mongodb+srv://sanuvi:kv9ufhjK3iPwmgtz@cluster3.c4rzjvh.mongodb.net/tourism-data?appName=Cluster3";
+// Fix for MongoDB DNS issues
+dns.setServers(["8.8.8.8", "1.1.1.1"]);
+
+const mongoURI = process.env.MONGO_URI || "mongodb+srv://uvindu:dDa9swyxl9VHzSg4@cluster3.c4rzjvh.mongodb.net/tourism-data?retryWrites=true&w=majority";
 
 async function checkDestinations() {
   try {
